@@ -1,0 +1,8 @@
+*.pdf
+*.jpg
+
+.claude
+
+docs/agents/**
+docs/adr/**
+.scratch/**
