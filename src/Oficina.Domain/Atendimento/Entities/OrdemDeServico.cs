@@ -3,6 +3,7 @@ using Oficina.Domain.Atendimento.Entities.ValueObjects;
 using Oficina.Domain.Atendimento.Events;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.Common;
+using Oficina.Domain.Estoque;
 
 namespace Oficina.Domain.Atendimento.Entities;
 
@@ -15,6 +16,23 @@ public sealed class ServicoDaOs
     internal ServicoDaOs(Guid servicoId) => ServicoId = servicoId;
 
     public Guid ServicoId { get; private set; }
+}
+
+public sealed class ItemDaOs
+{
+    private ItemDaOs()
+    {
+    }
+
+    internal ItemDaOs(Guid pecaInsumoId, decimal quantidade)
+    {
+        PecaInsumoId = pecaInsumoId;
+        Quantidade = quantidade;
+    }
+
+    public Guid PecaInsumoId { get; private set; }
+
+    public decimal Quantidade { get; internal set; }
 }
 
 public sealed class EntradaDoHistoricoDeStatus
@@ -44,6 +62,7 @@ public sealed class EntradaDoHistoricoDeStatus
 public sealed class OrdemDeServico : RaizDeAgregado
 {
     private readonly List<ServicoDaOs> _servicos = [];
+    private readonly List<ItemDaOs> _itensDePecaInsumo = [];
     private readonly List<EntradaDoHistoricoDeStatus> _historico = [];
 
     private OrdemDeServico()
@@ -64,6 +83,10 @@ public sealed class OrdemDeServico : RaizDeAgregado
     public DateTimeOffset AbertaEm { get; private set; }
 
     public IReadOnlyList<ServicoDaOs> Servicos => _servicos;
+
+    public IReadOnlyList<ItemDaOs> ItensDePecaInsumo => _itensDePecaInsumo;
+
+    public string? MotivoDaUltimaRecusa { get; private set; }
 
     public IReadOnlyList<EntradaDoHistoricoDeStatus> Historico => _historico;
 
@@ -115,7 +138,7 @@ public sealed class OrdemDeServico : RaizDeAgregado
 
     public void IncluirServico(Servico servico)
     {
-        GarantirRecebida();
+        GarantirServicosEditaveis();
         servico.GarantirAtivo();
 
         if (_servicos.Any(s => s.ServicoId == servico.Id))
@@ -128,7 +151,7 @@ public sealed class OrdemDeServico : RaizDeAgregado
 
     public void RemoverServico(Guid servicoId)
     {
-        GarantirRecebida();
+        GarantirServicosEditaveis();
 
         var existente = _servicos.FirstOrDefault(s => s.ServicoId == servicoId)
             ?? throw new RecursoNaoEncontradoException("O Servico nao esta na OS.");
@@ -141,11 +164,80 @@ public sealed class OrdemDeServico : RaizDeAgregado
         _servicos.Remove(existente);
     }
 
-    private void GarantirRecebida()
+    public void IniciarDiagnostico(string autor, DateTimeOffset agora)
     {
         if (Status != StatusOs.Recebida)
         {
-            throw new ConflitoDeEstadoException("Os servicos so podem ser ajustados pelo Atendente enquanto a OS esta Recebida.");
+            throw new ConflitoDeEstadoException("O diagnostico so pode ser iniciado em uma OS Recebida.");
+        }
+
+        MudarStatus(StatusOs.EmDiagnostico, autor, agora);
+        Registrar(new DiagnosticoIniciado(Id, Numero.Valor, agora));
+    }
+
+    public void IncluirPecaInsumo(PecaInsumo peca, Quantidade quantidade, DateTimeOffset agora)
+    {
+        GarantirEmDiagnostico();
+
+        peca.Baixar(quantidade);
+
+        var existente = _itensDePecaInsumo.FirstOrDefault(i => i.PecaInsumoId == peca.Id);
+        if (existente is null)
+        {
+            _itensDePecaInsumo.Add(new ItemDaOs(peca.Id, quantidade.Valor));
+        }
+        else
+        {
+            existente.Quantidade += quantidade.Valor;
+        }
+
+        Registrar(new ItemIncluido(Id, peca.Id, quantidade.Valor, agora));
+    }
+
+    public void RemoverPecaInsumo(PecaInsumo peca, decimal? quantidade)
+    {
+        GarantirEmDiagnostico();
+
+        var existente = _itensDePecaInsumo.FirstOrDefault(i => i.PecaInsumoId == peca.Id)
+            ?? throw new RecursoNaoEncontradoException("A Peca/insumo nao esta na OS.");
+
+        var removida = quantidade ?? existente.Quantidade;
+        if (removida > existente.Quantidade)
+        {
+            throw new DadosInvalidosException("A quantidade a remover excede a quantidade incluida na OS.");
+        }
+
+        peca.Estornar(Quantidade.Criar(removida, peca.Tipo));
+
+        if (removida == existente.Quantidade)
+        {
+            _itensDePecaInsumo.Remove(existente);
+        }
+        else
+        {
+            existente.Quantidade -= removida;
+        }
+    }
+
+    private void MudarStatus(StatusOs destino, string autor, DateTimeOffset agora)
+    {
+        _historico.Add(new EntradaDoHistoricoDeStatus(Status, destino, agora, autor));
+        Status = destino;
+    }
+
+    private void GarantirEmDiagnostico()
+    {
+        if (Status != StatusOs.EmDiagnostico)
+        {
+            throw new ConflitoDeEstadoException("Pecas e insumos so podem ser ajustados enquanto a OS esta Em diagnostico.");
+        }
+    }
+
+    private void GarantirServicosEditaveis()
+    {
+        if (Status is not (StatusOs.Recebida or StatusOs.EmDiagnostico))
+        {
+            throw new ConflitoDeEstadoException("Os servicos so podem ser ajustados enquanto a OS esta Recebida ou Em diagnostico.");
         }
     }
 }

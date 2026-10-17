@@ -25,35 +25,39 @@ public static class PecasInsumosEndpoints
     public static IEndpointRouteBuilder MapPecasInsumos(this IEndpointRouteBuilder app)
     {
         var grupo = app.MapGroup("/api/pecas-insumos")
-            .WithTags("Peças/insumos")
-            .RequireAuthorization(Politicas.Gerente);
+            .WithTags("Peças/insumos");
 
         grupo.MapPost("/", async (CadastrarPecaInsumo comando, CadastrarPecaInsumoCasoDeUso caso, CancellationToken ct) =>
         {
             var dto = await caso.Executar(comando, ct);
             return Results.Created($"/api/pecas-insumos/{dto.Id}", dto);
-        });
+        }).RequireAuthorization(Politicas.Gerente);
 
         grupo.MapGet("/", async (bool? incluirInativos, ConsultarPecasInsumosCasoDeUso caso, CancellationToken ct) =>
-            Results.Ok(await caso.Listar(incluirInativos ?? false, ct)));
+            Results.Ok(await caso.Listar(incluirInativos ?? false, ct)))
+            .RequireAuthorization(Politicas.Mecanico);
 
         grupo.MapGet("/{id:guid}", async (Guid id, ConsultarPecasInsumosCasoDeUso caso, CancellationToken ct) =>
-            Results.Ok(await caso.Obter(id, ct)));
+            Results.Ok(await caso.Obter(id, ct)))
+            .RequireAuthorization(Politicas.Mecanico);
 
         grupo.MapPut("/{id:guid}", async (Guid id, AtualizarPecaInsumo comando, AtualizarPecaInsumoCasoDeUso caso, CancellationToken ct) =>
-            Results.Ok(await caso.Executar(id, comando, ct)));
+            Results.Ok(await caso.Executar(id, comando, ct)))
+            .RequireAuthorization(Politicas.Gerente);
 
         grupo.MapDelete("/{id:guid}", async (Guid id, InativarPecaInsumoCasoDeUso caso, CancellationToken ct) =>
         {
             await caso.Executar(id, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Politicas.Gerente);
 
         grupo.MapPost("/{id:guid}/entradas", async (Guid id, EntradaDeMercadoriaRequisicao corpo, RegistrarEntradaDeMercadoriaCasoDeUso caso, CancellationToken ct) =>
-            Results.Ok(await caso.Executar(id, corpo.Quantidade, ct)));
+            Results.Ok(await caso.Executar(id, corpo.Quantidade, ct)))
+            .RequireAuthorization(Politicas.Gerente);
 
         grupo.MapGet("/{id:guid}/saldo", async (Guid id, ConsultarPecasInsumosCasoDeUso caso, CancellationToken ct) =>
-            Results.Ok(await caso.ConsultarSaldo(id, ct)));
+            Results.Ok(await caso.ConsultarSaldo(id, ct)))
+            .RequireAuthorization(Politicas.Mecanico);
 
         return app;
     }

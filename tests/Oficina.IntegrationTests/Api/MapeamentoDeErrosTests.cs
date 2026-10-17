@@ -47,4 +47,23 @@ public class MapeamentoDeErrosTests
 
         Assert.False(tratada);
     }
+
+    [Fact]
+    public async Task Violacao_de_unicidade_do_banco_vira_409()
+    {
+        var contexto = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection().AddOptions().AddProblemDetails().BuildServiceProvider()
+        };
+        contexto.Response.Body = new MemoryStream();
+        var tratador = new TratadorDeExcecoesDeDominio(contexto.RequestServices.GetRequiredService<IProblemDetailsService>());
+        var excecao = new Microsoft.EntityFrameworkCore.DbUpdateException(
+            "falhou",
+            new Npgsql.PostgresException("duplicado", "ERROR", "ERROR", Npgsql.PostgresErrorCodes.UniqueViolation));
+
+        var tratada = await tratador.TryHandleAsync(contexto, excecao, CancellationToken.None);
+
+        Assert.True(tratada);
+        Assert.Equal(409, contexto.Response.StatusCode);
+    }
 }

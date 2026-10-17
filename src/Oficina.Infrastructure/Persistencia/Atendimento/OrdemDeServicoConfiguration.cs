@@ -4,6 +4,7 @@ using Oficina.Domain.Atendimento.Entities;
 using Oficina.Domain.Atendimento.Entities.Enums;
 using Oficina.Domain.Atendimento.Entities.ValueObjects;
 using Oficina.Domain.CatalogoEstoque.Entities;
+using Oficina.Domain.Estoque;
 
 namespace Oficina.Infrastructure.Persistencia.Atendimento;
 
@@ -40,6 +41,19 @@ public sealed class OrdemDeServicoConfiguration : IEntityTypeConfiguration<Ordem
             servicos.HasOne<Servico>().WithMany().HasForeignKey(s => s.ServicoId).OnDelete(DeleteBehavior.Restrict);
         });
         builder.Navigation(o => o.Servicos).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Property(o => o.MotivoDaUltimaRecusa).HasMaxLength(500);
+
+        builder.OwnsMany(o => o.ItensDePecaInsumo, itens =>
+        {
+            itens.ToTable("ordens_de_servico_itens");
+            itens.WithOwner().HasForeignKey("OrdemDeServicoId");
+            itens.HasKey("OrdemDeServicoId", nameof(ItemDaOs.PecaInsumoId));
+            itens.Property(i => i.PecaInsumoId).ValueGeneratedNever();
+            itens.Property(i => i.Quantidade).HasColumnType("numeric(14,3)").IsRequired();
+            itens.HasOne<PecaInsumo>().WithMany().HasForeignKey(i => i.PecaInsumoId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Navigation(o => o.ItensDePecaInsumo).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.OwnsMany(o => o.Historico, historico =>
         {

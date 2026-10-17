@@ -10,6 +10,8 @@ public sealed record AbrirOsRequest(Guid ClienteId, Guid VeiculoId, IReadOnlyCol
 
 public sealed record IncluirServicoNaOsRequest(Guid ServicoId);
 
+public sealed record IncluirPecaInsumoNaOsRequest(Guid PecaInsumoId, decimal Quantidade);
+
 public static class OrdensDeServicoEndpoints
 {
     public static IServiceCollection AddOrdensDeServico(this IServiceCollection services)
@@ -19,6 +21,9 @@ public static class OrdensDeServicoEndpoints
         services.AddScoped<RemoverServicoDaOs>();
         services.AddScoped<ListarOs>();
         services.AddScoped<DetalharOs>();
+        services.AddScoped<IniciarDiagnostico>();
+        services.AddScoped<IncluirPecaInsumoNaOs>();
+        services.AddScoped<RemoverPecaInsumoDaOs>();
         return services;
     }
 
@@ -41,21 +46,42 @@ public static class OrdensDeServicoEndpoints
 
         ordens.MapGet("/{id:guid}", async (Guid id, DetalharOs caso, CancellationToken ct) =>
                 Results.Ok(await caso.Executar(id, ct)))
-            .RequireAuthorization(Politicas.Atendente);
+            .RequireAuthorization(Politicas.AtendenteOuMecanico);
 
         ordens.MapPost("/{id:guid}/servicos", async (Guid id, IncluirServicoNaOsRequest requisicao, IncluirServicoNaOs caso, CancellationToken ct) =>
             {
                 await caso.Executar(id, requisicao.ServicoId, ct);
                 return Results.NoContent();
             })
-            .RequireAuthorization(Politicas.Atendente);
+            .RequireAuthorization(Politicas.AtendenteOuMecanico);
 
         ordens.MapDelete("/{id:guid}/servicos/{servicoId:guid}", async (Guid id, Guid servicoId, RemoverServicoDaOs caso, CancellationToken ct) =>
             {
                 await caso.Executar(id, servicoId, ct);
                 return Results.NoContent();
             })
-            .RequireAuthorization(Politicas.Atendente);
+            .RequireAuthorization(Politicas.AtendenteOuMecanico);
+
+        ordens.MapPost("/{id:guid}/diagnostico/iniciar", async (Guid id, IniciarDiagnostico caso, ClaimsPrincipal usuario, CancellationToken ct) =>
+            {
+                await caso.Executar(id, Autor(usuario), ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Politicas.Mecanico);
+
+        ordens.MapPost("/{id:guid}/pecas-insumos", async (Guid id, IncluirPecaInsumoNaOsRequest requisicao, IncluirPecaInsumoNaOs caso, CancellationToken ct) =>
+            {
+                await caso.Executar(id, requisicao.PecaInsumoId, requisicao.Quantidade, ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Politicas.Mecanico);
+
+        ordens.MapDelete("/{id:guid}/pecas-insumos/{pecaInsumoId:guid}", async (Guid id, Guid pecaInsumoId, decimal? quantidade, RemoverPecaInsumoDaOs caso, CancellationToken ct) =>
+            {
+                await caso.Executar(id, pecaInsumoId, quantidade, ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Politicas.Mecanico);
 
         return administrativo;
     }

@@ -30,6 +30,7 @@ public static class AutenticacaoKeycloak
         services.AddAuthorizationBuilder()
             .AddPolicy(Politicas.Atendente, p => p.RequireRole(Politicas.Atendente, Politicas.Gerente))
             .AddPolicy(Politicas.Mecanico, p => p.RequireRole(Politicas.Mecanico, Politicas.Gerente))
+            .AddPolicy(Politicas.AtendenteOuMecanico, p => p.RequireRole(Politicas.Atendente, Politicas.Mecanico, Politicas.Gerente))
             .AddPolicy(Politicas.Gerente, p => p.RequireRole(Politicas.Gerente));
 
         return services;

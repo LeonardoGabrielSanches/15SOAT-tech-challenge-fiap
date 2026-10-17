@@ -61,6 +61,10 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                     b.Property<Guid>("ClienteId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("MotivoDaUltimaRecusa")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Numero")
                         .IsRequired()
                         .HasMaxLength(13)
@@ -300,6 +304,33 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                                 .HasForeignKey("OrdemDeServicoId");
                         });
 
+                    b.OwnsMany("Oficina.Domain.Atendimento.Entities.ItemDaOs", "ItensDePecaInsumo", b1 =>
+                        {
+                            b1.Property<Guid>("OrdemDeServicoId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("PecaInsumoId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Quantidade")
+                                .HasColumnType("numeric(14,3)");
+
+                            b1.HasKey("OrdemDeServicoId", "PecaInsumoId");
+
+                            b1.HasIndex("PecaInsumoId");
+
+                            b1.ToTable("ordens_de_servico_itens", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrdemDeServicoId");
+
+                            b1.HasOne("Oficina.Domain.Estoque.PecaInsumo", null)
+                                .WithMany()
+                                .HasForeignKey("PecaInsumoId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
                     b.OwnsMany("Oficina.Domain.Atendimento.Entities.ServicoDaOs", "Servicos", b1 =>
                         {
                             b1.Property<Guid>("OrdemDeServicoId")
@@ -325,6 +356,8 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                         });
 
                     b.Navigation("Historico");
+
+                    b.Navigation("ItensDePecaInsumo");
 
                     b.Navigation("Servicos");
                 });

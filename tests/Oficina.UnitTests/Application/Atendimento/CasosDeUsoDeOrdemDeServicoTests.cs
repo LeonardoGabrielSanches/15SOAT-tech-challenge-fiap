@@ -10,6 +10,7 @@ using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 using Oficina.Domain.Common;
+using Oficina.Domain.Estoque;
 using Oficina.UnitTests.Domain.Atendimento;
 
 namespace Oficina.UnitTests.Application.Atendimento;
@@ -20,6 +21,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
     private readonly Mock<IClienteRepository> _clientes = new();
     private readonly Mock<IVeiculoRepository> _veiculos = new();
     private readonly Mock<IServicoRepository> _servicos = new();
+    private readonly Mock<IRepositorioDePecaInsumo> _pecas = new();
     private readonly Mock<IGeradorNumeroOs> _gerador = new();
     private readonly Mock<IUnidadeDeTrabalho> _unidade = new();
     private readonly TimeProvider _relogio = RelogioFixo.Em(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.Zero));
@@ -225,7 +227,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
     {
         var existente = ServicoExistente("Alinhamento");
         var os = OsRecebida(existente);
-        typeof(OrdemDeServico).GetProperty(nameof(OrdemDeServico.Status))!.SetValue(os, StatusOs.EmDiagnostico);
+        typeof(OrdemDeServico).GetProperty(nameof(OrdemDeServico.Status))!.SetValue(os, StatusOs.Aprovada);
         var novo = ServicoExistente("Balanceamento");
 
         await Assert.ThrowsAsync<ConflitoDeEstadoException>(() =>
@@ -332,7 +334,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
         var servico = ServicoExistente();
         var os = OsRecebida(servico);
 
-        var detalhe = await new DetalharOs(_ordens.Object, _clientes.Object, _veiculos.Object, _servicos.Object)
+        var detalhe = await new DetalharOs(_ordens.Object, _clientes.Object, _veiculos.Object, _servicos.Object, _pecas.Object)
             .Executar(os.Id, CancellationToken.None);
 
         Assert.Equal("OS-2026-00001", detalhe.Numero);
@@ -349,7 +351,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
     public async Task Detalhar_os_inexistente_e_rejeitado()
     {
         await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() =>
-            new DetalharOs(_ordens.Object, _clientes.Object, _veiculos.Object, _servicos.Object)
+            new DetalharOs(_ordens.Object, _clientes.Object, _veiculos.Object, _servicos.Object, _pecas.Object)
                 .Executar(Guid.NewGuid(), CancellationToken.None));
     }
 }

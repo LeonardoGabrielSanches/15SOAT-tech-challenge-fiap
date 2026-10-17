@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Oficina.Domain.Common;
 
 namespace Oficina.Api.Erros;
@@ -13,6 +15,8 @@ public sealed class TratadorDeExcecoesDeDominio(IProblemDetailsService problemas
             RecursoNaoEncontradoException => (StatusCodes.Status404NotFound, "Recurso nao encontrado"),
             ConflitoDeEstadoException => (StatusCodes.Status409Conflict, "Conflito de estado"),
             DadosInvalidosException => (StatusCodes.Status422UnprocessableEntity, "Dados invalidos"),
+            DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } } =>
+                (StatusCodes.Status409Conflict, "Conflito de estado"),
             _ => (0, "")
         };
 

@@ -4,6 +4,7 @@ using Oficina.Domain.Atendimento.Entities.Enums;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 using Oficina.Domain.Common;
+using Oficina.Domain.Estoque;
 
 namespace Oficina.Application.Atendimento.UseCases;
 
@@ -21,6 +22,8 @@ public sealed record OrdemDeServicoResumoDto(
 
 public sealed record ServicoDaOsDto(Guid ServicoId, string Nome, decimal Preco);
 
+public sealed record ItemDePecaInsumoDaOsDto(Guid PecaInsumoId, string Nome, string UnidadeDeMedida, decimal Quantidade, decimal Preco);
+
 public sealed record VersaoDoOrcamentoDto(int Numero, decimal Total, string Situacao, DateTimeOffset GeradaEm);
 
 public sealed record EntradaDoHistoricoDto(string? Origem, string Destino, DateTimeOffset Momento, string Autor);
@@ -34,7 +37,9 @@ public sealed record OrdemDeServicoDetalheDto(
     VeiculoDto Veiculo,
     IReadOnlyList<ServicoDaOsDto> Servicos,
     IReadOnlyList<VersaoDoOrcamentoDto> VersoesDoOrcamento,
-    IReadOnlyList<EntradaDoHistoricoDto> Historico);
+    IReadOnlyList<EntradaDoHistoricoDto> Historico,
+    IReadOnlyList<ItemDePecaInsumoDaOsDto> PecasInsumos,
+    string? MotivoDaUltimaRecusa);
 
 internal static class BuscaDeOrdemDeServico
 {
@@ -158,7 +163,8 @@ public sealed class DetalharOs(
     IOrdemDeServicoRepository ordens,
     IClienteRepository clientes,
     IVeiculoRepository veiculos,
-    IServicoRepository servicos)
+    IServicoRepository servicos,
+    IRepositorioDePecaInsumo pecas)
 {
     public async Task<OrdemDeServicoDetalheDto> Executar(Guid id, CancellationToken cancellationToken)
     {
@@ -176,6 +182,13 @@ public sealed class DetalharOs(
             .Select(h => new EntradaDoHistoricoDto(h.Origem?.ToString(), h.Destino.ToString(), h.Momento, h.Autor))
             .ToList();
 
+        var pecasInsumos = new List<ItemDePecaInsumoDaOsDto>();
+        foreach (var item in os.ItensDePecaInsumo)
+        {
+            var peca = await BuscaDePecaInsumo.ObterOuFalhar(pecas, item.PecaInsumoId, cancellationToken);
+            pecasInsumos.Add(new ItemDePecaInsumoDaOsDto(peca.Id, peca.Nome, peca.UnidadeDeMedida, item.Quantidade, peca.Preco.Valor));
+        }
+
         return new OrdemDeServicoDetalheDto(
             os.Id,
             os.Numero.Valor,
@@ -185,6 +198,8 @@ public sealed class DetalharOs(
             VeiculoDto.De(veiculo),
             itens,
             [],
-            historico);
+            historico,
+            pecasInsumos.OrderBy(p => p.Nome).ToList(),
+            os.MotivoDaUltimaRecusa);
     }
 }
