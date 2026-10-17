@@ -18,6 +18,7 @@ var keycloak = builder.Configuration.GetSection(OpcoesDoKeycloak.Secao).Get<Opco
 
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddCadastroDeClientes();
+builder.Services.AddCadastroDeVeiculos();
 builder.Services.AddKeycloakAuthentication(keycloak);
 builder.Services.AddPecasInsumos();
 builder.Services.AddCatalogoDeServicos();
@@ -70,6 +71,7 @@ administrativo.MapGet("/politicas/{nome}", async (string nome, HttpContext http,
 
 app.MapPecasInsumos();
 administrativo.MapClientes();
+administrativo.MapVeiculos();
 app.MapCatalogoDeServicos();
 
 app.Run();

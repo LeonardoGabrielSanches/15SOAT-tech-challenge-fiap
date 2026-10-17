@@ -50,6 +50,45 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                     b.ToTable("clientes", (string)null);
                 });
 
+            modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.Veiculo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AnoFabricacao")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Marca")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Modelo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Placa")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<Guid>("ProprietarioId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Placa")
+                        .IsUnique();
+
+                    b.HasIndex("ProprietarioId");
+
+                    b.ToTable("veiculos", (string)null);
+                });
+
             modelBuilder.Entity("Oficina.Domain.CatalogoEstoque.Entities.Servico", b =>
                 {
                     b.Property<Guid>("Id")
@@ -153,6 +192,15 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                         });
 
                     b.Navigation("Documento")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.Veiculo", b =>
+                {
+                    b.HasOne("Oficina.Domain.Atendimento.Entities.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ProprietarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618
