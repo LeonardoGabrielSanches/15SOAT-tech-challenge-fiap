@@ -46,6 +46,10 @@ _Avoid_: Criada, aberta
 Status da OS cuja Versão do orçamento mais recente foi aprovada pelo Cliente e que aguarda o Mecânico iniciar a execução.
 _Avoid_: Autorizada, liberada
 
+**Fila de execução**:
+As OS Aprovadas, ordenadas pela abertura, de onde o Mecânico escolhe a próxima a executar.
+_Avoid_: Backlog, fila de trabalho
+
 **Cancelada**:
 Status final de uma OS abandonada antes da execução, com motivo obrigatório; devolve ao estoque todas as peças/insumos baixados para ela.
 
