@@ -14,6 +14,8 @@ public sealed record IncluirServicoNaOsRequest(Guid ServicoId);
 
 public sealed record IncluirPecaInsumoNaOsRequest(Guid PecaInsumoId, decimal Quantidade);
 
+public sealed record CancelarOsRequest(string? Motivo);
+
 public static class OrdensDeServicoEndpoints
 {
     public static IServiceCollection AddOrdensDeServico(this IServiceCollection services)
@@ -31,6 +33,7 @@ public static class OrdensDeServicoEndpoints
         services.AddScoped<IniciarExecucao>();
         services.AddScoped<FinalizarExecucao>();
         services.AddScoped<RegistrarEntrega>();
+        services.AddScoped<CancelarOs>();
         services.AddScoped<IManipuladorDeEvento<DiagnosticoConcluido>, EnviarOrcamentoAoConcluirDiagnostico>();
         return services;
     }
@@ -83,6 +86,13 @@ public static class OrdensDeServicoEndpoints
                 return Results.NoContent();
             })
             .RequireAuthorization(Politicas.Mecanico);
+
+        ordens.MapPost("/{id:guid}/cancelar", async (Guid id, CancelarOsRequest requisicao, CancelarOs caso, ClaimsPrincipal usuario, CancellationToken ct) =>
+            {
+                await caso.Executar(id, requisicao.Motivo ?? string.Empty, Autor(usuario), ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Politicas.Atendente);
 
         ordens.MapPost("/{id:guid}/pecas-insumos", async (Guid id, IncluirPecaInsumoNaOsRequest requisicao, IncluirPecaInsumoNaOs caso, CancellationToken ct) =>
             {
