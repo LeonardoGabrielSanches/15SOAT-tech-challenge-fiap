@@ -1,0 +1,12 @@
+  Determinando os projetos a serem restaurados...
+  Todos os projetos estão atualizados para restauração.
+
+As fontes a seguir foram usadas:
+   https://api.nuget.org/v3/index.json
+
+O projeto fornecido `Oficina.Domain` não tem nenhum pacote vulnerável, considerando as fontes atuais.
+O projeto fornecido `Oficina.Application` não tem nenhum pacote vulnerável, considerando as fontes atuais.
+O projeto fornecido `Oficina.Infrastructure` não tem nenhum pacote vulnerável, considerando as fontes atuais.
+O projeto fornecido `Oficina.Api` não tem nenhum pacote vulnerável, considerando as fontes atuais.
+O projeto fornecido `Oficina.UnitTests` não tem nenhum pacote vulnerável, considerando as fontes atuais.
+O projeto fornecido `Oficina.IntegrationTests` não tem nenhum pacote vulnerável, considerando as fontes atuais.
