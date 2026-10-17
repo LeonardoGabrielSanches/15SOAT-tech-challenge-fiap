@@ -1,6 +1,8 @@
 # Alterações a refletir no quadro de Event Storming
 
-Mudanças decididas após a primeira versão do quadro (`event-storming.jpg`). Aplicar no quadro (Miro) e reexportar a imagem; depois atualizar a transcrição em `event-storming.md`.
+**Status: aplicado.** Todas as mudanças abaixo (A1–A20, B1, C1–C2, Bounded Contexts e hotspots fora do MVP) estão refletidas no quadro versão 2 (`event-storming.png`, `event-storming.pdf`, fonte em `event-storming.html`) e na transcrição `event-storming.md`. A foto anterior foi mantida como `event-storming-v1.jpg`.
+
+Mudanças decididas após a primeira versão do quadro (`event-storming-v1.jpg`).
 
 ## 1. Fluxo da Ordem de Serviço
 
