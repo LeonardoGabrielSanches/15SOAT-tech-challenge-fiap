@@ -292,4 +292,119 @@ public class CasosDeUsoDeDiagnosticoTests
 
         Assert.Equal([novo.Id], os.Servicos.Select(s => s.ServicoId));
     }
+
+    private Task Concluir(OrdemDeServico os, string autor = "mecanico-1") =>
+        new ConcluirDiagnostico(_ordens.Object, _servicos.Object, _pecas.Object, _unidade.Object, _relogio)
+            .Executar(os.Id, autor, CancellationToken.None);
+
+    private void Catalogo(params Servico[] servicos) =>
+        _servicos.Setup(r => r.ObterPorIds(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(servicos);
+
+    [Fact]
+    public async Task Concluir_gera_versao_com_total_historico_e_evento()
+    {
+        var os = Os(StatusOs.EmDiagnostico);
+        Catalogo(_servico);
+        var filtro = Peca(saldo: 10m);
+        await Incluir(os, filtro, 3m);
+
+        await Concluir(os);
+
+        Assert.Equal(StatusOs.AguardandoAprovacao, os.Status);
+        var versao = Assert.Single(os.Versoes);
+        Assert.Equal((1, 175m, SituacaoDaVersao.Pendente), (versao.Numero, versao.Total, versao.Situacao));
+        Assert.Equal(2, versao.Itens.Count);
+        Assert.NotEmpty(versao.Token);
+        var entrada = os.Historico[^1];
+        Assert.Equal((StatusOs.EmDiagnostico, StatusOs.AguardandoAprovacao, "mecanico-1"), (entrada.Origem, entrada.Destino, entrada.Autor));
+        var evento = Assert.Single(os.EventosDeDominio.OfType<DiagnosticoConcluido>());
+        Assert.Equal((175m, versao.Token, 1), (evento.Total, evento.Token, evento.Versao));
+        _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task Mudar_preco_no_catalogo_depois_da_geracao_nao_altera_a_versao()
+    {
+        var os = Os(StatusOs.EmDiagnostico);
+        Catalogo(_servico);
+        var filtro = Peca(saldo: 10m);
+        await Incluir(os, filtro, 2m);
+        await Concluir(os);
+
+        _servico.Atualizar("Troca de oleo", null, Dinheiro.De(999m));
+        filtro.Atualizar("Filtro", "un", Dinheiro.De(999m));
+
+        var versao = os.Versoes[0];
+        Assert.Equal(150m, versao.Total);
+        Assert.Equal([100m, 25m], versao.Itens.Select(i => i.PrecoUnitario));
+        Assert.Equal([1m, 2m], versao.Itens.Select(i => i.Quantidade));
+    }
+
+    [Fact]
+    public async Task Nova_conclusao_cria_nova_versao_e_supera_o_token_anterior()
+    {
+        var os = Os(StatusOs.EmDiagnostico);
+        Catalogo(_servico);
+        await Concluir(os);
+        typeof(OrdemDeServico).GetProperty(nameof(OrdemDeServico.Status))!.SetValue(os, StatusOs.EmDiagnostico);
+
+        await Concluir(os);
+
+        Assert.Equal([1, 2], os.Versoes.Select(v => v.Numero));
+        Assert.Equal([SituacaoDaVersao.Superada, SituacaoDaVersao.Pendente], os.Versoes.Select(v => v.Situacao));
+        Assert.NotEqual(os.Versoes[0].Token, os.Versoes[1].Token);
+        Assert.Same(os.Versoes[1], os.VersaoVigente);
+    }
+
+    [Theory]
+    [InlineData(StatusOs.Recebida)]
+    [InlineData(StatusOs.AguardandoAprovacao)]
+    [InlineData(StatusOs.Aprovada)]
+    [InlineData(StatusOs.Cancelada)]
+    public async Task Concluir_fora_de_em_diagnostico_e_conflito(StatusOs status)
+    {
+        var os = Os(status);
+        Catalogo(_servico);
+
+        await Assert.ThrowsAsync<ConflitoDeEstadoException>(() => Concluir(os));
+
+        Assert.Empty(os.Versoes);
+        _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Concluir_sem_servico_e_rejeitado()
+    {
+        var os = Os(StatusOs.EmDiagnostico);
+        var campo = typeof(OrdemDeServico).GetField("_servicos", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        ((List<ServicoDaOs>)campo.GetValue(os)!).Clear();
+        Catalogo();
+
+        await Assert.ThrowsAsync<DadosInvalidosException>(() => Concluir(os));
+
+        Assert.Equal(StatusOs.EmDiagnostico, os.Status);
+        _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Concluir_os_inexistente_e_404()
+    {
+        await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() =>
+            new ConcluirDiagnostico(_ordens.Object, _servicos.Object, _pecas.Object, _unidade.Object, _relogio)
+                .Executar(Guid.NewGuid(), "m", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Handler_envia_o_orcamento_ao_email_do_cliente_pelo_notificador()
+    {
+        var clientes = new Mock<IClienteRepository>();
+        clientes.Setup(r => r.ObterPorId(_cliente.Id, It.IsAny<CancellationToken>())).ReturnsAsync(_cliente);
+        var notificador = new Mock<INotificador>();
+        var evento = new DiagnosticoConcluido(Guid.NewGuid(), "OS-2026-00001", _cliente.Id, 1, 175m, "TOKEN123", _relogio.GetUtcNow());
+
+        await new EnviarOrcamentoAoConcluirDiagnostico(clientes.Object, notificador.Object).Manipular(evento, CancellationToken.None);
+
+        notificador.Verify(n => n.EnviarOrcamento("maria@oficina.com", "OS-2026-00001", 175m, "TOKEN123", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

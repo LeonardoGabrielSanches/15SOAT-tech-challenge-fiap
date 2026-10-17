@@ -355,11 +355,97 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                                 .IsRequired();
                         });
 
+                    b.OwnsMany("Oficina.Domain.Atendimento.Entities.VersaoDoOrcamento", "Versoes", b1 =>
+                        {
+                            b1.Property<Guid>("OrdemDeServicoId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("Numero")
+                                .HasColumnType("integer");
+
+                            b1.Property<DateTimeOffset>("GeradaEm")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("MotivoDaRecusa")
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)");
+
+                            b1.Property<string>("Situacao")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
+
+                            b1.Property<string>("Token")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("character varying(64)");
+
+                            b1.Property<decimal>("Total")
+                                .HasColumnType("numeric(14,2)");
+
+                            b1.HasKey("OrdemDeServicoId", "Numero");
+
+                            b1.HasIndex("Token")
+                                .IsUnique();
+
+                            b1.ToTable("ordens_de_servico_versoes", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrdemDeServicoId");
+
+                            b1.OwnsMany("Oficina.Domain.Atendimento.Entities.ItemDaVersao", "Itens", b2 =>
+                                {
+                                    b2.Property<int>("Id")
+                                        .ValueGeneratedOnAdd()
+                                        .HasColumnType("integer");
+
+                                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b2.Property<int>("Id"));
+
+                                    b2.Property<string>("Descricao")
+                                        .IsRequired()
+                                        .HasMaxLength(200)
+                                        .HasColumnType("character varying(200)");
+
+                                    b2.Property<Guid>("OrdemDeServicoId")
+                                        .HasColumnType("uuid");
+
+                                    b2.Property<decimal>("PrecoUnitario")
+                                        .HasColumnType("numeric(14,2)");
+
+                                    b2.Property<decimal>("Quantidade")
+                                        .HasColumnType("numeric(14,3)");
+
+                                    b2.Property<Guid>("ReferenciaId")
+                                        .HasColumnType("uuid");
+
+                                    b2.Property<string>("Tipo")
+                                        .IsRequired()
+                                        .HasMaxLength(20)
+                                        .HasColumnType("character varying(20)");
+
+                                    b2.Property<int>("VersaoNumero")
+                                        .HasColumnType("integer");
+
+                                    b2.HasKey("Id");
+
+                                    b2.HasIndex("OrdemDeServicoId", "VersaoNumero");
+
+                                    b2.ToTable("ordens_de_servico_versoes_itens", (string)null);
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("OrdemDeServicoId", "VersaoNumero");
+                                });
+
+                            b1.Navigation("Itens");
+                        });
+
                     b.Navigation("Historico");
 
                     b.Navigation("ItensDePecaInsumo");
 
                     b.Navigation("Servicos");
+
+                    b.Navigation("Versoes");
                 });
 
             modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.Veiculo", b =>

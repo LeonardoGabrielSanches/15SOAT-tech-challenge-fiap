@@ -1,5 +1,7 @@
 using Oficina.Application.Common;
+using Oficina.Domain.Atendimento.Events;
 using Oficina.Domain.Atendimento.Interfaces;
+using Oficina.Domain.CatalogoEstoque.Interfaces;
 using Oficina.Domain.Common;
 using Oficina.Domain.Estoque;
 
@@ -59,5 +61,40 @@ public sealed class RemoverPecaInsumoDaOs(
         os.RemoverPecaInsumo(peca, quantidade);
 
         await unidadeDeTrabalho.Confirmar(cancellationToken);
+    }
+}
+
+public sealed class ConcluirDiagnostico(
+    IOrdemDeServicoRepository ordens,
+    IServicoRepository servicos,
+    IRepositorioDePecaInsumo pecas,
+    IUnidadeDeTrabalho unidadeDeTrabalho,
+    TimeProvider relogio)
+{
+    public async Task Executar(Guid osId, string autor, CancellationToken cancellationToken)
+    {
+        var os = await BuscaDeOrdemDeServico.ObterOuFalhar(ordens, osId, cancellationToken);
+
+        var catalogoDeServicos = await servicos.ObterPorIds(os.Servicos.Select(s => s.ServicoId).ToList(), cancellationToken);
+        var catalogoDePecas = new List<PecaInsumo>();
+        foreach (var item in os.ItensDePecaInsumo)
+        {
+            catalogoDePecas.Add(await BuscaDePecaInsumo.ObterOuFalhar(pecas, item.PecaInsumoId, cancellationToken));
+        }
+
+        os.ConcluirDiagnostico(catalogoDeServicos, catalogoDePecas, autor, relogio.GetUtcNow());
+
+        await unidadeDeTrabalho.Confirmar(cancellationToken);
+    }
+}
+
+public sealed class EnviarOrcamentoAoConcluirDiagnostico(IClienteRepository clientes, INotificador notificador)
+    : IManipuladorDeEvento<DiagnosticoConcluido>
+{
+    public async Task Manipular(DiagnosticoConcluido evento, CancellationToken cancellationToken)
+    {
+        var cliente = await BuscaDeCliente.ObterOuFalhar(clientes, evento.ClienteId, cancellationToken);
+
+        await notificador.EnviarOrcamento(cliente.Email.Endereco, evento.Numero, evento.Total, evento.Token, cancellationToken);
     }
 }

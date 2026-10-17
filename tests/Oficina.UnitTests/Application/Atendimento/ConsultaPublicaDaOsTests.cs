@@ -17,12 +17,12 @@ public class ConsultaPublicaDaOsTests
     private readonly TimeProvider _relogio = RelogioFixo.Em(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.Zero));
     private readonly Cliente _cliente = Cliente.Cadastrar("Maria Silva", Documento.Criar("529.982.247-25"), Email.Criar("maria@oficina.com"), null);
     private readonly OrdemDeServico _os;
+    private readonly Servico _servicoInicial = Servico.Cadastrar("Troca de oleo", null, Dinheiro.De(100m));
 
     public ConsultaPublicaDaOsTests()
     {
         var veiculo = Veiculo.Cadastrar(Placa.Criar("ABC1D23"), "Fiat", "Uno", AnoFabricacao.Criar(2015, _relogio), _cliente);
-        var servico = Servico.Cadastrar("Troca de oleo", null, Dinheiro.De(100m));
-        _os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 7), _cliente, veiculo, [servico], "joao.atendente", _relogio.GetUtcNow());
+        _os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 7), _cliente, veiculo, [_servicoInicial], "joao.atendente", _relogio.GetUtcNow());
         _ordens.Setup(r => r.ObterPorNumero("OS-2026-00007", It.IsAny<CancellationToken>())).ReturnsAsync(_os);
         _clientes.Setup(r => r.ObterPorId(_cliente.Id, It.IsAny<CancellationToken>())).ReturnsAsync(_cliente);
     }
@@ -52,5 +52,26 @@ public class ConsultaPublicaDaOsTests
             () => Caso().Executar(numero, documento, CancellationToken.None));
 
         Assert.Equal("OS nao encontrada.", excecao.Message);
+    }
+
+    [Fact]
+    public async Task Orcamento_vigente_e_a_ultima_versao_com_itens_congelados()
+    {
+        var servico = Servico.Cadastrar("Alinhamento", null, Dinheiro.De(80m));
+        var peca = Oficina.Domain.Estoque.PecaInsumo.Criar("Filtro", Oficina.Domain.Estoque.TipoPecaInsumo.Peca, "un", Dinheiro.De(25m));
+        peca.RegistrarEntrada(Oficina.Domain.Estoque.Quantidade.Criar(5m, Oficina.Domain.Estoque.TipoPecaInsumo.Peca));
+        _os.IncluirServico(servico);
+        _os.IniciarDiagnostico("m", _relogio.GetUtcNow());
+        _os.IncluirPecaInsumo(peca, Oficina.Domain.Estoque.Quantidade.Criar(2m, Oficina.Domain.Estoque.TipoPecaInsumo.Peca), _relogio.GetUtcNow());
+        _os.ConcluirDiagnostico([_servicoInicial, servico], [peca], "m", _relogio.GetUtcNow());
+
+        var consulta = await Caso().Executar("OS-2026-00007", "52998224725", CancellationToken.None);
+
+        var orcamento = consulta.OrcamentoVigente!;
+        Assert.Equal((1, "Pendente"), (orcamento.Versao, orcamento.Situacao));
+        Assert.Equal(3, orcamento.Itens.Count);
+        Assert.Contains(orcamento.Itens, i => i is { Descricao: "Filtro", Quantidade: 2m, PrecoUnitario: 25m, Subtotal: 50m });
+        Assert.Equal(orcamento.Itens.Sum(i => i.Subtotal), orcamento.Total);
+        Assert.DoesNotContain("Token", typeof(Oficina.Application.Atendimento.UseCases.OrcamentoPublicoDto).GetProperties().Select(p => p.Name));
     }
 }

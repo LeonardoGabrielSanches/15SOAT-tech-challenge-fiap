@@ -68,6 +68,36 @@ public sealed class OrdemDeServicoConfiguration : IEntityTypeConfiguration<Ordem
         });
         builder.Navigation(o => o.Historico).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.OwnsMany(o => o.Versoes, versoes =>
+        {
+            versoes.ToTable("ordens_de_servico_versoes");
+            versoes.WithOwner().HasForeignKey("OrdemDeServicoId");
+            versoes.HasKey("OrdemDeServicoId", nameof(VersaoDoOrcamento.Numero));
+            versoes.Property(v => v.Numero).ValueGeneratedNever();
+            versoes.Property(v => v.GeradaEm).IsRequired();
+            versoes.Property(v => v.Total).HasColumnType("numeric(14,2)").IsRequired();
+            versoes.Property(v => v.Situacao).HasConversion<string>().HasMaxLength(20).IsRequired();
+            versoes.Property(v => v.Token).HasMaxLength(64).IsRequired();
+            versoes.HasIndex(v => v.Token).IsUnique();
+            versoes.Property(v => v.MotivoDaRecusa).HasMaxLength(500);
+            versoes.OwnsMany(v => v.Itens, itens =>
+            {
+                itens.ToTable("ordens_de_servico_versoes_itens");
+                itens.WithOwner().HasForeignKey("OrdemDeServicoId", "VersaoNumero");
+                itens.Property(i => i.Id).ValueGeneratedOnAdd();
+                itens.HasKey(nameof(ItemDaVersao.Id));
+                itens.Property(i => i.Tipo).HasConversion<string>().HasMaxLength(20).IsRequired();
+                itens.Property(i => i.ReferenciaId).IsRequired();
+                itens.Property(i => i.Descricao).HasMaxLength(200).IsRequired();
+                itens.Property(i => i.Quantidade).HasColumnType("numeric(14,3)").IsRequired();
+                itens.Property(i => i.PrecoUnitario).HasColumnType("numeric(14,2)").IsRequired();
+                itens.Ignore(i => i.Subtotal);
+            });
+            versoes.Navigation(v => v.Itens).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        builder.Navigation(o => o.Versoes).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Ignore(o => o.VersaoVigente);
+
         builder.Ignore(o => o.EventosDeDominio);
     }
 }

@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Oficina.Api.Autenticacao;
 using Oficina.Application.Atendimento.UseCases;
+using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Entities.Enums;
+using Oficina.Domain.Atendimento.Events;
 using Oficina.Domain.Common;
 
 namespace Oficina.Api.Atendimento;
@@ -24,6 +26,8 @@ public static class OrdensDeServicoEndpoints
         services.AddScoped<IniciarDiagnostico>();
         services.AddScoped<IncluirPecaInsumoNaOs>();
         services.AddScoped<RemoverPecaInsumoDaOs>();
+        services.AddScoped<ConcluirDiagnostico>();
+        services.AddScoped<IManipuladorDeEvento<DiagnosticoConcluido>, EnviarOrcamentoAoConcluirDiagnostico>();
         return services;
     }
 
@@ -63,6 +67,13 @@ public static class OrdensDeServicoEndpoints
             .RequireAuthorization(Politicas.AtendenteOuMecanico);
 
         ordens.MapPost("/{id:guid}/diagnostico/iniciar", async (Guid id, IniciarDiagnostico caso, ClaimsPrincipal usuario, CancellationToken ct) =>
+            {
+                await caso.Executar(id, Autor(usuario), ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Politicas.Mecanico);
+
+        ordens.MapPost("/{id:guid}/diagnostico/concluir", async (Guid id, ConcluirDiagnostico caso, ClaimsPrincipal usuario, CancellationToken ct) =>
             {
                 await caso.Executar(id, Autor(usuario), ct);
                 return Results.NoContent();

@@ -64,6 +64,7 @@ public sealed class OrdemDeServico : RaizDeAgregado
     private readonly List<ServicoDaOs> _servicos = [];
     private readonly List<ItemDaOs> _itensDePecaInsumo = [];
     private readonly List<EntradaDoHistoricoDeStatus> _historico = [];
+    private readonly List<VersaoDoOrcamento> _versoes = [];
 
     private OrdemDeServico()
     {
@@ -85,6 +86,10 @@ public sealed class OrdemDeServico : RaizDeAgregado
     public IReadOnlyList<ServicoDaOs> Servicos => _servicos;
 
     public IReadOnlyList<ItemDaOs> ItensDePecaInsumo => _itensDePecaInsumo;
+
+    public IReadOnlyList<VersaoDoOrcamento> Versoes => _versoes;
+
+    public VersaoDoOrcamento? VersaoVigente => _versoes.Count == 0 ? null : _versoes[^1];
 
     public string? MotivoDaUltimaRecusa { get; private set; }
 
@@ -217,6 +222,49 @@ public sealed class OrdemDeServico : RaizDeAgregado
         {
             existente.Quantidade -= removida;
         }
+    }
+
+    public void ConcluirDiagnostico(
+        IReadOnlyCollection<Servico> servicos,
+        IReadOnlyCollection<PecaInsumo> pecas,
+        string autor,
+        DateTimeOffset agora)
+    {
+        if (Status != StatusOs.EmDiagnostico)
+        {
+            throw new ConflitoDeEstadoException("O diagnostico so pode ser concluido em uma OS Em diagnostico.");
+        }
+
+        if (_servicos.Count == 0)
+        {
+            throw new DadosInvalidosException("A OS deve ter ao menos um Servico para concluir o diagnostico.");
+        }
+
+        var itens = new List<ItemDaVersao>();
+        foreach (var vinculo in _servicos)
+        {
+            var servico = servicos.FirstOrDefault(s => s.Id == vinculo.ServicoId)
+                ?? throw new RecursoNaoEncontradoException("Servico nao encontrado.");
+            itens.Add(new ItemDaVersao(TipoDoItemDoOrcamento.Servico, servico.Id, servico.Nome, 1m, servico.Preco.Valor));
+        }
+
+        foreach (var item in _itensDePecaInsumo)
+        {
+            var peca = pecas.FirstOrDefault(p => p.Id == item.PecaInsumoId)
+                ?? throw new RecursoNaoEncontradoException("Peca/insumo nao encontrada.");
+            itens.Add(new ItemDaVersao(TipoDoItemDoOrcamento.PecaInsumo, peca.Id, peca.Nome, item.Quantidade, peca.Preco.Valor));
+        }
+
+        foreach (var anterior in _versoes)
+        {
+            anterior.Superar();
+        }
+
+        var versao = new VersaoDoOrcamento(_versoes.Count + 1, itens, agora);
+        _versoes.Add(versao);
+
+        MudarStatus(StatusOs.AguardandoAprovacao, autor, agora);
+        Registrar(new DiagnosticoConcluido(Id, Numero.Valor, ClienteId, versao.Numero, versao.Total, versao.Token, agora));
     }
 
     private void MudarStatus(StatusOs destino, string autor, DateTimeOffset agora)

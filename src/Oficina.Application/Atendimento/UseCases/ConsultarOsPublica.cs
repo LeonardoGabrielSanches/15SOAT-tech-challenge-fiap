@@ -1,3 +1,4 @@
+using Oficina.Domain.Atendimento.Entities;
 using Oficina.Domain.Atendimento.Entities.ValueObjects;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.Common;
@@ -42,8 +43,17 @@ public sealed class ConsultarOsPublica(IOrdemDeServicoRepository ordens, IClient
                 h.Autor == AutorCliente ? AutorCliente : AutorOficina))
             .ToList();
 
-        return new ConsultaPublicaDaOsDto(os.Numero.Valor, os.Status.ToString(), os.AbertaEm, historico, null);
+        return new ConsultaPublicaDaOsDto(os.Numero.Valor, os.Status.ToString(), os.AbertaEm, historico, OrcamentoVigenteDe(os));
     }
+
+    private static OrcamentoPublicoDto? OrcamentoVigenteDe(OrdemDeServico os) =>
+        os.VersaoVigente is { } v
+            ? new OrcamentoPublicoDto(
+                v.Numero,
+                v.Situacao.ToString(),
+                v.Itens.Select(i => new ItemDoOrcamentoPublicoDto(i.Descricao, i.Quantidade, i.PrecoUnitario, i.Subtotal)).ToList(),
+                v.Total)
+            : null;
 
     private static bool DocumentoConfere(Documento esperado, string? informado)
     {

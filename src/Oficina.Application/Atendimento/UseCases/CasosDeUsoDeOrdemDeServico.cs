@@ -197,7 +197,7 @@ public sealed class DetalharOs(
             ClienteDto.De(cliente),
             VeiculoDto.De(veiculo),
             itens,
-            [],
+            os.Versoes.Select(v => new VersaoDoOrcamentoDto(v.Numero, v.Total, v.Situacao.ToString(), v.GeradaEm)).ToList(),
             historico,
             pecasInsumos.OrderBy(p => p.Nome).ToList(),
             os.MotivoDaUltimaRecusa);
