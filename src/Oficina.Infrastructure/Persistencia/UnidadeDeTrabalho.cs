@@ -15,7 +15,14 @@ public sealed class UnidadeDeTrabalho(DbContext contexto, IDespachanteDeEventos 
             .ToList();
         var eventos = agregados.SelectMany(a => a.EventosDeDominio).ToList();
 
-        await contexto.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await contexto.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflitoDeEstadoException("O registro foi alterado por outra operação. Tente novamente.");
+        }
 
         foreach (var agregado in agregados)
         {
