@@ -23,6 +23,33 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.Cliente", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Telefone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("clientes", (string)null);
+                });
+
             modelBuilder.Entity("Oficina.Domain.CatalogoEstoque.Entities.Servico", b =>
                 {
                     b.Property<Guid>("Id")
@@ -93,6 +120,40 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("pecas_insumos", (string)null);
+                });
+
+            modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.Cliente", b =>
+                {
+                    b.OwnsOne("Oficina.Domain.Atendimento.Entities.ValueObjects.Documento", "Documento", b1 =>
+                        {
+                            b1.Property<Guid>("ClienteId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Numero")
+                                .IsRequired()
+                                .HasMaxLength(14)
+                                .HasColumnType("character varying(14)")
+                                .HasColumnName("documento_numero");
+
+                            b1.Property<string>("Tipo")
+                                .IsRequired()
+                                .HasMaxLength(10)
+                                .HasColumnType("character varying(10)")
+                                .HasColumnName("documento_tipo");
+
+                            b1.HasKey("ClienteId");
+
+                            b1.HasIndex("Numero")
+                                .IsUnique();
+
+                            b1.ToTable("clientes");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ClienteId");
+                        });
+
+                    b.Navigation("Documento")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

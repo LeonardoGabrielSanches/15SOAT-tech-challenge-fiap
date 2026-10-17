@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Oficina.Application.Common;
+using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Infrastructure.Persistencia;
+using Oficina.Infrastructure.Persistencia.Atendimento;
 
 namespace Oficina.Infrastructure;
 
@@ -13,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<OficinaDbContext>());
         services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
         services.AddScoped<IDespachanteDeEventos, DespachanteDeEventos>();
+        services.AddScoped<IClienteRepository, ClienteRepository>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }
