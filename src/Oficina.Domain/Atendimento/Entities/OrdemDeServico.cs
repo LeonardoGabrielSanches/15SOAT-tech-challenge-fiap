@@ -267,6 +267,36 @@ public sealed class OrdemDeServico : RaizDeAgregado
         Registrar(new DiagnosticoConcluido(Id, Numero.Valor, ClienteId, versao.Numero, versao.Total, versao.Token, agora));
     }
 
+    public void Cancelar(string motivo, IReadOnlyCollection<PecaInsumo> pecas, string autor, DateTimeOffset agora)
+    {
+        if (Status is not (StatusOs.Recebida or StatusOs.EmDiagnostico or StatusOs.AguardandoAprovacao))
+        {
+            throw new ConflitoDeEstadoException("A OS so pode ser cancelada enquanto estiver Recebida, Em diagnostico ou Aguardando aprovacao.");
+        }
+
+        if (string.IsNullOrWhiteSpace(motivo))
+        {
+            throw new DadosInvalidosException("O motivo do cancelamento e obrigatorio.");
+        }
+
+        foreach (var item in _itensDePecaInsumo)
+        {
+            var peca = pecas.FirstOrDefault(p => p.Id == item.PecaInsumoId)
+                ?? throw new RecursoNaoEncontradoException("Peca/insumo nao encontrada.");
+            peca.Estornar(Quantidade.Criar(item.Quantidade, peca.Tipo));
+        }
+
+        _itensDePecaInsumo.Clear();
+
+        foreach (var versao in _versoes)
+        {
+            versao.Superar();
+        }
+
+        MudarStatus(StatusOs.Cancelada, autor, agora);
+        Registrar(new OsCancelada(Id, Numero.Valor, motivo.Trim(), agora));
+    }
+
     private void MudarStatus(StatusOs destino, string autor, DateTimeOffset agora)
     {
         _historico.Add(new EntradaDoHistoricoDeStatus(Status, destino, agora, autor));
