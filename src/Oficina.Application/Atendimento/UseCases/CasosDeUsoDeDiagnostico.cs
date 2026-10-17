@@ -98,3 +98,25 @@ public sealed class EnviarOrcamentoAoConcluirDiagnostico(IClienteRepository clie
         await notificador.EnviarOrcamento(cliente.Email.Endereco, evento.Numero, evento.Total, evento.Token, cancellationToken);
     }
 }
+
+public sealed class CancelarOs(
+    IOrdemDeServicoRepository ordens,
+    IRepositorioDePecaInsumo pecas,
+    IUnidadeDeTrabalho unidadeDeTrabalho,
+    TimeProvider relogio)
+{
+    public async Task Executar(Guid osId, string motivo, string autor, CancellationToken cancellationToken)
+    {
+        var os = await BuscaDeOrdemDeServico.ObterOuFalhar(ordens, osId, cancellationToken);
+
+        var catalogoDePecas = new List<PecaInsumo>();
+        foreach (var item in os.ItensDePecaInsumo)
+        {
+            catalogoDePecas.Add(await BuscaDePecaInsumo.ObterOuFalhar(pecas, item.PecaInsumoId, cancellationToken));
+        }
+
+        os.Cancelar(motivo, catalogoDePecas, autor, relogio.GetUtcNow());
+
+        await unidadeDeTrabalho.Confirmar(cancellationToken);
+    }
+}
