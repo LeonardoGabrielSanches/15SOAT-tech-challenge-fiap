@@ -6,6 +6,7 @@ using Oficina.Api.Erros;
 using Oficina.Api.Estoque;
 using Oficina.Api.OpenApi;
 using Oficina.Api.Servicos;
+using Oficina.Application.Demonstracao;
 using Oficina.Infrastructure;
 using Oficina.Infrastructure.Persistencia;
 
@@ -23,6 +24,7 @@ builder.Services.AddOrdensDeServico();
 builder.Services.AddKeycloakAuthentication(keycloak);
 builder.Services.AddPecasInsumos();
 builder.Services.AddCatalogoDeServicos();
+builder.Services.AddScoped<CargaDeDemonstracao>();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<TratadorDeExcecoesDeDominio>();
 builder.Services.AddOpenApi(o => o.AddDocumentTransformer(new TransformadorDeSeguranca(keycloak)));
@@ -32,6 +34,11 @@ var app = builder.Build();
 await using (var escopo = app.Services.CreateAsyncScope())
 {
     await escopo.ServiceProvider.GetRequiredService<OficinaDbContext>().Database.MigrateAsync();
+
+    if (app.Configuration.GetValue<bool>("Demonstracao:Carregar"))
+    {
+        await escopo.ServiceProvider.GetRequiredService<CargaDeDemonstracao>().Executar(CancellationToken.None);
+    }
 }
 
 app.UseExceptionHandler();

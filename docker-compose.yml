@@ -49,6 +49,7 @@ services:
       Keycloak__UrlPublica: http://localhost:8080/realms/oficina
       Keycloak__Audience: oficina-api
       Keycloak__ClienteSwagger: oficina-swagger
+      Demonstracao__Carregar: "true"
     ports:
       - "8081:8080"
 
