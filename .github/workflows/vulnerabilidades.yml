@@ -22,7 +22,7 @@ jobs:
       - name: Construir imagem da API
         run: docker build -t oficina-api:scan .
       - name: Trivy imagem (tabela)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: image
           image-ref: oficina-api:scan
@@ -32,7 +32,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "0"
       - name: Trivy imagem (SARIF)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: image
           image-ref: oficina-api:scan
@@ -42,7 +42,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "0"
       - name: Trivy sistema de arquivos e dependencias (tabela)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: fs
           scan-ref: .
@@ -52,7 +52,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "0"
       - name: Trivy sistema de arquivos e dependencias (JSON)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: fs
           scan-ref: .
@@ -76,7 +76,7 @@ jobs:
           name: relatorios-vulnerabilidades
           path: relatorios
       - name: Gate Trivy imagem (CRITICAL com correcao)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: image
           image-ref: oficina-api:scan
@@ -85,7 +85,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - name: Gate Trivy dependencias (CRITICAL com correcao)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: fs
           scan-ref: .
