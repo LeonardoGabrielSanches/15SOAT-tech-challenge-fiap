@@ -1,4 +1,5 @@
 using Oficina.Application.Common;
+using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
 using Oficina.Domain.Estoque;
 
@@ -27,7 +28,7 @@ public sealed class CadastrarPecaInsumoCasoDeUso(IRepositorioDePecaInsumo reposi
 {
     public async Task<PecaInsumoDto> Executar(CadastrarPecaInsumo comando, CancellationToken cancellationToken)
     {
-        var item = PecaInsumo.Criar(comando.Nome, comando.Tipo, comando.UnidadeDeMedida, new Dinheiro(comando.Preco));
+        var item = PecaInsumo.Criar(comando.Nome, comando.Tipo, comando.UnidadeDeMedida, Dinheiro.De(comando.Preco));
         repositorio.Adicionar(item);
         await unidadeDeTrabalho.Confirmar(cancellationToken);
         return PecaInsumoDto.De(item);
@@ -39,7 +40,7 @@ public sealed class AtualizarPecaInsumoCasoDeUso(IRepositorioDePecaInsumo reposi
     public async Task<PecaInsumoDto> Executar(Guid id, AtualizarPecaInsumo comando, CancellationToken cancellationToken)
     {
         var item = await PecasInsumosConsulta.ObterOuFalhar(repositorio, id, cancellationToken);
-        item.Atualizar(comando.Nome, comando.UnidadeDeMedida, new Dinheiro(comando.Preco));
+        item.Atualizar(comando.Nome, comando.UnidadeDeMedida, Dinheiro.De(comando.Preco));
         await unidadeDeTrabalho.Confirmar(cancellationToken);
         return PecaInsumoDto.De(item);
     }

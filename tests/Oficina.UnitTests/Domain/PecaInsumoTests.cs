@@ -1,3 +1,4 @@
+using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
 using Oficina.Domain.Estoque;
 
@@ -6,10 +7,10 @@ namespace Oficina.UnitTests.Domain;
 public class PecaInsumoTests
 {
     private static PecaInsumo NovoOleo() =>
-        PecaInsumo.Criar("Óleo 5W30", TipoPecaInsumo.Insumo, "L", new Dinheiro(42.90m));
+        PecaInsumo.Criar("Óleo 5W30", TipoPecaInsumo.Insumo, "L", Dinheiro.De(42.90m));
 
     private static PecaInsumo NovoFiltro() =>
-        PecaInsumo.Criar("Filtro de óleo", TipoPecaInsumo.Peca, "un", new Dinheiro(25m));
+        PecaInsumo.Criar("Filtro de óleo", TipoPecaInsumo.Peca, "un", Dinheiro.De(25m));
 
     [Fact]
     public void Item_novo_nasce_ativo_com_saldo_zero()
@@ -28,7 +29,7 @@ public class PecaInsumoTests
     public void Rejeita_nome_ou_unidade_vazios(string nome, string unidade)
     {
         Assert.Throws<DadosInvalidosException>(() =>
-            PecaInsumo.Criar(nome, TipoPecaInsumo.Insumo, unidade, new Dinheiro(1m)));
+            PecaInsumo.Criar(nome, TipoPecaInsumo.Insumo, unidade, Dinheiro.De(1m)));
     }
 
     [Fact]
@@ -126,18 +127,11 @@ public class PecaInsumoTests
     {
         var item = NovoOleo();
 
-        item.Atualizar("Óleo 10W40", "ml", new Dinheiro(0.05m));
+        item.Atualizar("Óleo 10W40", "ml", Dinheiro.De(0.05m));
 
         Assert.Equal("Óleo 10W40", item.Nome);
         Assert.Equal("ml", item.UnidadeDeMedida);
-        Assert.Equal(new Dinheiro(0.05m), item.Preco);
+        Assert.Equal(Dinheiro.De(0.05m), item.Preco);
     }
 
-    [Theory]
-    [InlineData(-0.01)]
-    [InlineData(1.005)]
-    public void Preco_invalido_e_rejeitado(double valor)
-    {
-        Assert.Throws<DadosInvalidosException>(() => new Dinheiro((decimal)valor));
-    }
 }

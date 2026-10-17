@@ -1,3 +1,4 @@
+using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
 
 namespace Oficina.Domain.Estoque;

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
 using Oficina.Domain.Estoque;
 
@@ -17,7 +18,7 @@ public sealed class PecaInsumoConfiguracao : IEntityTypeConfiguration<PecaInsumo
         builder.Property(p => p.Tipo).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(p => p.UnidadeDeMedida).HasMaxLength(30).IsRequired();
         builder.Property(p => p.Preco)
-            .HasConversion(d => d.Valor, v => new Dinheiro(v))
+            .HasConversion(d => d.Valor, v => Dinheiro.De(v))
             .HasColumnType("numeric(12,2)");
         builder.Property(p => p.Saldo).HasColumnType("numeric(14,3)");
         builder.Property(p => p.Ativo);

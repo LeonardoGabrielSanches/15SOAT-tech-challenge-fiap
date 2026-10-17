@@ -1,6 +1,7 @@
 using Moq;
 using Oficina.Application.Common;
 using Oficina.Application.Estoque;
+using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
 using Oficina.Domain.Estoque;
 
@@ -13,7 +14,7 @@ public class PecasInsumosCasosDeUsoTests
 
     private PecaInsumo ItemExistente(TipoPecaInsumo tipo = TipoPecaInsumo.Peca, decimal saldo = 0)
     {
-        var item = PecaInsumo.Criar("Filtro", tipo, "un", new Dinheiro(10m));
+        var item = PecaInsumo.Criar("Filtro", tipo, "un", Dinheiro.De(10m));
         if (saldo > 0)
         {
             item.RegistrarEntrada(Quantidade.Criar(saldo, tipo));
