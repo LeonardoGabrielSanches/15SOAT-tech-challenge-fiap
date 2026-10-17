@@ -27,6 +27,10 @@ public static class OrdensDeServicoEndpoints
         services.AddScoped<IncluirPecaInsumoNaOs>();
         services.AddScoped<RemoverPecaInsumoDaOs>();
         services.AddScoped<ConcluirDiagnostico>();
+        services.AddScoped<ListarFilaDeExecucao>();
+        services.AddScoped<IniciarExecucao>();
+        services.AddScoped<FinalizarExecucao>();
+        services.AddScoped<RegistrarEntrega>();
         services.AddScoped<IManipuladorDeEvento<DiagnosticoConcluido>, EnviarOrcamentoAoConcluirDiagnostico>();
         return services;
     }
@@ -93,6 +97,31 @@ public static class OrdensDeServicoEndpoints
                 return Results.NoContent();
             })
             .RequireAuthorization(Politicas.Mecanico);
+
+        ordens.MapGet("/fila-de-execucao", async (ListarFilaDeExecucao caso, CancellationToken ct) =>
+                Results.Ok(await caso.Executar(ct)))
+            .RequireAuthorization(Politicas.Mecanico);
+
+        ordens.MapPost("/{id:guid}/execucao/iniciar", async (Guid id, IniciarExecucao caso, ClaimsPrincipal usuario, CancellationToken ct) =>
+            {
+                await caso.Executar(id, Autor(usuario), ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Politicas.Mecanico);
+
+        ordens.MapPost("/{id:guid}/execucao/finalizar", async (Guid id, FinalizarExecucao caso, ClaimsPrincipal usuario, CancellationToken ct) =>
+            {
+                await caso.Executar(id, Autor(usuario), ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Politicas.Mecanico);
+
+        ordens.MapPost("/{id:guid}/entrega", async (Guid id, RegistrarEntrega caso, ClaimsPrincipal usuario, CancellationToken ct) =>
+            {
+                await caso.Executar(id, Autor(usuario), ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Politicas.Atendente);
 
         return administrativo;
     }

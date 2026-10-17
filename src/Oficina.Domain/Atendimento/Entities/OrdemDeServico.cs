@@ -292,6 +292,25 @@ public sealed class OrdemDeServico : RaizDeAgregado
         Registrar(new OrcamentoRecusado(Id, Numero.Valor, versao.Numero, motivoNormalizado, agora));
     }
 
+    public void IniciarExecucao(string autor, DateTimeOffset agora) =>
+        Transitar(StatusOs.Aprovada, StatusOs.EmExecucao, "A execucao so pode ser iniciada em uma OS Aprovada.", autor, agora);
+
+    public void FinalizarExecucao(string autor, DateTimeOffset agora) =>
+        Transitar(StatusOs.EmExecucao, StatusOs.Finalizada, "A execucao so pode ser finalizada em uma OS Em execucao.", autor, agora);
+
+    public void RegistrarEntrega(string autor, DateTimeOffset agora) =>
+        Transitar(StatusOs.Finalizada, StatusOs.Entregue, "A entrega so pode ser registrada em uma OS Finalizada.", autor, agora);
+
+    private void Transitar(StatusOs esperado, StatusOs destino, string mensagem, string autor, DateTimeOffset agora)
+    {
+        if (Status != esperado)
+        {
+            throw new ConflitoDeEstadoException(mensagem);
+        }
+
+        MudarStatus(destino, autor, agora);
+    }
+
     private VersaoDoOrcamento ObterVersaoPendenteDoToken(string token)
     {
         var versao = _versoes.FirstOrDefault(v => v.Token == token)
