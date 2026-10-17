@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Oficina.Api.Atendimento;
 using Oficina.Api.Autenticacao;
 using Oficina.Api.Erros;
 using Oficina.Api.OpenApi;
@@ -14,6 +15,7 @@ var keycloak = builder.Configuration.GetSection(OpcoesDoKeycloak.Secao).Get<Opco
     ?? throw new InvalidOperationException("Secao Keycloak nao configurada.");
 
 builder.Services.AddInfrastructure(connectionString);
+builder.Services.AddCadastroDeClientes();
 builder.Services.AddKeycloakAuthentication(keycloak);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<TratadorDeExcecoesDeDominio>();
@@ -61,6 +63,8 @@ administrativo.MapGet("/politicas/{nome}", async (string nome, HttpContext http,
     var resultado = await autorizacao.AuthorizeAsync(http.User, nome);
     return resultado.Succeeded ? Results.Ok(new { politica = nome }) : Results.Forbid();
 }).RequireAuthorization();
+
+administrativo.MapClientes();
 
 app.Run();
 
