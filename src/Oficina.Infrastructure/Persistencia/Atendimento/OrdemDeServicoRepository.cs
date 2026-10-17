@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Oficina.Domain.Atendimento.Entities;
 using Oficina.Domain.Atendimento.Entities.Enums;
+using Oficina.Domain.Atendimento.Entities.ValueObjects;
 using Oficina.Domain.Atendimento.Interfaces;
 
 namespace Oficina.Infrastructure.Persistencia.Atendimento;
@@ -9,6 +10,9 @@ public sealed class OrdemDeServicoRepository(DbContext contexto) : IOrdemDeServi
 {
     public Task<OrdemDeServico?> ObterPorId(Guid id, CancellationToken cancellationToken) =>
         contexto.Set<OrdemDeServico>().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+
+    public Task<OrdemDeServico?> ObterPorNumero(string numero, CancellationToken cancellationToken) =>
+        contexto.Set<OrdemDeServico>().FirstOrDefaultAsync(o => o.Numero == NumeroOs.Reconstituir(numero), cancellationToken);
 
     public Task<bool> ExisteEmAndamentoDoVeiculo(Guid veiculoId, CancellationToken cancellationToken) =>
         contexto.Set<OrdemDeServico>().AnyAsync(

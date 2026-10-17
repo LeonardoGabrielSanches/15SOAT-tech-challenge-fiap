@@ -7,6 +7,8 @@ public interface IOrdemDeServicoRepository
 {
     Task<OrdemDeServico?> ObterPorId(Guid id, CancellationToken cancellationToken);
 
+    Task<OrdemDeServico?> ObterPorNumero(string numero, CancellationToken cancellationToken);
+
     Task<bool> ExisteEmAndamentoDoVeiculo(Guid veiculoId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<OrdemDeServico>> Listar(StatusOs? status, CancellationToken cancellationToken);
