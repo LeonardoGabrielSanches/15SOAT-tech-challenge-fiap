@@ -1,0 +1,74 @@
+{
+  "realm": "oficina",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "atendente", "description": "Atendente da oficina" },
+      { "name": "mecanico", "description": "Mecanico da oficina" },
+      { "name": "gerente", "description": "Gerente da oficina" }
+    ]
+  },
+  "users": [
+    {
+      "username": "atendente",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Ana",
+      "lastName": "Atendente",
+      "email": "atendente@oficina.local",
+      "credentials": [{ "type": "password", "value": "atendente123", "temporary": false }],
+      "realmRoles": ["atendente"]
+    },
+    {
+      "username": "mecanico",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Marcos",
+      "lastName": "Mecanico",
+      "email": "mecanico@oficina.local",
+      "credentials": [{ "type": "password", "value": "mecanico123", "temporary": false }],
+      "realmRoles": ["mecanico"]
+    },
+    {
+      "username": "gerente",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Gabriela",
+      "lastName": "Gerente",
+      "email": "gerente@oficina.local",
+      "credentials": [{ "type": "password", "value": "gerente123", "temporary": false }],
+      "realmRoles": ["gerente"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "oficina-swagger",
+      "name": "Swagger UI da Oficina",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:8081/swagger/oauth2-redirect.html",
+        "http://localhost:5000/swagger/oauth2-redirect.html"
+      ],
+      "webOrigins": ["+"],
+      "attributes": { "pkce.code.challenge.method": "S256" },
+      "protocolMappers": [
+        {
+          "name": "audience-oficina-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "oficina-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}
