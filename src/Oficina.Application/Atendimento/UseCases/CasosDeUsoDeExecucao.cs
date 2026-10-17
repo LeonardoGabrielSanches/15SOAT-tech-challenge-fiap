@@ -52,3 +52,17 @@ public sealed class RegistrarEntrega(IOrdemDeServicoRepository ordens, IUnidadeD
         await unidadeDeTrabalho.Confirmar(cancellationToken);
     }
 }
+
+public sealed record TempoMedioDeExecucaoDto(int QuantidadeDeOs, double? TempoMedioEmSegundos);
+
+public sealed class ConsultarTempoMedioDeExecucao(IOrdemDeServicoRepository ordens)
+{
+    public async Task<TempoMedioDeExecucaoDto> Executar(Guid? servicoId, CancellationToken cancellationToken)
+    {
+        var tempos = await ordens.ObterTemposDeExecucao(servicoId, cancellationToken);
+
+        return tempos.Count == 0
+            ? new TempoMedioDeExecucaoDto(0, null)
+            : new TempoMedioDeExecucaoDto(tempos.Count, tempos.Average(t => t.TotalSeconds));
+    }
+}

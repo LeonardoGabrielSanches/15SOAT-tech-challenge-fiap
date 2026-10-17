@@ -34,6 +34,7 @@ public static class OrdensDeServicoEndpoints
         services.AddScoped<FinalizarExecucao>();
         services.AddScoped<RegistrarEntrega>();
         services.AddScoped<CancelarOs>();
+        services.AddScoped<ConsultarTempoMedioDeExecucao>();
         services.AddScoped<IManipuladorDeEvento<DiagnosticoConcluido>, EnviarOrcamentoAoConcluirDiagnostico>();
         return services;
     }
@@ -111,6 +112,10 @@ public static class OrdensDeServicoEndpoints
         ordens.MapGet("/fila-de-execucao", async (ListarFilaDeExecucao caso, CancellationToken ct) =>
                 Results.Ok(await caso.Executar(ct)))
             .RequireAuthorization(Politicas.Mecanico);
+
+        ordens.MapGet("/tempo-medio-de-execucao", async (Guid? servicoId, ConsultarTempoMedioDeExecucao caso, CancellationToken ct) =>
+                Results.Ok(await caso.Executar(servicoId, ct)))
+            .RequireAuthorization(Politicas.Gerente);
 
         ordens.MapPost("/{id:guid}/execucao/iniciar", async (Guid id, IniciarExecucao caso, ClaimsPrincipal usuario, CancellationToken ct) =>
             {

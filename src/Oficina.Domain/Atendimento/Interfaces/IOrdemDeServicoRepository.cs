@@ -15,5 +15,7 @@ public interface IOrdemDeServicoRepository
 
     Task<IReadOnlyList<OrdemDeServico>> Listar(StatusOs? status, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<TimeSpan>> ObterTemposDeExecucao(Guid? servicoId, CancellationToken cancellationToken);
+
     void Adicionar(OrdemDeServico ordemDeServico);
 }
