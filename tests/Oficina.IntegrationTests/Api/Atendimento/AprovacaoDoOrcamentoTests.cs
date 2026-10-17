@@ -142,6 +142,19 @@ public class AprovacaoDoOrcamentoTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Token_de_os_cancelada_em_aguardando_aprovacao_e_409_na_aprovacao_e_na_recusa()
+    {
+        var (osId, _, _, _) = await OsEmDiagnosticoComPeca();
+        var token = await Concluir(osId);
+        var cancelamento = await Como("atendente").PostAsJsonAsync($"{Rota}/{osId}/cancelar", new { motivo = "Cliente desistiu" });
+        Assert.Equal(HttpStatusCode.NoContent, cancelamento.StatusCode);
+        var publico = _factory.CreateClient();
+
+        Assert.Equal(HttpStatusCode.Conflict, (await publico.PostAsync($"{RotaPublica}/{token}/aprovar", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await publico.PostAsJsonAsync($"{RotaPublica}/{token}/recusar", new { motivo = "x" })).StatusCode);
+    }
+
+    [Fact]
     public async Task Token_inexistente_e_404()
     {
         var publico = _factory.CreateClient();
