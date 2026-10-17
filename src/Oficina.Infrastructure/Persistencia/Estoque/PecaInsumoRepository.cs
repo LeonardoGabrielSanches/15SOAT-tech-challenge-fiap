@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Interfaces;
 
-namespace Oficina.Infrastructure.Persistencia;
+namespace Oficina.Infrastructure.Persistencia.Estoque;
 
-public sealed class RepositorioDePecaInsumo(DbContext contexto) : IRepositorioDePecaInsumo
+public sealed class PecaInsumoRepository(DbContext contexto) : IPecaInsumoRepository
 {
     public Task<PecaInsumo?> Obter(Guid id, CancellationToken cancellationToken) =>
         contexto.Set<PecaInsumo>().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);

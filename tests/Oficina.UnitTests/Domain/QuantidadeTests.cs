@@ -1,6 +1,7 @@
 using System.Globalization;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
 
 namespace Oficina.UnitTests.Domain;
 

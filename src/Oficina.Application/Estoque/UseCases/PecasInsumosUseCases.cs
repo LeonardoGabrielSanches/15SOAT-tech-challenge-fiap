@@ -1,9 +1,12 @@
 using Oficina.Application.Common;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 
-namespace Oficina.Application.Estoque;
+namespace Oficina.Application.Estoque.UseCases;
 
 public sealed record PecaInsumoDto(
     Guid Id,
@@ -20,13 +23,13 @@ public sealed record PecaInsumoDto(
 
 public sealed record SaldoDto(Guid Id, string Nome, string UnidadeDeMedida, decimal Saldo);
 
-public sealed record CadastrarPecaInsumo(string Nome, TipoPecaInsumo Tipo, string UnidadeDeMedida, decimal Preco);
+public sealed record CadastrarPecaInsumoComando(string Nome, TipoPecaInsumo Tipo, string UnidadeDeMedida, decimal Preco);
 
-public sealed record AtualizarPecaInsumo(string Nome, string UnidadeDeMedida, decimal Preco);
+public sealed record AtualizarPecaInsumoComando(string Nome, string UnidadeDeMedida, decimal Preco);
 
-public sealed class CadastrarPecaInsumoCasoDeUso(IRepositorioDePecaInsumo repositorio, IUnidadeDeTrabalho unidadeDeTrabalho)
+public sealed class CadastrarPecaInsumo(IPecaInsumoRepository repositorio, IUnidadeDeTrabalho unidadeDeTrabalho)
 {
-    public async Task<PecaInsumoDto> Executar(CadastrarPecaInsumo comando, CancellationToken cancellationToken)
+    public async Task<PecaInsumoDto> Executar(CadastrarPecaInsumoComando comando, CancellationToken cancellationToken)
     {
         var item = PecaInsumo.Criar(comando.Nome, comando.Tipo, comando.UnidadeDeMedida, Dinheiro.De(comando.Preco));
         repositorio.Adicionar(item);
@@ -35,9 +38,9 @@ public sealed class CadastrarPecaInsumoCasoDeUso(IRepositorioDePecaInsumo reposi
     }
 }
 
-public sealed class AtualizarPecaInsumoCasoDeUso(IRepositorioDePecaInsumo repositorio, IUnidadeDeTrabalho unidadeDeTrabalho)
+public sealed class AtualizarPecaInsumo(IPecaInsumoRepository repositorio, IUnidadeDeTrabalho unidadeDeTrabalho)
 {
-    public async Task<PecaInsumoDto> Executar(Guid id, AtualizarPecaInsumo comando, CancellationToken cancellationToken)
+    public async Task<PecaInsumoDto> Executar(Guid id, AtualizarPecaInsumoComando comando, CancellationToken cancellationToken)
     {
         var item = await PecasInsumosConsulta.ObterOuFalhar(repositorio, id, cancellationToken);
         item.Atualizar(comando.Nome, comando.UnidadeDeMedida, Dinheiro.De(comando.Preco));
@@ -46,7 +49,7 @@ public sealed class AtualizarPecaInsumoCasoDeUso(IRepositorioDePecaInsumo reposi
     }
 }
 
-public sealed class InativarPecaInsumoCasoDeUso(IRepositorioDePecaInsumo repositorio, IUnidadeDeTrabalho unidadeDeTrabalho)
+public sealed class InativarPecaInsumo(IPecaInsumoRepository repositorio, IUnidadeDeTrabalho unidadeDeTrabalho)
 {
     public async Task Executar(Guid id, CancellationToken cancellationToken)
     {
@@ -56,7 +59,7 @@ public sealed class InativarPecaInsumoCasoDeUso(IRepositorioDePecaInsumo reposit
     }
 }
 
-public sealed class RegistrarEntradaDeMercadoriaCasoDeUso(IRepositorioDePecaInsumo repositorio, IUnidadeDeTrabalho unidadeDeTrabalho)
+public sealed class RegistrarEntradaDeMercadoria(IPecaInsumoRepository repositorio, IUnidadeDeTrabalho unidadeDeTrabalho)
 {
     public async Task<SaldoDto> Executar(Guid id, decimal quantidade, CancellationToken cancellationToken)
     {
@@ -67,7 +70,7 @@ public sealed class RegistrarEntradaDeMercadoriaCasoDeUso(IRepositorioDePecaInsu
     }
 }
 
-public sealed class ConsultarPecasInsumosCasoDeUso(IRepositorioDePecaInsumo repositorio)
+public sealed class ConsultarPecasInsumos(IPecaInsumoRepository repositorio)
 {
     public async Task<PecaInsumoDto> Obter(Guid id, CancellationToken cancellationToken) =>
         PecaInsumoDto.De(await PecasInsumosConsulta.ObterOuFalhar(repositorio, id, cancellationToken));
@@ -85,7 +88,7 @@ public sealed class ConsultarPecasInsumosCasoDeUso(IRepositorioDePecaInsumo repo
 internal static class PecasInsumosConsulta
 {
     public static async Task<PecaInsumo> ObterOuFalhar(
-        IRepositorioDePecaInsumo repositorio, Guid id, CancellationToken cancellationToken) =>
+        IPecaInsumoRepository repositorio, Guid id, CancellationToken cancellationToken) =>
         await repositorio.Obter(id, cancellationToken)
         ?? throw new RecursoNaoEncontradoException("Peça/insumo não encontrada.");
 }

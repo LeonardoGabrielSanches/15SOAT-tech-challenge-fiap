@@ -4,7 +4,9 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Oficina.Application.Common;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 using Oficina.IntegrationTests.Support;
 
 namespace Oficina.IntegrationTests.Api;
@@ -122,8 +124,8 @@ public class PecasInsumosTests(PostgresFixture postgres) : IAsyncLifetime
 
         using var escopoA = _factory.Services.CreateScope();
         using var escopoB = _factory.Services.CreateScope();
-        var repositorioA = escopoA.ServiceProvider.GetRequiredService<IRepositorioDePecaInsumo>();
-        var repositorioB = escopoB.ServiceProvider.GetRequiredService<IRepositorioDePecaInsumo>();
+        var repositorioA = escopoA.ServiceProvider.GetRequiredService<IPecaInsumoRepository>();
+        var repositorioB = escopoB.ServiceProvider.GetRequiredService<IPecaInsumoRepository>();
         var itemA = await repositorioA.Obter(id, default);
         var itemB = await repositorioB.Obter(id, default);
 

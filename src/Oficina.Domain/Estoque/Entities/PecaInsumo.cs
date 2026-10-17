@@ -1,7 +1,9 @@
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
 
-namespace Oficina.Domain.Estoque;
+namespace Oficina.Domain.Estoque.Entities;
 
 public sealed class PecaInsumo : RaizDeAgregado
 {

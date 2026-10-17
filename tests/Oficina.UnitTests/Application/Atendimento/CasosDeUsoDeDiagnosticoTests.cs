@@ -10,7 +10,10 @@ using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 using Oficina.UnitTests.Domain.Atendimento;
 
 namespace Oficina.UnitTests.Application.Atendimento;
@@ -19,7 +22,7 @@ public class CasosDeUsoDeDiagnosticoTests
 {
     private readonly Mock<IOrdemDeServicoRepository> _ordens = new();
     private readonly Mock<IServicoRepository> _servicos = new();
-    private readonly Mock<IRepositorioDePecaInsumo> _pecas = new();
+    private readonly Mock<IPecaInsumoRepository> _pecas = new();
     private readonly Mock<IUnidadeDeTrabalho> _unidade = new();
     private readonly TimeProvider _relogio = RelogioFixo.Em(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.Zero));
     private readonly Servico _servico = Servico.Cadastrar("Troca de oleo", null, Dinheiro.De(100m));
@@ -285,10 +288,10 @@ public class CasosDeUsoDeDiagnosticoTests
         var novo = Servico.Cadastrar("Alinhamento", null, Dinheiro.De(80m));
         _servicos.Setup(r => r.Obter(novo.Id, It.IsAny<CancellationToken>())).ReturnsAsync(novo);
 
-        await new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object).Executar(os.Id, novo.Id, CancellationToken.None);
+        await new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object).Executar(os.Id, novo.Id, PapelDoUsuario.Mecanico, CancellationToken.None);
         await Assert.ThrowsAsync<ConflitoDeEstadoException>(() =>
-            new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object).Executar(os.Id, novo.Id, CancellationToken.None));
-        await new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, _servico.Id, CancellationToken.None);
+            new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object).Executar(os.Id, novo.Id, PapelDoUsuario.Mecanico, CancellationToken.None));
+        await new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, _servico.Id, PapelDoUsuario.Mecanico, CancellationToken.None);
 
         Assert.Equal([novo.Id], os.Servicos.Select(s => s.ServicoId));
     }

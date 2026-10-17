@@ -206,4 +206,49 @@ public partial class OrdensDeServicoTests(PostgresFixture postgres) : IAsyncLife
         Assert.Equal(HttpStatusCode.Forbidden, (await _factory.CriarClienteComPapel("mecanico").GetAsync(Rota)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync(Rota)).StatusCode);
     }
+
+    [Fact]
+    public async Task Papel_do_ajuste_de_servicos_depende_do_status_da_os()
+    {
+        var primeiro = await CriarServico("Alinhamento");
+        var segundo = await CriarServico("Balanceamento");
+        var terceiro = await CriarServico("Revisao");
+        var (cliente, veiculo) = await CriarClienteComVeiculo();
+        var os = await AbrirOs(cliente.Id, veiculo.Id, primeiro.Id);
+        var atendente = Atendente();
+        var mecanico = _factory.CriarClienteComPapel("mecanico");
+        var gerente = _factory.CriarClienteComPapel("gerente");
+
+        var mecanicoEmRecebida = await mecanico.PostAsJsonAsync($"{Rota}/{os.Id}/servicos", new { servicoId = segundo.Id });
+        var atendenteEmRecebida = await atendente.PostAsJsonAsync($"{Rota}/{os.Id}/servicos", new { servicoId = segundo.Id });
+        var mecanicoRemoveEmRecebida = await mecanico.DeleteAsync($"{Rota}/{os.Id}/servicos/{segundo.Id}");
+        var gerenteEmRecebida = await gerente.PostAsJsonAsync($"{Rota}/{os.Id}/servicos", new { servicoId = terceiro.Id });
+        await mecanico.PostAsync($"{Rota}/{os.Id}/diagnostico/iniciar", null);
+        var atendenteEmDiagnostico = await atendente.DeleteAsync($"{Rota}/{os.Id}/servicos/{segundo.Id}");
+        var atendenteIncluiEmDiagnostico = await atendente.PostAsJsonAsync($"{Rota}/{os.Id}/servicos", new { servicoId = primeiro.Id });
+        var mecanicoEmDiagnostico = await mecanico.DeleteAsync($"{Rota}/{os.Id}/servicos/{segundo.Id}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, mecanicoEmRecebida.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, atendenteEmRecebida.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, mecanicoRemoveEmRecebida.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, gerenteEmRecebida.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, atendenteEmDiagnostico.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, atendenteIncluiEmDiagnostico.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, mecanicoEmDiagnostico.StatusCode);
+    }
+
+    [Fact]
+    public async Task Listagem_sem_filtro_omite_entregues_e_canceladas_no_banco()
+    {
+        var servico = await CriarServico();
+        var (cliente, veiculo) = await CriarClienteComVeiculo();
+        var os = await AbrirOs(cliente.Id, veiculo.Id, servico.Id);
+        await Atendente().PostAsJsonAsync($"{Rota}/{os.Id}/cancelar", new { motivo = "Desistencia" });
+
+        var lista = (await Atendente().GetFromJsonAsync<List<OrdemDeServicoResumoDto>>(Rota))!;
+        var canceladas = (await Atendente().GetFromJsonAsync<List<OrdemDeServicoResumoDto>>($"{Rota}?status=Cancelada"))!;
+
+        Assert.DoesNotContain(lista, o => o.Id == os.Id);
+        Assert.Contains(canceladas, o => o.Id == os.Id);
+    }
 }

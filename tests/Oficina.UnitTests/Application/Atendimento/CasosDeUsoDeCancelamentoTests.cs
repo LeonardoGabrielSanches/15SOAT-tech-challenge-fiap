@@ -9,7 +9,10 @@ using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 using Oficina.UnitTests.Domain.Atendimento;
 
 namespace Oficina.UnitTests.Application.Atendimento;
@@ -17,7 +20,7 @@ namespace Oficina.UnitTests.Application.Atendimento;
 public class CasosDeUsoDeCancelamentoTests
 {
     private readonly Mock<IOrdemDeServicoRepository> _ordens = new();
-    private readonly Mock<IRepositorioDePecaInsumo> _pecas = new();
+    private readonly Mock<IPecaInsumoRepository> _pecas = new();
     private readonly Mock<IUnidadeDeTrabalho> _unidade = new();
     private readonly TimeProvider _relogio = RelogioFixo.Em(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.Zero));
     private readonly Servico _servico = Servico.Cadastrar("Troca de oleo", null, Dinheiro.De(100m));

@@ -1,15 +1,18 @@
 using Moq;
 using Oficina.Application.Common;
-using Oficina.Application.Estoque;
+using Oficina.Application.Estoque.UseCases;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 
 namespace Oficina.UnitTests.Application;
 
 public class PecasInsumosCasosDeUsoTests
 {
-    private readonly Mock<IRepositorioDePecaInsumo> _repositorio = new();
+    private readonly Mock<IPecaInsumoRepository> _repositorio = new();
     private readonly Mock<IUnidadeDeTrabalho> _unidadeDeTrabalho = new();
 
     private PecaInsumo ItemExistente(TipoPecaInsumo tipo = TipoPecaInsumo.Peca, decimal saldo = 0)
@@ -27,9 +30,9 @@ public class PecasInsumosCasosDeUsoTests
     [Fact]
     public async Task Cadastrar_adiciona_o_item_e_confirma()
     {
-        var caso = new CadastrarPecaInsumoCasoDeUso(_repositorio.Object, _unidadeDeTrabalho.Object);
+        var caso = new CadastrarPecaInsumo(_repositorio.Object, _unidadeDeTrabalho.Object);
 
-        var dto = await caso.Executar(new CadastrarPecaInsumo("Óleo", TipoPecaInsumo.Insumo, "L", 42.9m), default);
+        var dto = await caso.Executar(new CadastrarPecaInsumoComando("Óleo", TipoPecaInsumo.Insumo, "L", 42.9m), default);
 
         Assert.Equal(0m, dto.Saldo);
         Assert.True(dto.Ativo);
@@ -40,10 +43,10 @@ public class PecasInsumosCasosDeUsoTests
     [Fact]
     public async Task Cadastrar_com_dados_invalidos_nao_confirma()
     {
-        var caso = new CadastrarPecaInsumoCasoDeUso(_repositorio.Object, _unidadeDeTrabalho.Object);
+        var caso = new CadastrarPecaInsumo(_repositorio.Object, _unidadeDeTrabalho.Object);
 
         await Assert.ThrowsAsync<DadosInvalidosException>(() =>
-            caso.Executar(new CadastrarPecaInsumo("", TipoPecaInsumo.Peca, "un", 1m), default));
+            caso.Executar(new CadastrarPecaInsumoComando("", TipoPecaInsumo.Peca, "un", 1m), default));
 
         _unidadeDeTrabalho.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -52,9 +55,9 @@ public class PecasInsumosCasosDeUsoTests
     public async Task Atualizar_altera_os_dados_e_confirma()
     {
         var item = ItemExistente();
-        var caso = new AtualizarPecaInsumoCasoDeUso(_repositorio.Object, _unidadeDeTrabalho.Object);
+        var caso = new AtualizarPecaInsumo(_repositorio.Object, _unidadeDeTrabalho.Object);
 
-        var dto = await caso.Executar(item.Id, new AtualizarPecaInsumo("Filtro novo", "cx", 12.5m), default);
+        var dto = await caso.Executar(item.Id, new AtualizarPecaInsumoComando("Filtro novo", "cx", 12.5m), default);
 
         Assert.Equal("Filtro novo", dto.Nome);
         Assert.Equal(12.5m, dto.Preco);
@@ -64,17 +67,17 @@ public class PecasInsumosCasosDeUsoTests
     [Fact]
     public async Task Atualizar_item_inexistente_falha_com_nao_encontrado()
     {
-        var caso = new AtualizarPecaInsumoCasoDeUso(_repositorio.Object, _unidadeDeTrabalho.Object);
+        var caso = new AtualizarPecaInsumo(_repositorio.Object, _unidadeDeTrabalho.Object);
 
         await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() =>
-            caso.Executar(Guid.NewGuid(), new AtualizarPecaInsumo("x", "un", 1m), default));
+            caso.Executar(Guid.NewGuid(), new AtualizarPecaInsumoComando("x", "un", 1m), default));
     }
 
     [Fact]
     public async Task Inativar_marca_o_item_como_inativo_e_confirma()
     {
         var item = ItemExistente();
-        var caso = new InativarPecaInsumoCasoDeUso(_repositorio.Object, _unidadeDeTrabalho.Object);
+        var caso = new InativarPecaInsumo(_repositorio.Object, _unidadeDeTrabalho.Object);
 
         await caso.Executar(item.Id, default);
 
@@ -86,7 +89,7 @@ public class PecasInsumosCasosDeUsoTests
     public async Task Entrada_aumenta_o_saldo_e_confirma()
     {
         var item = ItemExistente(TipoPecaInsumo.Insumo, saldo: 2m);
-        var caso = new RegistrarEntradaDeMercadoriaCasoDeUso(_repositorio.Object, _unidadeDeTrabalho.Object);
+        var caso = new RegistrarEntradaDeMercadoria(_repositorio.Object, _unidadeDeTrabalho.Object);
 
         var saldo = await caso.Executar(item.Id, 3.5m, default);
 
@@ -98,7 +101,7 @@ public class PecasInsumosCasosDeUsoTests
     public async Task Entrada_fracionada_de_peca_e_rejeitada_sem_confirmar()
     {
         var item = ItemExistente(TipoPecaInsumo.Peca);
-        var caso = new RegistrarEntradaDeMercadoriaCasoDeUso(_repositorio.Object, _unidadeDeTrabalho.Object);
+        var caso = new RegistrarEntradaDeMercadoria(_repositorio.Object, _unidadeDeTrabalho.Object);
 
         await Assert.ThrowsAsync<DadosInvalidosException>(() => caso.Executar(item.Id, 1.5m, default));
 
@@ -109,7 +112,7 @@ public class PecasInsumosCasosDeUsoTests
     [Fact]
     public async Task Entrada_em_item_inexistente_falha_com_nao_encontrado()
     {
-        var caso = new RegistrarEntradaDeMercadoriaCasoDeUso(_repositorio.Object, _unidadeDeTrabalho.Object);
+        var caso = new RegistrarEntradaDeMercadoria(_repositorio.Object, _unidadeDeTrabalho.Object);
 
         await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() => caso.Executar(Guid.NewGuid(), 1m, default));
     }
@@ -118,7 +121,7 @@ public class PecasInsumosCasosDeUsoTests
     public async Task Consultar_saldo_retorna_o_saldo_atual()
     {
         var item = ItemExistente(saldo: 7m);
-        var caso = new ConsultarPecasInsumosCasoDeUso(_repositorio.Object);
+        var caso = new ConsultarPecasInsumos(_repositorio.Object);
 
         var saldo = await caso.ConsultarSaldo(item.Id, default);
 
@@ -130,7 +133,7 @@ public class PecasInsumosCasosDeUsoTests
     {
         var item = ItemExistente();
         _repositorio.Setup(r => r.Listar(true, It.IsAny<CancellationToken>())).ReturnsAsync([item]);
-        var caso = new ConsultarPecasInsumosCasoDeUso(_repositorio.Object);
+        var caso = new ConsultarPecasInsumos(_repositorio.Object);
 
         var itens = await caso.Listar(true, default);
 

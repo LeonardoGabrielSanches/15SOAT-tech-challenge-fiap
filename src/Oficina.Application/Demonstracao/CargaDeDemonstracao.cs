@@ -5,13 +5,16 @@ using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 
 namespace Oficina.Application.Demonstracao;
 
 public sealed class CargaDeDemonstracao(
     IServicoRepository servicos,
-    IRepositorioDePecaInsumo itens,
+    IPecaInsumoRepository itens,
     IClienteRepository clientes,
     IVeiculoRepository veiculos,
     IUnidadeDeTrabalho unidadeDeTrabalho,

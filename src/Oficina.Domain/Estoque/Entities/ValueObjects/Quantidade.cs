@@ -1,6 +1,7 @@
 using Oficina.Domain.Common;
+using Oficina.Domain.Estoque.Entities.Enums;
 
-namespace Oficina.Domain.Estoque;
+namespace Oficina.Domain.Estoque.Entities.ValueObjects;
 
 public readonly record struct Quantidade
 {

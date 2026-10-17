@@ -60,16 +60,16 @@ public static class OrdensDeServicoEndpoints
                 Results.Ok(await caso.Executar(id, ct)))
             .RequireAuthorization(Politicas.AtendenteOuMecanico);
 
-        ordens.MapPost("/{id:guid}/servicos", async (Guid id, IncluirServicoNaOsRequest requisicao, IncluirServicoNaOs caso, CancellationToken ct) =>
+        ordens.MapPost("/{id:guid}/servicos", async (Guid id, IncluirServicoNaOsRequest requisicao, IncluirServicoNaOs caso, ClaimsPrincipal usuario, CancellationToken ct) =>
             {
-                await caso.Executar(id, requisicao.ServicoId, ct);
+                await caso.Executar(id, requisicao.ServicoId, Papel(usuario), ct);
                 return Results.NoContent();
             })
             .RequireAuthorization(Politicas.AtendenteOuMecanico);
 
-        ordens.MapDelete("/{id:guid}/servicos/{servicoId:guid}", async (Guid id, Guid servicoId, RemoverServicoDaOs caso, CancellationToken ct) =>
+        ordens.MapDelete("/{id:guid}/servicos/{servicoId:guid}", async (Guid id, Guid servicoId, RemoverServicoDaOs caso, ClaimsPrincipal usuario, CancellationToken ct) =>
             {
-                await caso.Executar(id, servicoId, ct);
+                await caso.Executar(id, servicoId, Papel(usuario), ct);
                 return Results.NoContent();
             })
             .RequireAuthorization(Politicas.AtendenteOuMecanico);
@@ -139,6 +139,15 @@ public static class OrdensDeServicoEndpoints
             .RequireAuthorization(Politicas.Atendente);
 
         return administrativo;
+    }
+
+    private static PapelDoUsuario Papel(ClaimsPrincipal usuario)
+    {
+        var papel = PapelDoUsuario.Nenhum;
+        if (usuario.IsInRole(Politicas.Atendente)) papel |= PapelDoUsuario.Atendente;
+        if (usuario.IsInRole(Politicas.Mecanico)) papel |= PapelDoUsuario.Mecanico;
+        if (usuario.IsInRole(Politicas.Gerente)) papel |= PapelDoUsuario.Gerente;
+        return papel;
     }
 
     private static string Autor(ClaimsPrincipal usuario) =>

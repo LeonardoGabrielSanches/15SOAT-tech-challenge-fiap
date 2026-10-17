@@ -4,6 +4,7 @@ using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Entities;
 using Oficina.Domain.Atendimento.Entities.Enums;
 using Oficina.Domain.Atendimento.Entities.ValueObjects;
+using Oficina.Domain.Atendimento.Events;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
@@ -143,5 +144,20 @@ public class CasosDeUsoDeExecucaoTests
         var fila = await new ListarFilaDeExecucao(_ordens.Object).Executar(CancellationToken.None);
 
         Assert.Equal([antiga.Id, media.Id, nova.Id], fila.Select(o => o.Id));
+    }
+
+    [Fact]
+    public void Transicoes_de_execucao_e_entrega_registram_eventos_de_dominio()
+    {
+        var os = OsAprovada();
+        os.LimparEventos();
+
+        os.IniciarExecucao("m", Agora);
+        os.FinalizarExecucao("m", Agora);
+        os.RegistrarEntrega("a", Agora);
+
+        Assert.Contains(os.EventosDeDominio, e => e is ExecucaoIniciada x && x.OsId == os.Id && x.Numero == os.Numero.Valor && x.OcorridoEm == Agora);
+        Assert.Contains(os.EventosDeDominio, e => e is ExecucaoFinalizada x && x.OsId == os.Id && x.OcorridoEm == Agora);
+        Assert.Contains(os.EventosDeDominio, e => e is EntregaRealizada x && x.OsId == os.Id && x.OcorridoEm == Agora);
     }
 }

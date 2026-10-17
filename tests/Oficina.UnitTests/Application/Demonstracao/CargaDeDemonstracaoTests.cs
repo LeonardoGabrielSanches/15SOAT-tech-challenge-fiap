@@ -7,7 +7,9 @@ using Oficina.Domain.Atendimento.Entities.ValueObjects;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Interfaces;
 using Oficina.UnitTests.Domain.Atendimento;
 
 namespace Oficina.UnitTests.Application.Demonstracao;
@@ -15,7 +17,7 @@ namespace Oficina.UnitTests.Application.Demonstracao;
 public class CargaDeDemonstracaoTests
 {
     private readonly Mock<IServicoRepository> _servicos = new();
-    private readonly Mock<IRepositorioDePecaInsumo> _itens = new();
+    private readonly Mock<IPecaInsumoRepository> _itens = new();
     private readonly Mock<IClienteRepository> _clientes = new();
     private readonly Mock<IVeiculoRepository> _veiculos = new();
     private readonly Mock<IUnidadeDeTrabalho> _unidade = new();

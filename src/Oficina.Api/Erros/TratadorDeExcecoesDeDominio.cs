@@ -13,6 +13,7 @@ public sealed class TratadorDeExcecoesDeDominio(IProblemDetailsService problemas
         var (status, titulo) = excecao switch
         {
             RecursoNaoEncontradoException => (StatusCodes.Status404NotFound, "Recurso nao encontrado"),
+            AcessoNegadoException => (StatusCodes.Status403Forbidden, "Acesso negado"),
             ConflitoDeEstadoException => (StatusCodes.Status409Conflict, "Conflito de estado"),
             DadosInvalidosException => (StatusCodes.Status422UnprocessableEntity, "Dados invalidos"),
             DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } } =>

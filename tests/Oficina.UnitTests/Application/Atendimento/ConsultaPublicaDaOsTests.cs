@@ -6,6 +6,9 @@ using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
 using Oficina.UnitTests.Domain.Atendimento;
 
 namespace Oficina.UnitTests.Application.Atendimento;
@@ -58,11 +61,11 @@ public class ConsultaPublicaDaOsTests
     public async Task Orcamento_vigente_e_a_ultima_versao_com_itens_congelados()
     {
         var servico = Servico.Cadastrar("Alinhamento", null, Dinheiro.De(80m));
-        var peca = Oficina.Domain.Estoque.PecaInsumo.Criar("Filtro", Oficina.Domain.Estoque.TipoPecaInsumo.Peca, "un", Dinheiro.De(25m));
-        peca.RegistrarEntrada(Oficina.Domain.Estoque.Quantidade.Criar(5m, Oficina.Domain.Estoque.TipoPecaInsumo.Peca));
+        var peca = PecaInsumo.Criar("Filtro", TipoPecaInsumo.Peca, "un", Dinheiro.De(25m));
+        peca.RegistrarEntrada(Quantidade.Criar(5m, TipoPecaInsumo.Peca));
         _os.IncluirServico(servico);
         _os.IniciarDiagnostico("m", _relogio.GetUtcNow());
-        _os.IncluirPecaInsumo(peca, Oficina.Domain.Estoque.Quantidade.Criar(2m, Oficina.Domain.Estoque.TipoPecaInsumo.Peca), _relogio.GetUtcNow());
+        _os.IncluirPecaInsumo(peca, Quantidade.Criar(2m, TipoPecaInsumo.Peca), _relogio.GetUtcNow());
         _os.ConcluirDiagnostico([_servicoInicial, servico], [peca], "m", _relogio.GetUtcNow());
 
         var consulta = await Caso().Executar("OS-2026-00007", "52998224725", CancellationToken.None);

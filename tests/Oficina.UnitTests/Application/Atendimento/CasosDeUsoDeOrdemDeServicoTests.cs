@@ -10,7 +10,8 @@ using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 using Oficina.UnitTests.Domain.Atendimento;
 
 namespace Oficina.UnitTests.Application.Atendimento;
@@ -21,7 +22,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
     private readonly Mock<IClienteRepository> _clientes = new();
     private readonly Mock<IVeiculoRepository> _veiculos = new();
     private readonly Mock<IServicoRepository> _servicos = new();
-    private readonly Mock<IRepositorioDePecaInsumo> _pecas = new();
+    private readonly Mock<IPecaInsumoRepository> _pecas = new();
     private readonly Mock<IGeradorNumeroOs> _gerador = new();
     private readonly Mock<IUnidadeDeTrabalho> _unidade = new();
     private readonly TimeProvider _relogio = RelogioFixo.Em(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.Zero));
@@ -192,7 +193,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
         var segundo = ServicoExistente("Balanceamento");
 
         await new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object)
-            .Executar(os.Id, segundo.Id, CancellationToken.None);
+            .Executar(os.Id, segundo.Id, PapelDoUsuario.Gerente, CancellationToken.None);
 
         Assert.Equal([primeiro.Id, segundo.Id], os.Servicos.Select(s => s.ServicoId));
         _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Once);
@@ -206,7 +207,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
 
         await Assert.ThrowsAsync<ConflitoDeEstadoException>(() =>
             new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object)
-                .Executar(os.Id, servico.Id, CancellationToken.None));
+                .Executar(os.Id, servico.Id, PapelDoUsuario.Gerente, CancellationToken.None));
     }
 
     [Fact]
@@ -219,7 +220,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
 
         await Assert.ThrowsAsync<ConflitoDeEstadoException>(() =>
             new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object)
-                .Executar(os.Id, inativo.Id, CancellationToken.None));
+                .Executar(os.Id, inativo.Id, PapelDoUsuario.Gerente, CancellationToken.None));
     }
 
     [Fact]
@@ -232,7 +233,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
 
         await Assert.ThrowsAsync<ConflitoDeEstadoException>(() =>
             new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object)
-                .Executar(os.Id, novo.Id, CancellationToken.None));
+                .Executar(os.Id, novo.Id, PapelDoUsuario.Gerente, CancellationToken.None));
     }
 
     [Fact]
@@ -242,8 +243,8 @@ public class CasosDeUsoDeOrdemDeServicoTests
         var os = OsRecebida(servico);
         var caso = new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object);
 
-        await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() => caso.Executar(Guid.NewGuid(), servico.Id, CancellationToken.None));
-        await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() => caso.Executar(os.Id, Guid.NewGuid(), CancellationToken.None));
+        await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() => caso.Executar(Guid.NewGuid(), servico.Id, PapelDoUsuario.Gerente, CancellationToken.None));
+        await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() => caso.Executar(os.Id, Guid.NewGuid(), PapelDoUsuario.Gerente, CancellationToken.None));
     }
 
     [Fact]
@@ -253,7 +254,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
         var segundo = ServicoExistente("Balanceamento");
         var os = OsRecebida(primeiro, segundo);
 
-        await new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, primeiro.Id, CancellationToken.None);
+        await new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, primeiro.Id, PapelDoUsuario.Gerente, CancellationToken.None);
 
         Assert.Equal([segundo.Id], os.Servicos.Select(s => s.ServicoId));
         _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Once);
@@ -266,7 +267,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
         var os = OsRecebida(servico);
 
         await Assert.ThrowsAsync<ConflitoDeEstadoException>(() =>
-            new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, servico.Id, CancellationToken.None));
+            new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, servico.Id, PapelDoUsuario.Gerente, CancellationToken.None));
     }
 
     [Fact]
@@ -275,7 +276,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
         var os = OsRecebida(ServicoExistente());
 
         await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() =>
-            new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, Guid.NewGuid(), CancellationToken.None));
+            new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, Guid.NewGuid(), PapelDoUsuario.Gerente, CancellationToken.None));
     }
 
     [Fact]
@@ -287,7 +288,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
         typeof(OrdemDeServico).GetProperty(nameof(OrdemDeServico.Status))!.SetValue(os, StatusOs.Aprovada);
 
         await Assert.ThrowsAsync<ConflitoDeEstadoException>(() =>
-            new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, primeiro.Id, CancellationToken.None));
+            new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, primeiro.Id, PapelDoUsuario.Gerente, CancellationToken.None));
     }
 
     [Fact]
@@ -302,9 +303,7 @@ public class CasosDeUsoDeOrdemDeServicoTests
             ComStatus(StatusOs.EmExecucao, agora.AddHours(-5)),
             ComStatus(StatusOs.Aprovada, agora.AddHours(-3)),
             ComStatus(StatusOs.AguardandoAprovacao, agora.AddHours(-4)),
-            ComStatus(StatusOs.EmDiagnostico, agora.AddHours(-6)),
-            ComStatus(StatusOs.Entregue, agora.AddHours(-10)),
-            ComStatus(StatusOs.Cancelada, agora.AddHours(-11))
+            ComStatus(StatusOs.EmDiagnostico, agora.AddHours(-6))
         };
         _ordens.Setup(r => r.Listar(null, It.IsAny<CancellationToken>())).ReturnsAsync(os);
 
@@ -353,5 +352,84 @@ public class CasosDeUsoDeOrdemDeServicoTests
         await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() =>
             new DetalharOs(_ordens.Object, _clientes.Object, _veiculos.Object, _servicos.Object, _pecas.Object)
                 .Executar(Guid.NewGuid(), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Detalhar_expoe_itens_congelados_motivo_da_recusa_e_precos_congelados_dos_servicos()
+    {
+        var servico = ServicoExistente();
+        var os = OsRecebida(servico);
+        var agora = _relogio.GetUtcNow();
+        os.IniciarDiagnostico("m", agora);
+        os.ConcluirDiagnostico([servico], [], "m", agora);
+        os.RecusarOrcamento(os.VersaoVigente!.Token, "Muito caro", "Cliente", agora);
+        servico.Atualizar(servico.Nome, null, Dinheiro.De(150m));
+
+        var detalhe = await new DetalharOs(_ordens.Object, _clientes.Object, _veiculos.Object, _servicos.Object, _pecas.Object)
+            .Executar(os.Id, CancellationToken.None);
+
+        var versao = Assert.Single(detalhe.VersoesDoOrcamento);
+        Assert.Equal("Muito caro", versao.MotivoDaRecusa);
+        var item = Assert.Single(versao.Itens);
+        Assert.Equal(("Servico", servico.Id, "Troca de oleo", 1m, 100m, 100m), (item.Tipo, item.ReferenciaId, item.Descricao, item.Quantidade, item.PrecoUnitario, item.Subtotal));
+        Assert.Equal(100m, Assert.Single(detalhe.Servicos).Preco);
+    }
+
+    [Fact]
+    public async Task Detalhar_usa_preco_do_catalogo_para_servico_fora_da_versao_vigente()
+    {
+        var primeiro = ServicoExistente();
+        var os = OsRecebida(primeiro);
+        var agora = _relogio.GetUtcNow();
+        os.IniciarDiagnostico("m", agora);
+        os.ConcluirDiagnostico([primeiro], [], "m", agora);
+        os.RecusarOrcamento(os.VersaoVigente!.Token, null, "Cliente", agora);
+        var segundo = Servico.Cadastrar("Balanceamento", null, Dinheiro.De(80m));
+        os.IncluirServico(segundo);
+        _servicos.Setup(r => r.ObterPorIds(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Servico> { primeiro, segundo });
+        primeiro.Atualizar(primeiro.Nome, null, Dinheiro.De(999m));
+
+        var detalhe = await new DetalharOs(_ordens.Object, _clientes.Object, _veiculos.Object, _servicos.Object, _pecas.Object)
+            .Executar(os.Id, CancellationToken.None);
+
+        Assert.Equal([("Balanceamento", 80m), ("Troca de oleo", 100m)], detalhe.Servicos.Select(x => (x.Nome, x.Preco)));
+    }
+
+    [Theory]
+    [InlineData(StatusOs.Recebida, PapelDoUsuario.Mecanico)]
+    [InlineData(StatusOs.EmDiagnostico, PapelDoUsuario.Atendente)]
+    public async Task Incluir_e_remover_servico_com_papel_errado_para_o_status_e_negado_e_nao_confirma(StatusOs status, PapelDoUsuario papel)
+    {
+        var primeiro = ServicoExistente("Alinhamento");
+        var os = OsRecebida(primeiro);
+        typeof(OrdemDeServico).GetProperty(nameof(OrdemDeServico.Status))!.SetValue(os, status);
+        var segundo = ServicoExistente("Balanceamento");
+
+        await Assert.ThrowsAsync<AcessoNegadoException>(() =>
+            new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object).Executar(os.Id, segundo.Id, papel, CancellationToken.None));
+        await Assert.ThrowsAsync<AcessoNegadoException>(() =>
+            new RemoverServicoDaOs(_ordens.Object, _unidade.Object).Executar(os.Id, primeiro.Id, papel, CancellationToken.None));
+
+        Assert.Single(os.Servicos);
+        _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(StatusOs.Recebida, PapelDoUsuario.Atendente)]
+    [InlineData(StatusOs.EmDiagnostico, PapelDoUsuario.Mecanico)]
+    [InlineData(StatusOs.Recebida, PapelDoUsuario.Gerente)]
+    [InlineData(StatusOs.EmDiagnostico, PapelDoUsuario.Gerente)]
+    [InlineData(StatusOs.Recebida, PapelDoUsuario.Atendente | PapelDoUsuario.Mecanico)]
+    public async Task Incluir_servico_com_papel_correto_para_o_status_e_permitido(StatusOs status, PapelDoUsuario papel)
+    {
+        var primeiro = ServicoExistente("Alinhamento");
+        var os = OsRecebida(primeiro);
+        typeof(OrdemDeServico).GetProperty(nameof(OrdemDeServico.Status))!.SetValue(os, status);
+        var segundo = ServicoExistente("Balanceamento");
+
+        await new IncluirServicoNaOs(_ordens.Object, _servicos.Object, _unidade.Object).Executar(os.Id, segundo.Id, papel, CancellationToken.None);
+
+        Assert.Equal(2, os.Servicos.Count);
     }
 }

@@ -7,3 +7,5 @@ public sealed class RecursoNaoEncontradoException(string mensagem) : ExcecaoDeDo
 public sealed class ConflitoDeEstadoException(string mensagem) : ExcecaoDeDominio(mensagem);
 
 public sealed class DadosInvalidosException(string mensagem) : ExcecaoDeDominio(mensagem);
+
+public sealed class AcessoNegadoException(string mensagem) : ExcecaoDeDominio(mensagem);

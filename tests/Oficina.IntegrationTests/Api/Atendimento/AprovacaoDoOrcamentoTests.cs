@@ -8,6 +8,8 @@ using Moq;
 using Oficina.Application.Atendimento.UseCases;
 using Oficina.Application.CatalogoEstoque.UseCases;
 using Oficina.Application.Common;
+using Oficina.Domain.Atendimento.Interfaces;
+using Oficina.Domain.Common;
 using Oficina.IntegrationTests.Support;
 
 namespace Oficina.IntegrationTests.Api.Atendimento;
@@ -161,5 +163,27 @@ public class AprovacaoDoOrcamentoTests : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.NotFound, (await publico.PostAsync($"{RotaPublica}/naoexiste/aprovar", null)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await publico.PostAsync($"{RotaPublica}/naoexiste/recusar", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Aprovacao_e_recusa_simultaneas_com_o_mesmo_token_nao_vencem_ambas()
+    {
+        var (osId, _, _, _) = await OsEmDiagnosticoComPeca();
+        var token = await Concluir(osId);
+
+        using var escopoA = _factory.Services.CreateScope();
+        using var escopoB = _factory.Services.CreateScope();
+        var osA = await escopoA.ServiceProvider.GetRequiredService<IOrdemDeServicoRepository>().ObterPorId(osId, default);
+        var osB = await escopoB.ServiceProvider.GetRequiredService<IOrdemDeServicoRepository>().ObterPorId(osId, default);
+        osA!.AprovarOrcamento(token, "Cliente", DateTimeOffset.UtcNow);
+        osB!.RecusarOrcamento(token, "Muito caro", "Cliente", DateTimeOffset.UtcNow);
+
+        await escopoA.ServiceProvider.GetRequiredService<IUnidadeDeTrabalho>().Confirmar(default);
+        await Assert.ThrowsAsync<ConflitoDeEstadoException>(() =>
+            escopoB.ServiceProvider.GetRequiredService<IUnidadeDeTrabalho>().Confirmar(default));
+
+        var detalhe = (await Como("atendente").GetFromJsonAsync<OrdemDeServicoDetalheDto>($"{Rota}/{osId}"))!;
+        Assert.Equal("Aprovada", detalhe.Status);
+        Assert.Equal("Aprovada", Assert.Single(detalhe.VersoesDoOrcamento).Situacao);
     }
 }

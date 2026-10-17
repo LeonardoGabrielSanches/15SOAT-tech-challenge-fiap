@@ -30,6 +30,10 @@ public sealed class OrdemDeServicoRepository(DbContext contexto) : IOrdemDeServi
         {
             consulta = consulta.Where(o => o.Status == status);
         }
+        else
+        {
+            consulta = consulta.Where(o => o.Status != StatusOs.Entregue && o.Status != StatusOs.Cancelada);
+        }
 
         return await consulta.ToListAsync(cancellationToken);
     }

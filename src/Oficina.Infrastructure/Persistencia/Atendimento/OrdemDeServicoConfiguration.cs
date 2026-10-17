@@ -4,7 +4,8 @@ using Oficina.Domain.Atendimento.Entities;
 using Oficina.Domain.Atendimento.Entities.Enums;
 using Oficina.Domain.Atendimento.Entities.ValueObjects;
 using Oficina.Domain.CatalogoEstoque.Entities;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
 
 namespace Oficina.Infrastructure.Persistencia.Atendimento;
 
@@ -24,6 +25,10 @@ public sealed class OrdemDeServicoConfiguration : IEntityTypeConfiguration<Ordem
         builder.Property(o => o.VeiculoId).IsRequired();
         builder.Property(o => o.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(30).IsRequired();
         builder.Property(o => o.AbertaEm).IsRequired();
+        builder.Property<uint>("xmin")
+            .HasColumnType("xid")
+            .ValueGeneratedOnAddOrUpdate()
+            .IsConcurrencyToken();
         builder.HasIndex(o => o.ClienteId);
         builder.HasIndex(o => o.VeiculoId)
             .IsUnique()

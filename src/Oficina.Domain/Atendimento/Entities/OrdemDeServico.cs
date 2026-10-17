@@ -3,7 +3,8 @@ using Oficina.Domain.Atendimento.Entities.ValueObjects;
 using Oficina.Domain.Atendimento.Events;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
 
 namespace Oficina.Domain.Atendimento.Entities;
 
@@ -292,14 +293,23 @@ public sealed class OrdemDeServico : RaizDeAgregado
         Registrar(new OrcamentoRecusado(Id, Numero.Valor, versao.Numero, motivoNormalizado, agora));
     }
 
-    public void IniciarExecucao(string autor, DateTimeOffset agora) =>
+    public void IniciarExecucao(string autor, DateTimeOffset agora)
+    {
         Transitar(StatusOs.Aprovada, StatusOs.EmExecucao, "A execucao so pode ser iniciada em uma OS Aprovada.", autor, agora);
+        Registrar(new ExecucaoIniciada(Id, Numero.Valor, agora));
+    }
 
-    public void FinalizarExecucao(string autor, DateTimeOffset agora) =>
+    public void FinalizarExecucao(string autor, DateTimeOffset agora)
+    {
         Transitar(StatusOs.EmExecucao, StatusOs.Finalizada, "A execucao so pode ser finalizada em uma OS Em execucao.", autor, agora);
+        Registrar(new ExecucaoFinalizada(Id, Numero.Valor, agora));
+    }
 
-    public void RegistrarEntrega(string autor, DateTimeOffset agora) =>
+    public void RegistrarEntrega(string autor, DateTimeOffset agora)
+    {
         Transitar(StatusOs.Finalizada, StatusOs.Entregue, "A entrega so pode ser registrada em uma OS Finalizada.", autor, agora);
+        Registrar(new EntregaRealizada(Id, Numero.Valor, agora));
+    }
 
     private void Transitar(StatusOs esperado, StatusOs destino, string mensagem, string autor, DateTimeOffset agora)
     {

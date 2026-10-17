@@ -1,6 +1,8 @@
-namespace Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
 
-public interface IRepositorioDePecaInsumo
+namespace Oficina.Domain.Estoque.Interfaces;
+
+public interface IPecaInsumoRepository
 {
     Task<PecaInsumo?> Obter(Guid id, CancellationToken cancellationToken);
 

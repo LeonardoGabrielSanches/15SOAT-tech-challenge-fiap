@@ -4,7 +4,8 @@ using Oficina.Domain.Atendimento.Entities.Enums;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 
 namespace Oficina.Application.Atendimento.UseCases;
 
@@ -24,7 +25,15 @@ public sealed record ServicoDaOsDto(Guid ServicoId, string Nome, decimal Preco);
 
 public sealed record ItemDePecaInsumoDaOsDto(Guid PecaInsumoId, string Nome, string UnidadeDeMedida, decimal Quantidade, decimal Preco);
 
-public sealed record VersaoDoOrcamentoDto(int Numero, decimal Total, string Situacao, DateTimeOffset GeradaEm);
+public sealed record ItemDaVersaoDto(string Tipo, Guid ReferenciaId, string Descricao, decimal Quantidade, decimal PrecoUnitario, decimal Subtotal);
+
+public sealed record VersaoDoOrcamentoDto(
+    int Numero,
+    decimal Total,
+    string Situacao,
+    DateTimeOffset GeradaEm,
+    string? MotivoDaRecusa,
+    IReadOnlyList<ItemDaVersaoDto> Itens);
 
 public sealed record EntradaDoHistoricoDto(string? Origem, string Destino, DateTimeOffset Momento, string Autor);
 
@@ -105,11 +114,35 @@ public sealed class AbrirOs(
     }
 }
 
+internal static class PermissaoDeServicosDaOs
+{
+    public static void Garantir(OrdemDeServico os, PapelDoUsuario papel)
+    {
+        if (papel.HasFlag(PapelDoUsuario.Gerente))
+        {
+            return;
+        }
+
+        var exigido = os.Status switch
+        {
+            StatusOs.Recebida => PapelDoUsuario.Atendente,
+            StatusOs.EmDiagnostico => PapelDoUsuario.Mecanico,
+            _ => PapelDoUsuario.Nenhum
+        };
+
+        if (exigido != PapelDoUsuario.Nenhum && (papel & exigido) == 0)
+        {
+            throw new AcessoNegadoException($"Em uma OS {os.Status} os servicos so podem ser ajustados pelo {exigido.ToString().ToLowerInvariant()}.");
+        }
+    }
+}
+
 public sealed class IncluirServicoNaOs(IOrdemDeServicoRepository ordens, IServicoRepository servicos, IUnidadeDeTrabalho unidadeDeTrabalho)
 {
-    public async Task Executar(Guid osId, Guid servicoId, CancellationToken cancellationToken)
+    public async Task Executar(Guid osId, Guid servicoId, PapelDoUsuario papel, CancellationToken cancellationToken)
     {
         var os = await BuscaDeOrdemDeServico.ObterOuFalhar(ordens, osId, cancellationToken);
+        PermissaoDeServicosDaOs.Garantir(os, papel);
         var servico = await servicos.Obter(servicoId, cancellationToken)
             ?? throw new RecursoNaoEncontradoException("Servico nao encontrado.");
 
@@ -121,9 +154,10 @@ public sealed class IncluirServicoNaOs(IOrdemDeServicoRepository ordens, IServic
 
 public sealed class RemoverServicoDaOs(IOrdemDeServicoRepository ordens, IUnidadeDeTrabalho unidadeDeTrabalho)
 {
-    public async Task Executar(Guid osId, Guid servicoId, CancellationToken cancellationToken)
+    public async Task Executar(Guid osId, Guid servicoId, PapelDoUsuario papel, CancellationToken cancellationToken)
     {
         var os = await BuscaDeOrdemDeServico.ObterOuFalhar(ordens, osId, cancellationToken);
+        PermissaoDeServicosDaOs.Garantir(os, papel);
 
         os.RemoverServico(servicoId);
 
@@ -147,11 +181,7 @@ public sealed class ListarOs(IOrdemDeServicoRepository ordens)
     {
         var encontradas = await ordens.Listar(status, cancellationToken);
 
-        var visiveis = status is null
-            ? encontradas.Where(o => o.Status is not (StatusOs.Entregue or StatusOs.Cancelada))
-            : encontradas;
-
-        return visiveis
+        return encontradas
             .OrderBy(o => Array.IndexOf(OrdemDePrioridade, o.Status) is var i and >= 0 ? i : OrdemDePrioridade.Length)
             .ThenBy(o => o.AbertaEm)
             .Select(OrdemDeServicoResumoDto.De)
@@ -164,7 +194,7 @@ public sealed class DetalharOs(
     IClienteRepository clientes,
     IVeiculoRepository veiculos,
     IServicoRepository servicos,
-    IRepositorioDePecaInsumo pecas)
+    IPecaInsumoRepository pecas)
 {
     public async Task<OrdemDeServicoDetalheDto> Executar(Guid id, CancellationToken cancellationToken)
     {
@@ -174,8 +204,12 @@ public sealed class DetalharOs(
             ?? throw new RecursoNaoEncontradoException("Veiculo nao encontrado.");
         var catalogo = await servicos.ObterPorIds(os.Servicos.Select(s => s.ServicoId).ToList(), cancellationToken);
 
+        var congelados = os.VersaoVigente?.Itens
+            .Where(i => i.Tipo == TipoDoItemDoOrcamento.Servico)
+            .ToDictionary(i => i.ReferenciaId, i => i.PrecoUnitario)
+            ?? [];
         var itens = catalogo
-            .Select(s => new ServicoDaOsDto(s.Id, s.Nome, s.Preco.Valor))
+            .Select(s => new ServicoDaOsDto(s.Id, s.Nome, congelados.TryGetValue(s.Id, out var congelado) ? congelado : s.Preco.Valor))
             .OrderBy(s => s.Nome)
             .ToList();
         var historico = os.Historico
@@ -197,9 +231,18 @@ public sealed class DetalharOs(
             ClienteDto.De(cliente),
             VeiculoDto.De(veiculo),
             itens,
-            os.Versoes.Select(v => new VersaoDoOrcamentoDto(v.Numero, v.Total, v.Situacao.ToString(), v.GeradaEm)).ToList(),
+            os.Versoes.Select(DeVersao).ToList(),
             historico,
             pecasInsumos.OrderBy(p => p.Nome).ToList(),
             os.MotivoDaUltimaRecusa);
     }
+
+    private static VersaoDoOrcamentoDto DeVersao(VersaoDoOrcamento v) =>
+        new(
+            v.Numero,
+            v.Total,
+            v.Situacao.ToString(),
+            v.GeradaEm,
+            v.MotivoDaRecusa,
+            v.Itens.Select(i => new ItemDaVersaoDto(i.Tipo.ToString(), i.ReferenciaId, i.Descricao, i.Quantidade, i.PrecoUnitario, i.Subtotal)).ToList());
 }

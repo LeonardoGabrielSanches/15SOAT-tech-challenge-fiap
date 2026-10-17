@@ -1,4 +1,4 @@
-namespace Oficina.Domain.Estoque;
+namespace Oficina.Domain.Estoque.Entities.Enums;
 
 public enum TipoPecaInsumo
 {

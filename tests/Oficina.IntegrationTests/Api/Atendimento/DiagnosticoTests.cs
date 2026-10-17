@@ -7,7 +7,9 @@ using Oficina.Application.Common;
 using Oficina.Application.CatalogoEstoque.UseCases;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities.Enums;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 using Oficina.IntegrationTests.Support;
 
 namespace Oficina.IntegrationTests.Api.Atendimento;
@@ -199,7 +201,7 @@ public class DiagnosticoTests(PostgresFixture postgres) : IAsyncLifetime
         using var escopoB = _factory.Services.CreateScope();
         var casoA = escopoA.ServiceProvider.GetRequiredService<IncluirPecaInsumoNaOs>();
         var osB = await escopoB.ServiceProvider.GetRequiredService<IOrdemDeServicoRepository>().ObterPorId(osId, default);
-        var pecaB = await escopoB.ServiceProvider.GetRequiredService<IRepositorioDePecaInsumo>().Obter(peca, default);
+        var pecaB = await escopoB.ServiceProvider.GetRequiredService<IPecaInsumoRepository>().Obter(peca, default);
         osB!.IncluirPecaInsumo(pecaB!, Quantidade.Criar(4m, TipoPecaInsumo.Peca), DateTimeOffset.UtcNow);
 
         await casoA.Executar(osId, peca, 3m, default);

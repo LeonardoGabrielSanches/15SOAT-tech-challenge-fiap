@@ -2,11 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
 
-namespace Oficina.Infrastructure.Persistencia.Configuracoes;
+namespace Oficina.Infrastructure.Persistencia.Estoque;
 
-public sealed class PecaInsumoConfiguracao : IEntityTypeConfiguration<PecaInsumo>
+public sealed class PecaInsumoConfiguration : IEntityTypeConfiguration<PecaInsumo>
 {
     public void Configure(EntityTypeBuilder<PecaInsumo> builder)
     {

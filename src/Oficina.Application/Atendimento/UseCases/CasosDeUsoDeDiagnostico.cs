@@ -3,13 +3,15 @@ using Oficina.Domain.Atendimento.Events;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 using Oficina.Domain.Common;
-using Oficina.Domain.Estoque;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.ValueObjects;
+using Oficina.Domain.Estoque.Interfaces;
 
 namespace Oficina.Application.Atendimento.UseCases;
 
 internal static class BuscaDePecaInsumo
 {
-    public static async Task<PecaInsumo> ObterOuFalhar(IRepositorioDePecaInsumo pecas, Guid id, CancellationToken cancellationToken) =>
+    public static async Task<PecaInsumo> ObterOuFalhar(IPecaInsumoRepository pecas, Guid id, CancellationToken cancellationToken) =>
         await pecas.Obter(id, cancellationToken)
             ?? throw new RecursoNaoEncontradoException("Peca/insumo nao encontrada.");
 }
@@ -28,7 +30,7 @@ public sealed class IniciarDiagnostico(IOrdemDeServicoRepository ordens, IUnidad
 
 public sealed class IncluirPecaInsumoNaOs(
     IOrdemDeServicoRepository ordens,
-    IRepositorioDePecaInsumo pecas,
+    IPecaInsumoRepository pecas,
     IUnidadeDeTrabalho unidadeDeTrabalho,
     TimeProvider relogio)
 {
@@ -45,7 +47,7 @@ public sealed class IncluirPecaInsumoNaOs(
 
 public sealed class RemoverPecaInsumoDaOs(
     IOrdemDeServicoRepository ordens,
-    IRepositorioDePecaInsumo pecas,
+    IPecaInsumoRepository pecas,
     IUnidadeDeTrabalho unidadeDeTrabalho)
 {
     public async Task Executar(Guid osId, Guid pecaInsumoId, decimal? quantidade, CancellationToken cancellationToken)
@@ -67,7 +69,7 @@ public sealed class RemoverPecaInsumoDaOs(
 public sealed class ConcluirDiagnostico(
     IOrdemDeServicoRepository ordens,
     IServicoRepository servicos,
-    IRepositorioDePecaInsumo pecas,
+    IPecaInsumoRepository pecas,
     IUnidadeDeTrabalho unidadeDeTrabalho,
     TimeProvider relogio)
 {
@@ -101,7 +103,7 @@ public sealed class EnviarOrcamentoAoConcluirDiagnostico(IClienteRepository clie
 
 public sealed class CancelarOs(
     IOrdemDeServicoRepository ordens,
-    IRepositorioDePecaInsumo pecas,
+    IPecaInsumoRepository pecas,
     IUnidadeDeTrabalho unidadeDeTrabalho,
     TimeProvider relogio)
 {

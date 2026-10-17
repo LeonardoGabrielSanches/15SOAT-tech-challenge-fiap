@@ -79,6 +79,12 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                     b.Property<Guid>("VeiculoId")
                         .HasColumnType("uuid");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
@@ -165,7 +171,7 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                     b.ToTable("servicos", (string)null);
                 });
 
-            modelBuilder.Entity("Oficina.Domain.Estoque.PecaInsumo", b =>
+            modelBuilder.Entity("Oficina.Domain.Estoque.Entities.PecaInsumo", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -324,7 +330,7 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("OrdemDeServicoId");
 
-                            b1.HasOne("Oficina.Domain.Estoque.PecaInsumo", null)
+                            b1.HasOne("Oficina.Domain.Estoque.Entities.PecaInsumo", null)
                                 .WithMany()
                                 .HasForeignKey("PecaInsumoId")
                                 .OnDelete(DeleteBehavior.Restrict)
