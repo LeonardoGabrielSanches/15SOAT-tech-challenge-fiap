@@ -11,6 +11,9 @@ public sealed class ServicoRepository(OficinaDbContext contexto) : IServicoRepos
     public Task<Servico?> Obter(Guid id, CancellationToken cancellationToken) =>
         contexto.Set<Servico>().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<Servico>> ObterPorIds(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await contexto.Set<Servico>().Where(s => ids.Contains(s.Id)).ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Servico>> Listar(CancellationToken cancellationToken) =>
         await contexto.Set<Servico>().OrderBy(s => s.Nome).ToListAsync(cancellationToken);
 }

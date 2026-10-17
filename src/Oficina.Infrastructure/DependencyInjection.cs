@@ -17,6 +17,8 @@ public static class DependencyInjection
         services.AddScoped<IDespachanteDeEventos, DespachanteDeEventos>();
         services.AddScoped<IClienteRepository, ClienteRepository>();
         services.AddScoped<IVeiculoRepository, VeiculoRepository>();
+        services.AddScoped<IOrdemDeServicoRepository, OrdemDeServicoRepository>();
+        services.AddScoped<IGeradorNumeroOs, GeradorNumeroOs>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }

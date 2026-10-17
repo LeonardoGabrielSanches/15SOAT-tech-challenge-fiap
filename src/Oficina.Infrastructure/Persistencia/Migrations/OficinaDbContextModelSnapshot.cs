@@ -50,6 +50,46 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                     b.ToTable("clientes", (string)null);
                 });
 
+            modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.OrdemDeServico", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AbertaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ClienteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("VeiculoId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.HasIndex("Numero")
+                        .IsUnique();
+
+                    b.HasIndex("VeiculoId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_ordens_de_servico_veiculo_em_andamento")
+                        .HasFilter("status NOT IN ('Entregue', 'Cancelada')");
+
+                    b.ToTable("ordens_de_servico", (string)null);
+                });
+
             modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.Veiculo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -161,6 +201,19 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
                     b.ToTable("pecas_insumos", (string)null);
                 });
 
+            modelBuilder.Entity("Oficina.Infrastructure.Persistencia.Atendimento.SequenciaAnualDeOs", b =>
+                {
+                    b.Property<int>("Ano")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Ultimo")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Ano");
+
+                    b.ToTable("sequencias_anuais_de_os", (string)null);
+                });
+
             modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.Cliente", b =>
                 {
                     b.OwnsOne("Oficina.Domain.Atendimento.Entities.ValueObjects.Documento", "Documento", b1 =>
@@ -193,6 +246,87 @@ namespace Oficina.Infrastructure.Persistencia.Migrations
 
                     b.Navigation("Documento")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.OrdemDeServico", b =>
+                {
+                    b.HasOne("Oficina.Domain.Atendimento.Entities.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Oficina.Domain.Atendimento.Entities.Veiculo", null)
+                        .WithMany()
+                        .HasForeignKey("VeiculoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("Oficina.Domain.Atendimento.Entities.EntradaDoHistoricoDeStatus", "Historico", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<string>("Autor")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)");
+
+                            b1.Property<string>("Destino")
+                                .IsRequired()
+                                .HasMaxLength(30)
+                                .HasColumnType("character varying(30)");
+
+                            b1.Property<DateTimeOffset>("Momento")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<Guid>("OrdemDeServicoId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Origem")
+                                .HasMaxLength(30)
+                                .HasColumnType("character varying(30)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("OrdemDeServicoId");
+
+                            b1.ToTable("ordens_de_servico_historico", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrdemDeServicoId");
+                        });
+
+                    b.OwnsMany("Oficina.Domain.Atendimento.Entities.ServicoDaOs", "Servicos", b1 =>
+                        {
+                            b1.Property<Guid>("OrdemDeServicoId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("ServicoId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("OrdemDeServicoId", "ServicoId");
+
+                            b1.HasIndex("ServicoId");
+
+                            b1.ToTable("ordens_de_servico_servicos", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrdemDeServicoId");
+
+                            b1.HasOne("Oficina.Domain.CatalogoEstoque.Entities.Servico", null)
+                                .WithMany()
+                                .HasForeignKey("ServicoId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.Navigation("Historico");
+
+                    b.Navigation("Servicos");
                 });
 
             modelBuilder.Entity("Oficina.Domain.Atendimento.Entities.Veiculo", b =>

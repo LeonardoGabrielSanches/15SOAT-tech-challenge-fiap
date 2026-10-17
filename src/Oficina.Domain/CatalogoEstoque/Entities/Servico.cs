@@ -36,4 +36,12 @@ public sealed class Servico : RaizDeAgregado
     }
 
     public void Inativar() => Ativo = false;
+
+    public void GarantirAtivo()
+    {
+        if (!Ativo)
+        {
+            throw new ConflitoDeEstadoException("Servico inativo nao pode ser usado em novas operacoes.");
+        }
+    }
 }
