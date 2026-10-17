@@ -267,6 +267,49 @@ public sealed class OrdemDeServico : RaizDeAgregado
         Registrar(new DiagnosticoConcluido(Id, Numero.Valor, ClienteId, versao.Numero, versao.Total, versao.Token, agora));
     }
 
+    public void AprovarOrcamento(string token, string autor, DateTimeOffset agora)
+    {
+        var versao = ObterVersaoPendenteDoToken(token);
+
+        versao.Aprovar();
+        MudarStatus(StatusOs.Aprovada, autor, agora);
+        Registrar(new OrcamentoAprovado(Id, Numero.Valor, versao.Numero, agora));
+    }
+
+    public void RecusarOrcamento(string token, string? motivo, string autor, DateTimeOffset agora)
+    {
+        var motivoNormalizado = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim();
+        if (motivoNormalizado is { Length: > 500 })
+        {
+            throw new DadosInvalidosException("O motivo da recusa deve ter no maximo 500 caracteres.");
+        }
+
+        var versao = ObterVersaoPendenteDoToken(token);
+
+        versao.Recusar(motivoNormalizado);
+        MotivoDaUltimaRecusa = motivoNormalizado;
+        MudarStatus(StatusOs.EmDiagnostico, autor, agora);
+        Registrar(new OrcamentoRecusado(Id, Numero.Valor, versao.Numero, motivoNormalizado, agora));
+    }
+
+    private VersaoDoOrcamento ObterVersaoPendenteDoToken(string token)
+    {
+        var versao = _versoes.FirstOrDefault(v => v.Token == token)
+            ?? throw new RecursoNaoEncontradoException("Token de aprovacao nao encontrado.");
+
+        if (versao.Situacao != SituacaoDaVersao.Pendente)
+        {
+            throw new ConflitoDeEstadoException("O token de aprovacao ja foi usado ou pertence a uma versao superada.");
+        }
+
+        if (Status != StatusOs.AguardandoAprovacao)
+        {
+            throw new ConflitoDeEstadoException("A OS nao esta Aguardando aprovacao.");
+        }
+
+        return versao;
+    }
+
     private void MudarStatus(StatusOs destino, string autor, DateTimeOffset agora)
     {
         _historico.Add(new EntradaDoHistoricoDeStatus(Status, destino, agora, autor));

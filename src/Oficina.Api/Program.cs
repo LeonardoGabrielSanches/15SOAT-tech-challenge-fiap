@@ -22,6 +22,7 @@ builder.Services.AddCadastroDeClientes();
 builder.Services.AddCadastroDeVeiculos();
 builder.Services.AddOrdensDeServico();
 builder.Services.AddConsultaPublica();
+builder.Services.AddAprovacao();
 builder.Services.AddKeycloakAuthentication(keycloak);
 builder.Services.AddPecasInsumos();
 builder.Services.AddCatalogoDeServicos();
@@ -84,6 +85,7 @@ administrativo.MapVeiculos();
 administrativo.MapOrdensDeServico();
 app.MapCatalogoDeServicos();
 app.MapConsultaPublica();
+app.MapAprovacao();
 
 app.Run();
 

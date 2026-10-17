@@ -80,6 +80,14 @@ public sealed class VersaoDoOrcamento
 
     public IReadOnlyList<ItemDaVersao> Itens => _itens;
 
+    internal void Aprovar() => Situacao = SituacaoDaVersao.Aprovada;
+
+    internal void Recusar(string? motivo)
+    {
+        Situacao = SituacaoDaVersao.Recusada;
+        MotivoDaRecusa = motivo;
+    }
+
     internal void Superar()
     {
         if (Situacao == SituacaoDaVersao.Pendente)

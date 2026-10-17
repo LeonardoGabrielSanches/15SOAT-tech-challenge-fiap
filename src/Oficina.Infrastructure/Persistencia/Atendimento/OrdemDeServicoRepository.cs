@@ -14,6 +14,9 @@ public sealed class OrdemDeServicoRepository(DbContext contexto) : IOrdemDeServi
     public Task<OrdemDeServico?> ObterPorNumero(string numero, CancellationToken cancellationToken) =>
         contexto.Set<OrdemDeServico>().FirstOrDefaultAsync(o => o.Numero == NumeroOs.Reconstituir(numero), cancellationToken);
 
+    public Task<OrdemDeServico?> ObterPorTokenDoOrcamento(string token, CancellationToken cancellationToken) =>
+        contexto.Set<OrdemDeServico>().FirstOrDefaultAsync(o => o.Versoes.Any(v => v.Token == token), cancellationToken);
+
     public Task<bool> ExisteEmAndamentoDoVeiculo(Guid veiculoId, CancellationToken cancellationToken) =>
         contexto.Set<OrdemDeServico>().AnyAsync(
             o => o.VeiculoId == veiculoId && o.Status != StatusOs.Entregue && o.Status != StatusOs.Cancelada,
