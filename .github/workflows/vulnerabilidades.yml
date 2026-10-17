@@ -1,0 +1,95 @@
+name: Vulnerabilidades
+
+on:
+  pull_request:
+    branches: [main]
+
+# Criterio de falha: o workflow falha se o Trivy encontrar vulnerabilidade CRITICAL
+# com correcao disponivel (ignore-unfixed) na imagem da API ou nas dependencias do repositorio,
+# ou se o dotnet list package apontar pacote vulneravel (incluindo transitivos).
+# Os relatorios sao sempre publicados, mesmo quando o gate falha.
+
+jobs:
+  vulnerabilidades:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Criar diretorio de relatorios
+        run: mkdir -p relatorios
+      - name: Construir imagem da API
+        run: docker build -t oficina-api:scan .
+      - name: Trivy imagem (tabela)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: oficina-api:scan
+          format: table
+          output: relatorios/trivy-imagem.txt
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+      - name: Trivy imagem (SARIF)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: oficina-api:scan
+          format: sarif
+          output: relatorios/trivy-imagem.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+      - name: Trivy sistema de arquivos e dependencias (tabela)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          output: relatorios/trivy-fs.txt
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+      - name: Trivy sistema de arquivos e dependencias (JSON)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: json
+          output: relatorios/trivy-fs.json
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+      - name: dotnet list package vulneravel
+        run: |
+          dotnet restore Oficina.sln
+          dotnet list Oficina.sln package --vulnerable --include-transitive 2>&1 | tee relatorios/dotnet-vulnerable.txt
+          if grep -q "has the following vulnerable packages" relatorios/dotnet-vulnerable.txt; then
+            echo "Pacotes vulneraveis encontrados"
+            exit 1
+          fi
+      - name: Publicar relatorios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-vulnerabilidades
+          path: relatorios
+      - name: Gate Trivy imagem (CRITICAL com correcao)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: oficina-api:scan
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Gate Trivy dependencias (CRITICAL com correcao)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

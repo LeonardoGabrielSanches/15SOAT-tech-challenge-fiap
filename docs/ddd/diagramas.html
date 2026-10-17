@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Diagramas DDD - Oficina</title>
+<style>
+@page{size:1400px 900px;margin:0}
+*{box-sizing:border-box}
+body{margin:0;font-family:Helvetica,Arial,sans-serif;color:#1a1a1a;background:#fff}
+.page{width:1400px;height:900px;padding:30px 40px;page-break-after:always;overflow:hidden}
+.page:last-child{page-break-after:auto}
+h1{margin:0 0 4px;font-size:28px}
+.sub{margin:0 0 18px;color:#555;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.ag{border:3px solid #d9b800;background:#fffbe0;border-radius:8px;padding:12px}
+.ag h2{margin:0 0 2px;font-size:20px}
+.ag .raiz{font-size:12px;color:#7a6500;margin-bottom:8px}
+.ag h3{margin:8px 0 3px;font-size:13px;text-transform:uppercase;color:#555}
+.ag ul{margin:0;padding-left:18px;font-size:13px;line-height:1.35}
+.ag li.vo{color:#2f6fb5}
+.ag li.en{color:#1a1a1a}
+.ctx{display:inline-block;font-size:11px;padding:1px 6px;border-radius:8px;color:#fff;margin-left:6px;vertical-align:middle}
+.c-at{background:#2f6fb5}.c-ca{background:#2e8b57}
+.leg{margin-top:12px;font-size:13px;color:#444}
+svg{display:block}
+</style>
+</head>
+<body>
+
+<div class="page">
+<h1>Agregados, entidades e objetos de valor</h1>
+<p class="sub">Cinco agregados. A Ordem de Serviço é o único agregado do fluxo: orçamento, itens e Histórico de status são entidades internas dela.</p>
+<div class="grid">
+<div class="ag"><h2>Cliente <span class="ctx c-at">Atendimento</span></h2><div class="raiz">Raiz do agregado</div>
+<h3>Objetos de valor</h3><ul><li class="vo">Documento (Cpf ou Cnpj, numérico ou alfanumérico)</li><li class="vo">Email</li></ul>
+<h3>Atributos</h3><ul><li>Nome</li><li>Telefone (opcional)</li><li>Inativo</li></ul></div>
+
+<div class="ag"><h2>Veículo <span class="ctx c-at">Atendimento</span></h2><div class="raiz">Raiz do agregado</div>
+<h3>Objetos de valor</h3><ul><li class="vo">Placa (padrão antigo e Mercosul, normalizada)</li><li class="vo">Ano de fabricação (1900 até o ano atual + 1)</li></ul>
+<h3>Atributos</h3><ul><li>Marca</li><li>Modelo</li><li>Proprietário atual (referência ao Cliente)</li><li>Inativo</li></ul></div>
+
+<div class="ag" style="grid-row:span 2"><h2>Ordem de Serviço <span class="ctx c-at">Atendimento</span></h2><div class="raiz">Raiz do agregado</div>
+<h3>Entidades internas</h3><ul>
+<li class="en">Serviço da OS (referência ao Serviço, sem repetição)</li>
+<li class="en">Item de Peça/insumo da OS (referência à Peça/insumo, quantidade)</li>
+<li class="en">Versão do orçamento (itens e preços congelados, total, situação, motivo de recusa)</li>
+<li class="en">Token de aprovação (uso único, ligado a uma Versão do orçamento)</li>
+<li class="en">Histórico de status (origem, destino, momento, autor)</li></ul>
+<h3>Objetos de valor</h3><ul><li class="vo">Número da OS (OS-AAAA-NNNNN)</li><li class="vo">Status da OS</li><li class="vo">Quantidade (inteira para Peça, fracionária para Insumo)</li><li class="vo">Dinheiro (BRL)</li></ul>
+<h3>Atributos</h3><ul><li>Cliente e Veículo (referências)</li><li>Motivo de cancelamento</li><li>Tempo de execução (início e finalização)</li></ul></div>
+
+<div class="ag"><h2>Serviço <span class="ctx c-ca">Catálogo e Estoque</span></h2><div class="raiz">Raiz do agregado</div>
+<h3>Objetos de valor</h3><ul><li class="vo">Dinheiro (preço)</li></ul>
+<h3>Atributos</h3><ul><li>Nome</li><li>Inativo</li></ul></div>
+
+<div class="ag"><h2>Peça/insumo <span class="ctx c-ca">Catálogo e Estoque</span></h2><div class="raiz">Raiz do agregado (inclui o saldo)</div>
+<h3>Objetos de valor</h3><ul><li class="vo">Tipo (Peça ou Insumo)</li><li class="vo">Unidade de medida</li><li class="vo">Quantidade (saldo)</li><li class="vo">Dinheiro (preço)</li></ul>
+<h3>Atributos</h3><ul><li>Nome</li><li>Inativo</li></ul>
+<h3>Operações</h3><ul><li>Entrada de mercadoria, Baixa e Estorno</li></ul></div>
+</div>
+<p class="leg">Azul: objeto de valor. Preto: entidade interna. Referências entre agregados são feitas apenas pelo identificador.</p>
+</div>
+
+<div class="page">
+<h1>Mapa dos bounded contexts</h1>
+<p class="sub">Atendimento e Catálogo e Estoque são módulos do mesmo monólito; Identidade e Acesso é o Keycloak, externo ao código.</p>
+<svg width="1320" height="700" viewBox="0 0 1320 700" font-family="Helvetica,Arial,sans-serif">
+<defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+<rect x="10" y="10" width="620" height="380" rx="16" fill="#eaf2fb" stroke="#2f6fb5" stroke-width="4" stroke-dasharray="12 7"/>
+<text x="30" y="46" font-size="24" font-weight="bold">Atendimento</text>
+<text x="30" y="68" font-size="14" fill="#444">Core</text>
+<rect x="40" y="95" width="160" height="70" rx="6" fill="#fff3a8" stroke="#d9b800" stroke-width="2"/><text x="120" y="135" font-size="16" text-anchor="middle" font-weight="bold">Cliente</text>
+<rect x="240" y="95" width="160" height="70" rx="6" fill="#fff3a8" stroke="#d9b800" stroke-width="2"/><text x="320" y="135" font-size="16" text-anchor="middle" font-weight="bold">Veículo</text>
+<rect x="100" y="215" width="400" height="140" rx="6" fill="#fff3a8" stroke="#d9b800" stroke-width="2"/>
+<text x="300" y="245" font-size="16" text-anchor="middle" font-weight="bold">Ordem de Serviço</text>
+<text x="300" y="275" font-size="13" text-anchor="middle">Serviços da OS e itens de Peça/insumo</text>
+<text x="300" y="297" font-size="13" text-anchor="middle">Versões do orçamento e Token de aprovação</text>
+<text x="300" y="319" font-size="13" text-anchor="middle">Histórico de status</text>
+<line x1="120" y1="165" x2="250" y2="215" stroke="#333" stroke-width="2" marker-end="url(#a)"/>
+<line x1="320" y1="165" x2="320" y2="215" stroke="#333" stroke-width="2" marker-end="url(#a)"/>
+<text x="440" y="130" font-size="12" fill="#444">OS referencia Cliente</text><text x="440" y="146" font-size="12" fill="#444">e Veículo pelo identificador</text>
+
+<rect x="690" y="10" width="620" height="380" rx="16" fill="#eaf6ef" stroke="#2e8b57" stroke-width="4" stroke-dasharray="12 7"/>
+<text x="710" y="46" font-size="24" font-weight="bold">Catálogo e Estoque</text>
+<text x="710" y="68" font-size="14" fill="#444">Supporting</text>
+<rect x="730" y="110" width="200" height="90" rx="6" fill="#fff3a8" stroke="#d9b800" stroke-width="2"/><text x="830" y="150" font-size="16" text-anchor="middle" font-weight="bold">Serviço</text><text x="830" y="172" font-size="12" text-anchor="middle">preço</text>
+<rect x="1000" y="110" width="270" height="170" rx="6" fill="#fff3a8" stroke="#d9b800" stroke-width="2"/><text x="1135" y="140" font-size="16" text-anchor="middle" font-weight="bold">Peça/insumo</text>
+<text x="1135" y="170" font-size="13" text-anchor="middle">saldo em estoque</text><text x="1135" y="192" font-size="13" text-anchor="middle">Entrada de mercadoria</text><text x="1135" y="214" font-size="13" text-anchor="middle">Baixa</text><text x="1135" y="236" font-size="13" text-anchor="middle">Estorno</text>
+
+<rect x="440" y="470" width="440" height="200" rx="16" fill="#f3eaf7" stroke="#8a5a9e" stroke-width="4" stroke-dasharray="12 7"/>
+<text x="460" y="506" font-size="24" font-weight="bold">Identidade e Acesso</text>
+<text x="460" y="528" font-size="14" fill="#444">Generic (Keycloak, externo ao código)</text>
+<rect x="470" y="550" width="180" height="90" rx="6" fill="#f7a1c4"/><text x="560" y="590" font-size="15" text-anchor="middle" font-weight="bold">Keycloak</text><text x="560" y="610" font-size="12" text-anchor="middle">JWT e papéis</text>
+<text x="670" y="580" font-size="13">Atendente</text><text x="670" y="602" font-size="13">Mecânico</text><text x="670" y="624" font-size="13">Gerente</text>
+
+<line x1="500" y1="285" x2="990" y2="215" stroke="#333" stroke-width="2" marker-end="url(#a)"/>
+<text x="560" y="228" font-size="13" fill="#222" transform="rotate(-8 560 228)">consulta preços do catálogo</text>
+<line x1="500" y1="320" x2="1000" y2="260" stroke="#333" stroke-width="2" marker-end="url(#a)"/>
+<text x="620" y="320" font-size="13" fill="#222" transform="rotate(-7 620 320)">dispara Baixa e Estorno, na mesma transação</text>
+<path d="M470 590 C 360 560, 320 470, 320 392" stroke="#333" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<path d="M880 590 C 1000 560, 1100 470, 1100 392" stroke="#333" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<text x="150" y="450" font-size="13" fill="#222">autentica e autoriza por papel</text>
+<text x="950" y="450" font-size="13" fill="#222">autentica e autoriza por papel</text>
+<text x="40" y="690" font-size="13" fill="#444">Cliente (pessoa) não tem conta: consulta, aprova e recusa pelos endpoints públicos, sem login.</text>
+</svg>
+</div>
+
+<div class="page">
+<h1>Máquina de status da Ordem de Serviço</h1>
+<p class="sub">Oito status. Aprovada e Cancelada são acréscimos aos seis obrigatórios do enunciado. Toda transição grava uma entrada no Histórico de status.</p>
+<svg width="1320" height="700" viewBox="0 0 1320 700" font-family="Helvetica,Arial,sans-serif">
+<defs><marker id="b" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+<circle cx="115" cy="60" r="12" fill="#333"/>
+<line x1="115" y1="72" x2="115" y2="236" stroke="#333" stroke-width="2" marker-end="url(#b)"/>
+<text x="125" y="170" font-size="13">Abre a OS (Atendente)</text>
+
+<g font-size="16" font-weight="bold" text-anchor="middle">
+<rect x="40" y="240" width="150" height="70" rx="12" fill="#6cb8f0" stroke="#333" stroke-width="2"/><text x="115" y="281">Recebida</text>
+<rect x="230" y="240" width="150" height="70" rx="12" fill="#6cb8f0" stroke="#333" stroke-width="2"/><text x="305" y="281">Em diagnóstico</text>
+<rect x="420" y="240" width="150" height="70" rx="12" fill="#6cb8f0" stroke="#333" stroke-width="2"/><text x="495" y="272">Aguardando</text><text x="495" y="292">aprovação</text>
+<rect x="610" y="240" width="150" height="70" rx="12" fill="#8fd694" stroke="#333" stroke-width="2"/><text x="685" y="281">Aprovada</text>
+<rect x="800" y="240" width="150" height="70" rx="12" fill="#6cb8f0" stroke="#333" stroke-width="2"/><text x="875" y="281">Em execução</text>
+<rect x="990" y="240" width="150" height="70" rx="12" fill="#6cb8f0" stroke="#333" stroke-width="2"/><text x="1065" y="281">Finalizada</text>
+<rect x="1180" y="240" width="130" height="70" rx="12" fill="#ffe14d" stroke="#333" stroke-width="5"/><text x="1245" y="281">Entregue</text>
+<rect x="340" y="500" width="300" height="80" rx="12" fill="#f4a09a" stroke="#333" stroke-width="5"/><text x="490" y="545">Cancelada</text>
+</g>
+
+<g stroke="#333" stroke-width="2" marker-end="url(#b)" fill="none">
+<line x1="190" y1="275" x2="228" y2="275"/>
+<line x1="380" y1="275" x2="418" y2="275"/>
+<line x1="570" y1="275" x2="608" y2="275"/>
+<line x1="760" y1="275" x2="798" y2="275"/>
+<line x1="950" y1="275" x2="988" y2="275"/>
+<line x1="1140" y1="275" x2="1178" y2="275"/>
+<path d="M440 240 C 420 150, 330 150, 320 238"/>
+<line x1="115" y1="310" x2="400" y2="500" stroke-dasharray="6 4"/>
+<line x1="305" y1="310" x2="440" y2="500" stroke-dasharray="6 4"/>
+<line x1="495" y1="310" x2="495" y2="500" stroke-dasharray="6 4"/>
+</g>
+
+<g font-size="12" fill="#222" text-anchor="middle">
+<text x="209" y="212">Inicia diagnóstico</text><text x="209" y="227">(Mecânico)</text>
+<text x="399" y="212">Conclui diagnóstico</text><text x="399" y="227">(Mecânico)</text>
+<text x="589" y="210">Aprova orçamento</text><text x="589" y="225">(Cliente, token)</text>
+<text x="779" y="210">Inicia a execução</text><text x="779" y="225">(Mecânico)</text>
+<text x="969" y="210">Finaliza a execução</text><text x="969" y="225">(Mecânico)</text>
+<text x="1159" y="210">Registra entrega</text><text x="1159" y="225">(Atendente)</text>
+<text x="375" y="110">Recusa orçamento (Cliente, token, motivo opcional)</text>
+<text x="375" y="126">sem estorno de Peças/insumos</text>
+</g>
+<g font-size="12" fill="#222">
+<text x="640" y="470">Cancela a OS (Atendente, motivo obrigatório)</text>
+<text x="640" y="488">somente a partir de Recebida, Em diagnóstico ou Aguardando aprovação;</text>
+<text x="640" y="506">estorna todas as Peças/insumos e invalida o token pendente</text>
+</g>
+<text x="40" y="650" font-size="13" fill="#444">Status finais: Entregue e Cancelada (bordas grossas). OS em andamento: qualquer status que não seja Entregue nem Cancelada. Cancelamento de OS Aprovada ou posterior é rejeitado.</text>
+<text x="40" y="672" font-size="13" fill="#444">Tempo de execução: do momento de Em execução ao de Finalizada, no Histórico de status.</text>
+</svg>
+</div>
+
+</body>
+</html>

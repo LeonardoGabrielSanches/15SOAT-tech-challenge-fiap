@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+.claude/
+.scratch/
+.github/
+tests/
+TestResults/
+coverage/

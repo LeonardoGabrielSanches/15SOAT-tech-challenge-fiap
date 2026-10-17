@@ -6,3 +6,8 @@
 docs/agents/**
 docs/adr/**
 .scratch/**
+bin/
+obj/
+TestResults/
+coverage/
+.vs/
