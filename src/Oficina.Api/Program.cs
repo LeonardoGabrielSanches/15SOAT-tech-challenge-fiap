@@ -4,6 +4,7 @@ using Oficina.Api.Atendimento;
 using Oficina.Api.Autenticacao;
 using Oficina.Api.Erros;
 using Oficina.Api.OpenApi;
+using Oficina.Api.Servicos;
 using Oficina.Infrastructure;
 using Oficina.Infrastructure.Persistencia;
 
@@ -17,6 +18,7 @@ var keycloak = builder.Configuration.GetSection(OpcoesDoKeycloak.Secao).Get<Opco
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddCadastroDeClientes();
 builder.Services.AddKeycloakAuthentication(keycloak);
+builder.Services.AddCatalogoDeServicos();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<TratadorDeExcecoesDeDominio>();
 builder.Services.AddOpenApi(o => o.AddDocumentTransformer(new TransformadorDeSeguranca(keycloak)));
@@ -65,6 +67,7 @@ administrativo.MapGet("/politicas/{nome}", async (string nome, HttpContext http,
 }).RequireAuthorization();
 
 administrativo.MapClientes();
+app.MapCatalogoDeServicos();
 
 app.Run();
 
