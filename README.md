@@ -75,6 +75,7 @@ Erros de domínio retornam ProblemDetails: `404` para recurso inexistente ou con
 - Keycloak 26.2 (JWT, papéis `atendente`, `mecanico`, `gerente`)
 - xUnit, Moq, Testcontainers (PostgreSQL), `WebApplicationFactory`
 - coverlet + ReportGenerator (cobertura)
+- Interface web: Next.js (App Router) + TypeScript, Tailwind CSS, shadcn/ui, Auth.js e openapi-fetch
 - Docker / Docker Compose
 - GitHub Actions (build, testes, cobertura, Trivy e `dotnet list package --vulnerable`)
 
@@ -93,7 +94,7 @@ O domínio é fortemente relacional (Cliente → Veículo → OS → itens → S
 docker compose up --build
 ```
 
-Sobe PostgreSQL (porta 5432), Keycloak (porta 8080, com o realm `oficina` importado automaticamente) e a API (porta **8081**). A API só inicia depois que os dois ficam saudáveis (o Keycloak leva cerca de um minuto na primeira vez). Ao iniciar, a API aplica as migrations e carrega dados de demonstração de forma idempotente.
+Sobe PostgreSQL (porta 5432), Keycloak (porta 8080, com o realm `oficina` importado automaticamente), a API (porta **8081**) e a interface web (porta **3000**). A API só inicia depois que os dois ficam saudáveis (o Keycloak leva cerca de um minuto na primeira vez). Ao iniciar, a API aplica as migrations e carrega dados de demonstração de forma idempotente.
 
 Verificação rápida:
 
@@ -113,6 +114,34 @@ dotnet run --project src/Oficina.Api
 ```
 
 Neste modo o botão Authorize do Swagger não funciona (o redirecionamento OAuth do realm só está cadastrado para as portas 8081 e 5000); obtenha o token pela linha de comando, como descrito abaixo.
+
+## Interface web
+
+A interface web (`web/`, Next.js) atende os funcionários e é a forma recomendada de usar a oficina no dia a dia. Com o ambiente de pé, acesse <http://localhost:3000>: o navegador é levado ao login do Keycloak e volta para a área administrativa com o nome e o papel do funcionário no topo, um menu montado para o papel e a tela inicial do papel (Balcão para o Atendente, Fila de execução para o Mecânico, Serviços para o Gerente). Use os usuários de demonstração da seção abaixo. O botão **Sair** encerra a sessão da interface e a do Keycloak.
+
+A interface funciona como BFF ([ADR 0007](docs/adr/0007-interface-web-como-bff.md)): o login usa authorization code + PKCE no client confidencial `oficina-web`, o JWT fica num cookie criptografado da sessão do servidor e toda chamada à API parte do servidor Next.js. O navegador nunca vê o token, e a API continua sem CORS. O secret do client `oficina-web` (`oficina-web-secret-somente-dev`) e o `AUTH_SECRET` versionados no realm, no `docker-compose.yml` e em `web/.env.development` são **exclusivos do ambiente de demonstração local**.
+
+### Executando a interface fora do Docker
+
+Requer Node.js 22 ou superior. Suba as dependências e rode a interface em modo de desenvolvimento (porta 3000, configurada por `web/.env.development`):
+
+```bash
+docker compose up -d postgres keycloak api
+cd web
+npm install
+npm run dev
+```
+
+Outros comandos em `web/`:
+
+| Comando | O que faz |
+|---|---|
+| `npm run typecheck` | gera os tipos das rotas e roda `tsc --noEmit` |
+| `npm run lint` | ESLint |
+| `npm run build` | build de produção (standalone) |
+| `npm run api:tipos` | regenera `lib/api/openapi.ts` a partir de <http://localhost:8081/openapi/v1.json> (API no ar) |
+
+Variáveis de ambiente da interface (definidas no `docker-compose.yml` e em `web/.env.development`): `API_URL`, `KEYCLOAK_URL_PUBLICA` (usada pelo navegador e como issuer), `KEYCLOAK_URL_INTERNA` (usada pelo servidor Next.js para trocar código e refresh token), `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `AUTH_SECRET` e `AUTH_URL`.
 
 ## Swagger
 
@@ -216,11 +245,12 @@ O relatório final consolidado está em [`docs/seguranca/relatorio-vulnerabilida
 ├── docs/
 │   ├── ddd/                     Event Storming, diagramas e linguagem ubíqua
 │   └── seguranca/               relatório de vulnerabilidades e relatórios brutos
-├── keycloak/oficina-realm.json  realm importado (papéis, usuários de demonstração, client do Swagger)
+├── web/                         interface web (Next.js, BFF)
+├── keycloak/oficina-realm.json  realm importado (papéis, usuários de demonstração, clients do Swagger e da interface web)
 ├── scripts/cobertura.sh         testes + gate de cobertura
 ├── .github/workflows/           ci.yml e vulnerabilidades.yml
 ├── Dockerfile                   build multi-stage da API
-├── docker-compose.yml           PostgreSQL + Keycloak + API
+├── docker-compose.yml           PostgreSQL + Keycloak + API + interface web
 ├── GLOSSARY.md                  glossário do domínio
 └── Oficina.sln
 ```
