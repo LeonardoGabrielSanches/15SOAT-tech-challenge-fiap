@@ -1,7 +1,9 @@
 import { CircleCheck, CircleX } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Orçamento decidido | Oficina",
@@ -40,6 +42,11 @@ export default async function DecisaoConcluida({ searchParams }: PageProps<"/por
         </CardTitle>
         <CardDescription>{descricao}</CardDescription>
       </CardHeader>
+      <CardFooter>
+        <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+          <Link href="/portal/consulta">Acompanhar a OS</Link>
+        </Button>
+      </CardFooter>
     </Card>
   );
 }

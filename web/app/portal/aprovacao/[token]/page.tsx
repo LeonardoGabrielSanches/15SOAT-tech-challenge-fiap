@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { aprovarOrcamento, recusarOrcamento } from "../acoes";
 import { DecisaoDoOrcamento } from "./decisao-do-orcamento";
@@ -20,7 +21,14 @@ export default async function DecidirOrcamento({ params }: PageProps<"/portal/ap
           recusar, ela refaz o diagnóstico e envia uma nova versão do orçamento.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">
+          Para ver os itens e o total antes de decidir,{" "}
+          <Link href="/portal/consulta" className="text-primary underline-offset-4 hover:underline">
+            consulte a sua OS
+          </Link>{" "}
+          pelo Número da OS e o seu CPF/CNPJ.
+        </p>
         <DecisaoDoOrcamento aprovar={aprovarOrcamento.bind(null, token)} recusar={recusarOrcamento.bind(null, token)} />
       </CardContent>
     </Card>
