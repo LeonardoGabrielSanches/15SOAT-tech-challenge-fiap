@@ -198,12 +198,30 @@ public partial class OrdensDeServicoTests(PostgresFixture postgres) : IAsyncLife
     }
 
     [Fact]
+    public async Task Mecanico_lista_as_os_com_e_sem_filtro_de_status()
+    {
+        var servico = await CriarServico();
+        var (cliente, veiculo) = await CriarClienteComVeiculo();
+        var os = await AbrirOs(cliente.Id, veiculo.Id, servico.Id);
+        var mecanico = _factory.CriarClienteComPapel("mecanico");
+
+        var lista = await mecanico.GetAsync(Rota);
+        var recebidas = await mecanico.GetAsync($"{Rota}?status=Recebida");
+        var entregues = await mecanico.GetAsync($"{Rota}?status=Entregue");
+
+        Assert.Equal(HttpStatusCode.OK, lista.StatusCode);
+        Assert.Contains((await lista.Content.ReadFromJsonAsync<List<OrdemDeServicoResumoDto>>())!, o => o.Id == os.Id);
+        Assert.Contains((await recebidas.Content.ReadFromJsonAsync<List<OrdemDeServicoResumoDto>>())!, o => o.Id == os.Id);
+        Assert.DoesNotContain((await entregues.Content.ReadFromJsonAsync<List<OrdemDeServicoResumoDto>>())!, o => o.Id == os.Id);
+    }
+
+    [Fact]
     public async Task Detalhe_de_os_inexistente_e_404_e_sem_papel_adequado_e_403()
     {
         var http = Atendente();
 
         Assert.Equal(HttpStatusCode.NotFound, (await http.GetAsync($"{Rota}/{Guid.NewGuid()}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.CriarClienteComPapel("mecanico").GetAsync(Rota)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.CriarClienteComPapel("visitante").GetAsync(Rota)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync(Rota)).StatusCode);
     }
 

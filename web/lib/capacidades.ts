@@ -19,7 +19,7 @@ export type Tela = {
 const definicoesDeTelas = {
   balcao: { titulo: "Balcão", href: "/administrativo/balcao", papeis: ["atendente"] },
   clientes: { titulo: "Clientes", href: "/administrativo/clientes", papeis: ["atendente"] },
-  ordensDeServico: { titulo: "OS", href: "/administrativo/ordens-de-servico", papeis: ["atendente"] },
+  ordensDeServico: { titulo: "OS", href: "/administrativo/ordens-de-servico", papeis: ["atendente", "mecanico"] },
   filaDeExecucao: { titulo: "Fila de execução", href: "/administrativo/fila-de-execucao", papeis: ["mecanico"] },
   localizarOs: {
     titulo: "Abrir OS por link/identificador",
