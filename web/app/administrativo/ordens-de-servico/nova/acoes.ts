@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { apiAdministrativa } from "@/lib/api/cliente";
 import type { OrdemDeServicoResumoDto } from "@/lib/api/dtos";
-import { resultadoDaApi, type Falha } from "@/lib/api/resultado";
+import { dadosInvalidos, resultadoDaApi, type Falha } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 
 export type ResultadoDaAbertura =
@@ -21,10 +21,7 @@ export async function abrirOs(clienteId: string, veiculoId: string, dados: FormD
   await exigirTela("ordensDeServico");
   const servicoIds = dados.getAll("servicoIds").filter((valor): valor is string => typeof valor === "string");
   if (servicoIds.length === 0) {
-    return {
-      ok: false,
-      falha: { status: 422, titulo: "Dados inválidos", mensagem: "Escolha ao menos um Serviço para abrir a OS." },
-    };
+    return dadosInvalidos("Escolha ao menos um Serviço para abrir a OS.");
   }
 
   const api = await apiAdministrativa();

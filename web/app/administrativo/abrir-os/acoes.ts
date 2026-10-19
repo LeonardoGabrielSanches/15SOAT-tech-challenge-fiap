@@ -2,7 +2,7 @@
 
 import { apiAdministrativa } from "@/lib/api/cliente";
 import type { OrdemDeServicoDetalheDto } from "@/lib/api/dtos";
-import { resultadoDaApi, type Resultado } from "@/lib/api/resultado";
+import { dadosInvalidos, resultadoDaApi, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { lerTexto } from "@/lib/dados-do-formulario";
 
@@ -19,22 +19,14 @@ export async function localizarOs(dados: FormData): Promise<Resultado<{ id: stri
   await exigirTela("abrirOs");
   const texto = lerTexto(dados, "referencia");
   if (!texto) {
-    return {
-      ok: false,
-      falha: { status: 422, titulo: "Dados inválidos", mensagem: "Cole o link da OS ou o identificador." },
-    };
+    return dadosInvalidos("Cole o link da OS ou o identificador.");
   }
   const id = lerIdentificador(texto);
   if (!id) {
-    return {
-      ok: false,
-      falha: {
-        status: 422,
-        titulo: "Link ou identificador não reconhecido",
-        mensagem:
-          "Cole o link copiado na página da OS ou o identificador que aparece no fim dele, no formato 3fa85f64-5717-4562-b3fc-2c963f66afa6. O Número da OS não serve aqui.",
-      },
-    };
+    return dadosInvalidos(
+      "Cole o link copiado na página da OS ou o identificador que aparece no fim dele, no formato 3fa85f64-5717-4562-b3fc-2c963f66afa6. O Número da OS não serve aqui.",
+      "Link ou identificador não reconhecido",
+    );
   }
   const api = await apiAdministrativa();
   const resultado = await resultadoDaApi<OrdemDeServicoDetalheDto>(

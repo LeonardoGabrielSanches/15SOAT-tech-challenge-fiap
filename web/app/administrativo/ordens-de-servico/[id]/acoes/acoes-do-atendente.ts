@@ -1,12 +1,8 @@
 "use server";
 
-import type { Resultado } from "@/lib/api/resultado";
+import { dadosInvalidos, type Resultado } from "@/lib/api/resultado";
 import { lerTexto } from "@/lib/dados-do-formulario";
 import { executarNaOs } from "./executar-na-os";
-
-function dadosInvalidos(mensagem: string): Resultado<undefined> {
-  return { ok: false, falha: { status: 422, titulo: "Dados inválidos", mensagem } };
-}
 
 export async function incluirServicoNaOs(osId: string, dados: FormData): Promise<Resultado<undefined>> {
   const servicoId = lerTexto(dados, "servicoId");

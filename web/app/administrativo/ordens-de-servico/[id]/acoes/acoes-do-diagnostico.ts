@@ -1,13 +1,9 @@
 "use server";
 
-import type { Resultado } from "@/lib/api/resultado";
+import { dadosInvalidos, type Resultado } from "@/lib/api/resultado";
 import { lerTexto } from "@/lib/dados-do-formulario";
 import { lerQuantidade } from "@/lib/formatacao";
 import { executarNaOs } from "./executar-na-os";
-
-function dadosInvalidos(mensagem: string): Resultado<undefined> {
-  return { ok: false, falha: { status: 422, titulo: "Dados inválidos", mensagem } };
-}
 
 export async function iniciarDiagnostico(osId: string): Promise<Resultado<undefined>> {
   return executarNaOs(osId, (api) =>

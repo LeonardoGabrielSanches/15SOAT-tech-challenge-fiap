@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ServicoDto } from "@/lib/api/dtos";
-import { resultadoDaApi, type Resultado } from "@/lib/api/resultado";
+import { dadosInvalidos, resultadoDaApi, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { lerTexto } from "@/lib/dados-do-formulario";
 import { lerDinheiro } from "@/lib/formatacao";
@@ -36,13 +36,7 @@ export async function salvarServico(
   };
   const preco = lerDinheiro(valores.preco);
   if (preco === null) {
-    return {
-      valores,
-      resultado: {
-        ok: false,
-        falha: { status: 422, titulo: "Dados inválidos", mensagem: "Informe o preço em reais, por exemplo 120,50." },
-      },
-    };
+    return { valores, resultado: dadosInvalidos("Informe o preço em reais, por exemplo 120,50.") };
   }
   const corpo = { nome: valores.nome, descricao: valores.descricao || null, preco };
   const api = await apiAdministrativa();

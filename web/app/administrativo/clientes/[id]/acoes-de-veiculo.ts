@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ClienteDto, VeiculoDto } from "@/lib/api/dtos";
-import { resultadoDaApi, type Falha, type Resultado } from "@/lib/api/resultado";
+import { dadosInvalidos, resultadoDaApi, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { lerTexto } from "@/lib/dados-do-formulario";
 
@@ -14,10 +14,6 @@ function lerAno(dados: FormData): number {
 
 function enderecoDoCliente(id: string): string {
   return `/administrativo/clientes/${id}`;
-}
-
-function falhaLocal(status: number, titulo: string, mensagem: string): { ok: false; falha: Falha } {
-  return { ok: false, falha: { status, titulo, mensagem } };
 }
 
 function semSugestaoParaPlacaRepetida<T>(resultado: Resultado<T>): Resultado<T> {
@@ -85,7 +81,7 @@ export async function buscarNovoProprietario(
   await exigirTela("clientes");
   const documento = lerTexto(dados, "documento");
   if (!documento) {
-    return falhaLocal(422, "Dados inválidos", "Informe o CPF ou CNPJ do novo Proprietário atual.");
+    return dadosInvalidos("Informe o CPF ou CNPJ do novo Proprietário atual.");
   }
   const api = await apiAdministrativa();
   const resultado = await resultadoDaApi<ClienteDto[]>(
@@ -96,17 +92,21 @@ export async function buscarNovoProprietario(
   }
   const [cliente] = resultado.dados;
   if (!cliente) {
-    return falhaLocal(
-      404,
-      "Cliente não encontrado",
-      "Nenhum Cliente cadastrado com este documento. Cadastre o novo Proprietário atual no Balcão e tente de novo.",
-    );
+    return {
+      ok: false,
+      falha: {
+        status: 404,
+        titulo: "Cliente não encontrado",
+        mensagem:
+          "Nenhum Cliente cadastrado com este documento. Cadastre o novo Proprietário atual no Balcão e tente de novo.",
+      },
+    };
   }
   if (cliente.id === proprietarioAtualId) {
-    return falhaLocal(422, "Mesmo Proprietário atual", "Este Cliente já é o Proprietário atual do Veículo.");
+    return dadosInvalidos("Este Cliente já é o Proprietário atual do Veículo.", "Mesmo Proprietário atual");
   }
   if (!cliente.ativo) {
-    return falhaLocal(409, "Cliente Inativo", `${cliente.nome} está Inativo e não pode receber o Veículo.`);
+    return { ok: false, falha: { status: 409, titulo: "Cliente Inativo", mensagem: `${cliente.nome} está Inativo e não pode receber o Veículo.` } };
   }
   return { ok: true, dados: cliente };
 }

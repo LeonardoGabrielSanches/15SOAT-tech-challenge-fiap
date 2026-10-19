@@ -53,6 +53,13 @@ function mensagemDoProblema(erro: unknown): string | undefined {
   return erros.length > 0 ? erros.join(" ") : undefined;
 }
 
+export function dadosInvalidos(
+  mensagem: string,
+  titulo: string = padroesPorStatus[422].titulo,
+): { ok: false; falha: Falha } {
+  return { ok: false, falha: { status: 422, titulo, mensagem } };
+}
+
 export function falhaDaResposta(status: number, erro: unknown): Falha {
   const padrao = padroesPorStatus[status] ?? {
     titulo: "Falha na API",
