@@ -49,6 +49,39 @@ export function formatarQuantidade(valor: number): string {
   return quantidade.format(valor);
 }
 
+export function formatarDuracao(segundos: number): string {
+  const minutosTotais = Math.round(segundos / 60);
+  if (minutosTotais < 1) {
+    return "menos de 1 min";
+  }
+  const horas = Math.floor(minutosTotais / 60);
+  const minutos = minutosTotais % 60;
+  if (horas === 0) {
+    return `${minutos} min`;
+  }
+  const textoDasHoras = `${formatarQuantidade(horas)} h`;
+  return minutos === 0 ? textoDasHoras : `${textoDasHoras} ${minutos} min`;
+}
+
+const dinheiroParaEdicao = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  useGrouping: false,
+});
+
+export function formatarDinheiroParaEdicao(valor: number): string {
+  return dinheiroParaEdicao.format(valor);
+}
+
+export function lerDinheiro(texto: string): number | null {
+  const limpo = texto.replace(/R\$/gi, "").replace(/\s/g, "");
+  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
+  if (!/^-?\d+(\.\d+)?$/.test(normalizado)) {
+    return null;
+  }
+  return Number(normalizado);
+}
+
 export const nomeDoTipoPecaInsumo: Record<TipoPecaInsumo, string> = {
   Peca: "Peça",
   Insumo: "Insumo",
@@ -58,11 +91,7 @@ export function formatarSaldo(valor: number, unidadeDeMedida: string): string {
   return `${formatarQuantidade(valor)} ${unidadeDeMedida}`;
 }
 
-export function formatarParaCampoDecimal(valor: number): string {
-  return String(valor).replace(".", ",");
-}
-
-export function lerNumeroDigitado(texto: string): number | null {
+export function lerQuantidade(texto: string): number | null {
   const limpo = texto.trim().replace(/\s/g, "");
   const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
   return /^-?\d+(\.\d+)?$/.test(normalizado) ? Number(normalizado) : null;

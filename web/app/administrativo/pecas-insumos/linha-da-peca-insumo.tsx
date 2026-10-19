@@ -11,7 +11,7 @@ import { useAcaoDeFormulario } from "@/lib/acao-de-formulario";
 import type { PecaInsumoDto } from "@/lib/api/dtos";
 import {
   formatarDinheiro,
-  formatarParaCampoDecimal,
+  formatarDinheiroParaEdicao,
   formatarSaldo,
   nomeDoTipoPecaInsumo,
 } from "@/lib/formatacao";
@@ -171,7 +171,7 @@ function EdicaoDaPecaInsumo({ item, aoFechar }: PropsDoPainel) {
             name="preco"
             required
             inputMode="decimal"
-            defaultValue={formatarParaCampoDecimal(item.preco)}
+            defaultValue={formatarDinheiroParaEdicao(item.preco)}
           />
         </div>
       </div>

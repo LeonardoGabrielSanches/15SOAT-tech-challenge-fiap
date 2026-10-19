@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { apiAdministrativa } from "@/lib/api/cliente";
 import type { PecaInsumoDto, SaldoDto, TipoPecaInsumo } from "@/lib/api/dtos";
 import { resultadoDaApi, type Resultado } from "@/lib/api/resultado";
-import { lerNumeroDigitado } from "@/lib/formatacao";
+import { lerDinheiro, lerQuantidade } from "@/lib/formatacao";
 
 const caminhoDaTela = "/administrativo/pecas-insumos";
 
@@ -27,7 +27,7 @@ export async function cadastrarPecaInsumo(dados: FormData): Promise<Resultado<Pe
   if (!tipo) {
     return dadoInvalido("Escolha se é Peça ou Insumo.");
   }
-  const preco = lerNumeroDigitado(texto(dados, "preco"));
+  const preco = lerDinheiro(texto(dados, "preco"));
   if (preco === null) {
     return dadoInvalido("Informe o preço como número, por exemplo 35 ou 35,90.");
   }
@@ -44,7 +44,7 @@ export async function cadastrarPecaInsumo(dados: FormData): Promise<Resultado<Pe
 }
 
 export async function editarPecaInsumo(id: string, dados: FormData): Promise<Resultado<PecaInsumoDto>> {
-  const preco = lerNumeroDigitado(texto(dados, "preco"));
+  const preco = lerDinheiro(texto(dados, "preco"));
   if (preco === null) {
     return dadoInvalido("Informe o preço como número, por exemplo 35 ou 35,90.");
   }
@@ -71,7 +71,7 @@ export async function inativarPecaInsumo(id: string): Promise<Resultado<undefine
 }
 
 export async function registrarEntradaDeMercadoria(id: string, dados: FormData): Promise<Resultado<SaldoDto>> {
-  const quantidade = lerNumeroDigitado(texto(dados, "quantidade"));
+  const quantidade = lerQuantidade(texto(dados, "quantidade"));
   if (quantidade === null) {
     return dadoInvalido("Informe a quantidade como número, por exemplo 10 ou 2,5.");
   }
