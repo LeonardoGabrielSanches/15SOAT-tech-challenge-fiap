@@ -63,7 +63,6 @@ function Transferencia({ clienteId, veiculo, aoTransferir }: Props & { aoTransfe
         />
       ) : (
         <BuscaDoNovoProprietario
-          clienteId={clienteId}
           documento={documento}
           aoMudarDocumento={setDocumento}
           aoEncontrar={setNovoProprietario}
@@ -74,21 +73,18 @@ function Transferencia({ clienteId, veiculo, aoTransferir }: Props & { aoTransfe
 }
 
 function BuscaDoNovoProprietario({
-  clienteId,
   documento,
   aoMudarDocumento,
   aoEncontrar,
 }: {
-  clienteId: string;
   documento: string;
   aoMudarDocumento: (documento: string) => void;
   aoEncontrar: (cliente: ClienteDto) => void;
 }) {
-  const { resultado, enviar, pendente } = useAcaoDeFormulario(
-    (dados) => buscarNovoProprietario(clienteId, dados),
-    aoEncontrar,
+  const { falha, enviar, pendente } = useAcaoDeFormulario(
+    (dados) => buscarNovoProprietario(dados),
+    (cliente) => aoEncontrar(cliente),
   );
-  const falha = resultado && !resultado.ok ? resultado.falha : null;
 
   return (
     <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
@@ -129,11 +125,10 @@ function ConfirmacaoDaTransferencia({
   aoVoltar,
   aoTransferir,
 }: Props & { novoProprietario: ClienteDto; aoVoltar: () => void; aoTransferir: () => void }) {
-  const { resultado, enviar, pendente } = useAcaoDeFormulario(
+  const { falha, enviar, pendente } = useAcaoDeFormulario(
     () => transferirVeiculo(veiculo.id, clienteId, novoProprietario.id),
     aoTransferir,
   );
-  const falha = resultado && !resultado.ok ? resultado.falha : null;
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">

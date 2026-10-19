@@ -28,4 +28,10 @@ export const configuracao = {
   get keycloakClientSecret() {
     return variavel("KEYCLOAK_CLIENT_SECRET");
   },
+  get authSecret() {
+    return variavel("AUTH_SECRET");
+  },
+  get cookieSeguro() {
+    return (process.env.AUTH_URL ?? "").startsWith("https://");
+  },
 };

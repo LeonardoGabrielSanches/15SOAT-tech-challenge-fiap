@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import Link from "next/link";
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,7 +10,7 @@ import { resultadoDaApi } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { formatarDocumento, formatarTelefone } from "@/lib/formatacao";
 import { cn } from "@/lib/utils";
-import { SituacaoDoCliente } from "./situacao-do-cliente";
+import { enderecoDoCliente } from "./endereco-do-cliente";
 
 function TabelaDeClientes({ clientes }: { clientes: ClienteDto[] }) {
   return (
@@ -29,7 +30,7 @@ function TabelaDeClientes({ clientes }: { clientes: ClienteDto[] }) {
             <TableRow key={cliente.id} className={cn(!cliente.ativo && "text-muted-foreground")}>
               <TableCell>
                 <Link
-                  href={`/administrativo/clientes/${cliente.id}`}
+                  href={enderecoDoCliente(cliente.id)}
                   className="font-medium underline-offset-4 hover:underline"
                 >
                   {cliente.nome}
@@ -39,7 +40,7 @@ function TabelaDeClientes({ clientes }: { clientes: ClienteDto[] }) {
               <TableCell>{cliente.email}</TableCell>
               <TableCell>{cliente.telefone ? formatarTelefone(cliente.telefone) : "—"}</TableCell>
               <TableCell>
-                <SituacaoDoCliente ativo={cliente.ativo} />
+                <AtivoOuInativo ativo={cliente.ativo} />
               </TableCell>
             </TableRow>
           ))}

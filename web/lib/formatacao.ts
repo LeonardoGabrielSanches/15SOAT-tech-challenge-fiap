@@ -98,13 +98,15 @@ export function formatarDinheiroParaEdicao(valor: number): string {
   return dinheiroParaEdicao.format(valor);
 }
 
+const numeroPtBr = /^-?(\d{1,3}(\.\d{3})+|\d+)(,\d+)?$/;
+
+function lerNumeroPtBr(texto: string): number | null {
+  const limpo = texto.replace(/\s/g, "");
+  return numeroPtBr.test(limpo) ? Number(limpo.replace(/\./g, "").replace(",", ".")) : null;
+}
+
 export function lerDinheiro(texto: string): number | null {
-  const limpo = texto.replace(/R\$/gi, "").replace(/\s/g, "");
-  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
-  if (!/^-?\d+(\.\d+)?$/.test(normalizado)) {
-    return null;
-  }
-  return Number(normalizado);
+  return lerNumeroPtBr(texto.replace(/R\$/gi, ""));
 }
 
 export const nomeDoTipoPecaInsumo: Record<TipoPecaInsumo, string> = {
@@ -117,9 +119,7 @@ export function formatarSaldo(valor: number, unidadeDeMedida: string): string {
 }
 
 export function lerQuantidade(texto: string): number | null {
-  const limpo = texto.trim().replace(/\s/g, "");
-  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
-  return /^-?\d+(\.\d+)?$/.test(normalizado) ? Number(normalizado) : null;
+  return lerNumeroPtBr(texto);
 }
 
 export const nomeDoTipoDoItemDaVersao: Record<"Servico" | "PecaInsumo", string> = {

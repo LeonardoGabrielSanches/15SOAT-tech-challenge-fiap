@@ -41,7 +41,7 @@ export function CancelarOs({ os }: PropsDaAcaoDaOs) {
 
 function FormularioDeCancelamento({ os, aoCancelar }: { os: OrdemDeServicoDetalheDto; aoCancelar: () => void }) {
   const [motivo, setMotivo] = useState("");
-  const { resultado, enviar, pendente } = useAcaoDeFormulario((dados) => cancelarOs(os.id, dados), aoCancelar);
+  const { falha, dadosInvalidos, enviar, pendente } = useAcaoDeFormulario((dados) => cancelarOs(os.id, dados), aoCancelar);
   const motivoEmBranco = motivo.trim().length === 0;
   const temPecasInsumos = os.pecasInsumos.length > 0;
 
@@ -52,7 +52,7 @@ function FormularioDeCancelamento({ os, aoCancelar }: { os: OrdemDeServicoDetalh
         <DialogDescription>
           O cancelamento encerra a OS e não pode ser desfeito.
           {temPecasInsumos && " As Peças/insumos incluídas voltam ao estoque."}
-          {os.status === "AguardandoAprovacao" && " O link de aprovação enviado ao Cliente deixa de valer."}
+          {os.status === "AguardandoAprovacao" && " O Token de aprovação enviado ao Cliente deixa de valer."}
         </DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-2">
@@ -63,11 +63,11 @@ function FormularioDeCancelamento({ os, aoCancelar }: { os: OrdemDeServicoDetalh
           required
           value={motivo}
           onChange={(evento) => setMotivo(evento.target.value)}
-          aria-invalid={(resultado && !resultado.ok && resultado.falha.status === 422) || undefined}
+          aria-invalid={dadosInvalidos || undefined}
           placeholder="Ex.: Cliente desistiu do serviço"
         />
       </div>
-      {resultado && !resultado.ok && <FalhaDaAcao falha={resultado.falha} />}
+      {falha && <FalhaDaAcao falha={falha} />}
       <DialogFooter>
         <DialogClose asChild>
           <Button type="button" variant="outline">

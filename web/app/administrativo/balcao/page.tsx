@@ -1,6 +1,7 @@
 import { ArrowRight, Search, UserPlus } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,11 @@ import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ClienteDto } from "@/lib/api/dtos";
 import { resultadoDaApi, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
+import { VeiculosDoCliente } from "../clientes/[id]/veiculos-do-cliente";
 import { cadastrarCliente } from "../clientes/acoes";
 import { DadosDoCliente } from "../clientes/dados-do-cliente";
+import { enderecoDoCliente } from "../clientes/endereco-do-cliente";
 import { FormularioDeCliente } from "../clientes/formulario-de-cliente";
-import { SituacaoDoCliente } from "../clientes/situacao-do-cliente";
 
 function BuscaPorDocumento({ documento, falha }: { documento: string; falha: boolean }) {
   return (
@@ -50,14 +52,14 @@ function ClienteEncontrado({ cliente }: { cliente: ClienteDto }) {
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
           {cliente.nome}
-          <SituacaoDoCliente ativo={cliente.ativo} />
+          <AtivoOuInativo ativo={cliente.ativo} />
         </CardTitle>
         <CardDescription>
           {cliente.ativo ? "Cliente encontrado." : "Cliente Inativo: não pode ser usado em novas operações."}
         </CardDescription>
         <CardAction>
           <Button asChild>
-            <Link href={`/administrativo/clientes/${cliente.id}`}>
+            <Link href={enderecoDoCliente(cliente.id)}>
               Abrir Cliente
               <ArrowRight />
             </Link>
@@ -102,7 +104,15 @@ function ResultadoDaBusca({ documento, resultado }: { documento: string; resulta
     return <AvisoDeFalha falha={resultado.falha} />;
   }
   const [cliente] = resultado.dados;
-  return cliente ? <ClienteEncontrado cliente={cliente} /> : <CadastroNoBalcao documento={documento} />;
+  if (!cliente) {
+    return <CadastroNoBalcao documento={documento} />;
+  }
+  return (
+    <>
+      <ClienteEncontrado cliente={cliente} />
+      <VeiculosDoCliente cliente={cliente} />
+    </>
+  );
 }
 
 export default async function Balcao({ searchParams }: PageProps<"/administrativo/balcao">) {

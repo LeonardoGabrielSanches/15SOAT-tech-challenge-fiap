@@ -10,6 +10,7 @@ import type { ClienteDto, ServicoDto, VeiculoDto } from "@/lib/api/dtos";
 import { resultadoDaApi } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { formatarDocumento } from "@/lib/formatacao";
+import { enderecoDoCliente } from "../../clientes/endereco-do-cliente";
 import { FormularioDeAbertura } from "./formulario-de-abertura";
 
 function Moldura({ enderecoDeVolta, children }: { enderecoDeVolta: string; children: ReactNode }) {
@@ -62,7 +63,7 @@ export default async function AbrirOsDoVeiculo({ searchParams }: PageProps<"/adm
     );
   }
 
-  const enderecoDoCliente = `/administrativo/clientes/${veiculo.dados.proprietarioId}`;
+  const paginaDoCliente = enderecoDoCliente(veiculo.dados.proprietarioId);
   const [cliente, servicos] = await Promise.all([
     resultadoDaApi<ClienteDto>(
       api.GET("/api/administrativo/clientes/{id}", { params: { path: { id: veiculo.dados.proprietarioId } } }),
@@ -71,7 +72,7 @@ export default async function AbrirOsDoVeiculo({ searchParams }: PageProps<"/adm
   ]);
   if (!cliente.ok || !servicos.ok) {
     return (
-      <Moldura enderecoDeVolta={enderecoDoCliente}>
+      <Moldura enderecoDeVolta={paginaDoCliente}>
         {!cliente.ok && <AvisoDeFalha falha={cliente.falha} />}
         {!servicos.ok && <AvisoDeFalha falha={servicos.falha} />}
       </Moldura>
@@ -91,7 +92,7 @@ export default async function AbrirOsDoVeiculo({ searchParams }: PageProps<"/adm
         : null;
 
   return (
-    <Moldura enderecoDeVolta={enderecoDoCliente}>
+    <Moldura enderecoDeVolta={paginaDoCliente}>
       <Card>
         <CardHeader>
           <CardTitle>Atendimento</CardTitle>
@@ -128,7 +129,7 @@ export default async function AbrirOsDoVeiculo({ searchParams }: PageProps<"/adm
           clienteId={cliente.dados.id}
           veiculoId={veiculo.dados.id}
           servicos={servicosAtivos}
-          enderecoDeVolta={enderecoDoCliente}
+          enderecoDeVolta={paginaDoCliente}
         />
       )}
     </Moldura>

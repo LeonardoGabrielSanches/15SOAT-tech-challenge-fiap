@@ -18,10 +18,8 @@ function seguirComCookiesRenovados(request: NextRequest, resposta: Response): Re
     }
   }
   const seguinte = NextResponse.next({ request: { headers: new Headers(request.headers) } });
-  if (request.method === "GET") {
-    for (const cookie of cookiesRenovados) {
-      seguinte.headers.append("set-cookie", cookie);
-    }
+  for (const cookie of cookiesRenovados) {
+    seguinte.headers.append("set-cookie", cookie);
   }
   return seguinte;
 }

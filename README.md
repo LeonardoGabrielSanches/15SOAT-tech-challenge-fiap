@@ -121,6 +121,22 @@ A interface web (`web/`, Next.js) atende os funcionários e é a forma recomenda
 
 A interface funciona como BFF ([ADR 0007](docs/adr/0007-interface-web-como-bff.md)): o login usa authorization code + PKCE no client confidencial `oficina-web`, o JWT fica num cookie criptografado da sessão do servidor e toda chamada à API parte do servidor Next.js. O navegador nunca vê o token, e a API continua sem CORS. O secret do client `oficina-web` (`oficina-web-secret-somente-dev`) e o `AUTH_SECRET` versionados no realm, no `docker-compose.yml` e em `web/.env.development` são **exclusivos do ambiente de demonstração local**.
 
+### Portal do Cliente
+
+O Cliente não tem conta nem login. As páginas do portal são públicas e chamam só os endpoints `/api/publico/**`:
+
+- <http://localhost:3000/portal/consulta>: consulta da OS pelo Número da OS (`OS-AAAA-NNNNN`) e pelo CPF/CNPJ, com o Status, o Histórico de status e o orçamento vigente.
+- <http://localhost:3000/portal/aprovacao>: o Cliente cola o Token de aprovação e é levado a `/portal/aprovacao/{token}`.
+- `http://localhost:3000/portal/aprovacao/{token}`: aprova ou recusa (com motivo opcional) a Versão do orçamento daquele token.
+
+O envio do orçamento é simulado: ao concluir o diagnóstico, a API só registra em log o e-mail, o Número da OS, o total e o Token de aprovação. Numa demonstração, leia o token no log da API:
+
+```bash
+docker compose logs api | grep "Orcamento enviado"
+```
+
+A linha tem o formato `Orcamento enviado para <e-mail>: OS <Número da OS>, total <total>, token <token>`; cada conclusão do diagnóstico gera um token novo, então use o da linha mais recente da OS. Use o token em `/portal/aprovacao`, ou abra direto `http://localhost:3000/portal/aprovacao/<token>`.
+
 ### Executando a interface fora do Docker
 
 Requer Node.js 22 ou superior. Suba as dependências e rode a interface em modo de desenvolvimento (porta 3000, configurada por `web/.env.development`):

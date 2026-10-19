@@ -42,7 +42,7 @@ function quantos(quantidade: number, singular: string, plural: string): string {
 }
 
 function ConfirmacaoDaConclusao({ os, aoConcluir }: { os: OrdemDeServicoDetalheDto; aoConcluir: () => void }) {
-  const { resultado, enviar, pendente } = useAcaoDeFormulario(() => concluirDiagnostico(os.id), aoConcluir);
+  const { falha, enviar, pendente } = useAcaoDeFormulario(() => concluirDiagnostico(os.id), aoConcluir);
   const proximaVersao = Math.max(0, ...os.versoesDoOrcamento.map((versao) => versao.numero)) + 1;
 
   return (
@@ -55,7 +55,7 @@ function ConfirmacaoDaConclusao({ os, aoConcluir }: { os: OrdemDeServicoDetalheD
           Cliente recebe o orçamento para aprovar ou recusar.
         </AlertDialogDescription>
       </AlertDialogHeader>
-      {resultado && !resultado.ok && <FalhaDaAcao falha={resultado.falha} />}
+      {falha && <FalhaDaAcao falha={falha} />}
       <AlertDialogFooter>
         <AlertDialogCancel type="button">Voltar</AlertDialogCancel>
         <Button type="submit" disabled={pendente}>

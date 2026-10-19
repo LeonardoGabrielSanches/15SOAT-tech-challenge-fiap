@@ -7,21 +7,7 @@ export type ValoresDoCliente = {
   telefone: string;
 };
 
-export type EstadoDoFormularioDeCliente = {
-  falha: Falha | null;
-  valores: ValoresDoCliente;
-  tentativa: number;
-};
-
 export type CampoDoCliente = keyof ValoresDoCliente;
-
-export function estadoInicial(valores: Partial<ValoresDoCliente>): EstadoDoFormularioDeCliente {
-  return {
-    falha: null,
-    valores: { nome: "", documento: "", email: "", telefone: "", ...valores },
-    tentativa: 0,
-  };
-}
 
 export function campoDaFalha(falha: Falha | null): CampoDoCliente | null {
   if (!falha) {

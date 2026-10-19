@@ -9,12 +9,13 @@ import { resultadoDaApi } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { formatarDocumento, nomeDoTipoDeDocumento } from "@/lib/formatacao";
 import { atualizarCliente } from "../../acoes";
+import { enderecoDoCliente } from "../../endereco-do-cliente";
 import { FormularioDeCliente } from "../../formulario-de-cliente";
 
 export default async function EditarCliente({ params }: PageProps<"/administrativo/clientes/[id]/editar">) {
   await exigirTela("clientes");
   const { id } = await params;
-  const enderecoDoCliente = `/administrativo/clientes/${id}`;
+  const paginaDoCliente = enderecoDoCliente(id);
   const api = await apiAdministrativa();
   const resultado = await resultadoDaApi<ClienteDto>(
     api.GET("/api/administrativo/clientes/{id}", { params: { path: { id } } }),
@@ -23,7 +24,7 @@ export default async function EditarCliente({ params }: PageProps<"/administrati
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <Button asChild variant="ghost" size="sm" className="self-start">
-        <Link href={enderecoDoCliente}>
+        <Link href={paginaDoCliente}>
           <ArrowLeft />
           Voltar ao Cliente
         </Link>
@@ -51,7 +52,7 @@ export default async function EditarCliente({ params }: PageProps<"/administrati
               }}
               comDocumento={false}
               rotuloDoEnvio="Salvar alterações"
-              enderecoDeCancelamento={enderecoDoCliente}
+              enderecoDeCancelamento={paginaDoCliente}
             />
           ) : (
             <Alert variant="destructive">

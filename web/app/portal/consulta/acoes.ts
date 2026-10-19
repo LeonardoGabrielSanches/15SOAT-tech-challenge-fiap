@@ -3,16 +3,12 @@
 import { apiPublica } from "@/lib/api/cliente";
 import type { ConsultaPublicaDaOsDto } from "@/lib/api/dtos";
 import { resultadoDaApi } from "@/lib/api/resultado";
+import { lerTexto } from "@/lib/dados-do-formulario";
 import type { EstadoDaConsulta } from "./estado";
 
-function texto(formData: FormData, campo: string): string {
-  const valor = formData.get(campo);
-  return typeof valor === "string" ? valor.trim() : "";
-}
-
 export async function consultarOs(_: EstadoDaConsulta, formData: FormData): Promise<EstadoDaConsulta> {
-  const numero = texto(formData, "numero");
-  const documento = texto(formData, "documento");
+  const numero = lerTexto(formData, "numero");
+  const documento = lerTexto(formData, "documento");
   if (!numero || !documento) {
     return { situacao: "naoEncontrada" };
   }

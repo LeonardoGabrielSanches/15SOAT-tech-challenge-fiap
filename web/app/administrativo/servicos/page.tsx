@@ -1,5 +1,6 @@
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
-import { Badge } from "@/components/ui/badge";
+import { InativarComConfirmacao } from "@/components/inativar-com-confirmacao";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ServicoDto } from "@/lib/api/dtos";
@@ -8,7 +9,7 @@ import { exigirTela } from "@/lib/autenticacao/sessao";
 import { formatarDinheiro } from "@/lib/formatacao";
 import { cn } from "@/lib/utils";
 import { FormularioDeServico } from "./formulario-de-servico";
-import { InativarServico } from "./inativar-servico";
+import { inativarServico } from "./acoes";
 
 export default async function Servicos() {
   await exigirTela("servicos");
@@ -54,12 +55,18 @@ function TabelaDeServicos({ servicos }: { servicos: ServicoDto[] }) {
             <TableCell className="max-w-sm whitespace-normal">{servico.descricao ?? "—"}</TableCell>
             <TableCell className="text-right tabular-nums">{formatarDinheiro(servico.preco)}</TableCell>
             <TableCell>
-              {servico.ativo ? <Badge variant="secondary">Ativo</Badge> : <Badge variant="destructive">Inativo</Badge>}
+              <AtivoOuInativo ativo={servico.ativo} />
             </TableCell>
             <TableCell>
               <div className="flex justify-end gap-2">
                 <FormularioDeServico servico={servico} />
-                {servico.ativo && <InativarServico servico={servico} />}
+                {servico.ativo && (
+                  <InativarComConfirmacao
+                    titulo={`Inativar o Serviço ${servico.nome}?`}
+                    descricao="O Serviço deixa de ser oferecido em novas OS e continua nas OS em que já foi usado."
+                    acao={inativarServico.bind(null, servico.id)}
+                  />
+                )}
               </div>
             </TableCell>
           </TableRow>

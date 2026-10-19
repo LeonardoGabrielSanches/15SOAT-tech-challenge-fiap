@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
-import { Badge } from "@/components/ui/badge";
+import { InativarComConfirmacao } from "@/components/inativar-com-confirmacao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,36 +18,38 @@ import {
 } from "@/lib/formatacao";
 import { editarPecaInsumo, inativarPecaInsumo, registrarEntradaDeMercadoria } from "./acoes";
 
-type Painel = "entrada" | "edicao" | "inativacao";
+type Painel = "entrada" | "edicao";
 
 type Props = {
-  item: PecaInsumoDto;
+  pecaInsumo: PecaInsumoDto;
   mostrarSituacao: boolean;
   podeEscrever: boolean;
 };
 
-export function LinhaDaPecaInsumo({ item, mostrarSituacao, podeEscrever }: Props) {
+export function LinhaDaPecaInsumo({ pecaInsumo, mostrarSituacao, podeEscrever }: Props) {
   const [painel, setPainel] = useState<Painel | null>(null);
   const colunas = 5 + (mostrarSituacao ? 1 : 0) + (podeEscrever ? 1 : 0);
   const fechar = () => setPainel(null);
 
   return (
     <>
-      <TableRow className={item.ativo ? undefined : "text-muted-foreground"}>
-        <TableCell className="font-medium">{item.nome}</TableCell>
-        <TableCell>{nomeDoTipoPecaInsumo[item.tipo]}</TableCell>
-        <TableCell>{item.unidadeDeMedida}</TableCell>
-        <TableCell className="text-right tabular-nums">{formatarDinheiro(item.preco)}</TableCell>
-        <TableCell className="text-right tabular-nums">{formatarSaldo(item.saldo, item.unidadeDeMedida)}</TableCell>
+      <TableRow className={pecaInsumo.ativo ? undefined : "text-muted-foreground"}>
+        <TableCell className="font-medium">{pecaInsumo.nome}</TableCell>
+        <TableCell>{nomeDoTipoPecaInsumo[pecaInsumo.tipo]}</TableCell>
+        <TableCell>{pecaInsumo.unidadeDeMedida}</TableCell>
+        <TableCell className="text-right tabular-nums">{formatarDinheiro(pecaInsumo.preco)}</TableCell>
+        <TableCell className="text-right tabular-nums">
+          {formatarSaldo(pecaInsumo.saldo, pecaInsumo.unidadeDeMedida)}
+        </TableCell>
         {mostrarSituacao && (
           <TableCell>
-            <Badge variant={item.ativo ? "secondary" : "outline"}>{item.ativo ? "Ativa" : "Inativa"}</Badge>
+            <AtivoOuInativo ativo={pecaInsumo.ativo} />
           </TableCell>
         )}
         {podeEscrever && (
           <TableCell>
             <div className="flex flex-wrap justify-end gap-1">
-              {item.ativo && (
+              {pecaInsumo.ativo && (
                 <Button
                   size="sm"
                   variant={painel === "entrada" ? "secondary" : "outline"}
@@ -62,14 +65,12 @@ export function LinhaDaPecaInsumo({ item, mostrarSituacao, podeEscrever }: Props
               >
                 Editar
               </Button>
-              {item.ativo && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setPainel(painel === "inativacao" ? null : "inativacao")}
-                >
-                  Inativar
-                </Button>
+              {pecaInsumo.ativo && (
+                <InativarComConfirmacao
+                  titulo={`Inativar a Peça/insumo ${pecaInsumo.nome}?`}
+                  descricao="Ela sai da lista padrão e deixa de aceitar Entrada de mercadoria e inclusão em OS. O saldo atual é mantido."
+                  acao={() => inativarPecaInsumo(pecaInsumo.id)}
+                />
               )}
             </div>
           </TableCell>
@@ -78,9 +79,8 @@ export function LinhaDaPecaInsumo({ item, mostrarSituacao, podeEscrever }: Props
       {painel && (
         <TableRow className="bg-muted/30 hover:bg-muted/30">
           <TableCell colSpan={colunas} className="whitespace-normal">
-            {painel === "entrada" && <EntradaDeMercadoria item={item} aoFechar={fechar} />}
-            {painel === "edicao" && <EdicaoDaPecaInsumo item={item} aoFechar={fechar} />}
-            {painel === "inativacao" && <InativacaoDaPecaInsumo item={item} aoFechar={fechar} />}
+            {painel === "entrada" && <EntradaDeMercadoria pecaInsumo={pecaInsumo} aoFechar={fechar} />}
+            {painel === "edicao" && <EdicaoDaPecaInsumo pecaInsumo={pecaInsumo} aoFechar={fechar} />}
           </TableCell>
         </TableRow>
       )}
@@ -89,29 +89,29 @@ export function LinhaDaPecaInsumo({ item, mostrarSituacao, podeEscrever }: Props
 }
 
 type PropsDoPainel = {
-  item: PecaInsumoDto;
+  pecaInsumo: PecaInsumoDto;
   aoFechar: () => void;
 };
 
-function EntradaDeMercadoria({ item, aoFechar }: PropsDoPainel) {
+function EntradaDeMercadoria({ pecaInsumo, aoFechar }: PropsDoPainel) {
   const { resultado, enviar, pendente } = useAcaoDeFormulario(
-    (dados) => registrarEntradaDeMercadoria(item.id, dados),
+    (dados) => registrarEntradaDeMercadoria(pecaInsumo.id, dados),
     (_, formulario) => formulario.reset(),
   );
-  const campo = `entrada-${item.id}`;
+  const campo = `entrada-${pecaInsumo.id}`;
   const regra =
-    item.tipo === "Peca" ? "Peça aceita apenas quantidade inteira." : "Insumo aceita até 3 casas decimais.";
+    pecaInsumo.tipo === "Peca" ? "Peça aceita apenas quantidade inteira." : "Insumo aceita até 3 casas decimais.";
 
   return (
     <form onSubmit={enviar} className="flex max-w-xl flex-col gap-3 py-2">
-      <p className="font-medium">Entrada de mercadoria: {item.nome}</p>
+      <p className="font-medium">Entrada de mercadoria: {pecaInsumo.nome}</p>
       <div className="flex flex-col gap-2">
-        <Label htmlFor={campo}>Quantidade ({item.unidadeDeMedida})</Label>
+        <Label htmlFor={campo}>Quantidade ({pecaInsumo.unidadeDeMedida})</Label>
         <Input
           id={campo}
           name="quantidade"
           required
-          inputMode={item.tipo === "Peca" ? "numeric" : "decimal"}
+          inputMode={pecaInsumo.tipo === "Peca" ? "numeric" : "decimal"}
           className="max-w-40"
           autoFocus
         />
@@ -135,43 +135,49 @@ function EntradaDeMercadoria({ item, aoFechar }: PropsDoPainel) {
   );
 }
 
-function EdicaoDaPecaInsumo({ item, aoFechar }: PropsDoPainel) {
+function EdicaoDaPecaInsumo({ pecaInsumo, aoFechar }: PropsDoPainel) {
   const { resultado, enviar, pendente } = useAcaoDeFormulario(
-    (dados) => editarPecaInsumo(item.id, dados),
+    (dados) => editarPecaInsumo(pecaInsumo.id, dados),
     () => aoFechar(),
   );
 
   return (
     <form onSubmit={enviar} className="flex max-w-3xl flex-col gap-3 py-2">
       <p className="font-medium">
-        Editar {item.nome}{" "}
+        Editar {pecaInsumo.nome}{" "}
         <span className="font-normal text-muted-foreground">
-          (tipo {nomeDoTipoPecaInsumo[item.tipo]}, não pode ser alterado)
+          (tipo {nomeDoTipoPecaInsumo[pecaInsumo.tipo]}, não pode ser alterado)
         </span>
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="flex flex-col gap-2">
-          <Label htmlFor={`edicao-nome-${item.id}`}>Nome</Label>
-          <Input id={`edicao-nome-${item.id}`} name="nome" required maxLength={200} defaultValue={item.nome} />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={`edicao-unidade-${item.id}`}>Unidade de medida</Label>
+          <Label htmlFor={`edicao-nome-${pecaInsumo.id}`}>Nome</Label>
           <Input
-            id={`edicao-unidade-${item.id}`}
-            name="unidadeDeMedida"
+            id={`edicao-nome-${pecaInsumo.id}`}
+            name="nome"
             required
-            maxLength={30}
-            defaultValue={item.unidadeDeMedida}
+            maxLength={200}
+            defaultValue={pecaInsumo.nome}
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor={`edicao-preco-${item.id}`}>Preço (R$)</Label>
+          <Label htmlFor={`edicao-unidade-${pecaInsumo.id}`}>Unidade de medida</Label>
           <Input
-            id={`edicao-preco-${item.id}`}
+            id={`edicao-unidade-${pecaInsumo.id}`}
+            name="unidadeDeMedida"
+            required
+            maxLength={30}
+            defaultValue={pecaInsumo.unidadeDeMedida}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={`edicao-preco-${pecaInsumo.id}`}>Preço (R$)</Label>
+          <Input
+            id={`edicao-preco-${pecaInsumo.id}`}
             name="preco"
             required
             inputMode="decimal"
-            defaultValue={formatarDinheiroParaEdicao(item.preco)}
+            defaultValue={formatarDinheiroParaEdicao(pecaInsumo.preco)}
           />
         </div>
       </div>
@@ -179,28 +185,6 @@ function EdicaoDaPecaInsumo({ item, aoFechar }: PropsDoPainel) {
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={pendente}>
           {pendente ? "Salvando..." : "Salvar"}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>
-          Cancelar
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function InativacaoDaPecaInsumo({ item, aoFechar }: PropsDoPainel) {
-  const { resultado, enviar, pendente } = useAcaoDeFormulario(() => inativarPecaInsumo(item.id), () => aoFechar());
-
-  return (
-    <form onSubmit={enviar} className="flex max-w-xl flex-col gap-3 py-2">
-      <p className="font-medium">Inativar {item.nome}?</p>
-      <p className="text-sm text-muted-foreground">
-        Ela sai da lista padrão e deixa de aceitar Entrada de mercadoria e inclusão em OS. O saldo atual é mantido.
-      </p>
-      {resultado && !resultado.ok && <AvisoDeFalha falha={resultado.falha} />}
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" variant="destructive" disabled={pendente}>
-          {pendente ? "Inativando..." : "Confirmar inativação"}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>
           Cancelar

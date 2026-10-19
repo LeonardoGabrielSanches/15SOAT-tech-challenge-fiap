@@ -59,7 +59,7 @@ function CamposDaPecaInsumo({
   aoIncluir,
 }: Props & { aoIncluir: () => void }) {
   const [selecionadaId, setSelecionadaId] = useState("");
-  const { resultado, enviar, pendente, limpar } = useAcaoDeFormulario(
+  const { falha, dadosInvalidos, enviar, pendente, limpar } = useAcaoDeFormulario(
     (dados) => incluirPecaInsumo(osId, dados),
     aoIncluir,
   );
@@ -136,7 +136,7 @@ function CamposDaPecaInsumo({
               inputMode={selecionada?.tipo === "Insumo" ? "decimal" : "numeric"}
               placeholder={selecionada?.tipo === "Insumo" ? "3,5" : "1"}
               aria-describedby="quantidade-ajuda"
-              aria-invalid={resultado !== null && !resultado.ok && resultado.falha.status === 422}
+              aria-invalid={dadosInvalidos || undefined}
             />
             <p id="quantidade-ajuda" className="text-xs text-muted-foreground">
               {selecionada?.tipo === "Insumo"
@@ -146,7 +146,7 @@ function CamposDaPecaInsumo({
                   : "Inteiro para Peça; frações (até 3 casas decimais) para Insumo."}
             </p>
           </div>
-          {resultado && !resultado.ok && <FalhaDaAcao falha={resultado.falha} />}
+          {falha && <FalhaDaAcao falha={falha} />}
         </>
       )}
       <DialogFooter>

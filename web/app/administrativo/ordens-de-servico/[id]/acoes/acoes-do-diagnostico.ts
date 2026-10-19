@@ -1,12 +1,9 @@
 "use server";
 
-import type { Resultado } from "@/lib/api/resultado";
+import { dadosInvalidos, type Resultado } from "@/lib/api/resultado";
+import { lerTexto } from "@/lib/dados-do-formulario";
 import { lerQuantidade } from "@/lib/formatacao";
 import { executarNaOs } from "./executar-na-os";
-
-function dadosInvalidos(mensagem: string): Resultado<undefined> {
-  return { ok: false, falha: { status: 422, titulo: "Dados inválidos", mensagem } };
-}
 
 export async function iniciarDiagnostico(osId: string): Promise<Resultado<undefined>> {
   return executarNaOs(osId, (api) =>
@@ -21,11 +18,11 @@ export async function concluirDiagnostico(osId: string): Promise<Resultado<undef
 }
 
 export async function incluirPecaInsumo(osId: string, dados: FormData): Promise<Resultado<undefined>> {
-  const pecaInsumoId = String(dados.get("pecaInsumoId") ?? "");
+  const pecaInsumoId = lerTexto(dados, "pecaInsumoId");
   if (!pecaInsumoId) {
     return dadosInvalidos("Escolha a Peça/insumo.");
   }
-  const quantidade = lerQuantidade(String(dados.get("quantidade") ?? ""));
+  const quantidade = lerQuantidade(lerTexto(dados, "quantidade"));
   if (quantidade === null) {
     return dadosInvalidos("Informe a quantidade como número, por exemplo 2 ou 3,5.");
   }
@@ -50,7 +47,7 @@ export async function removerPecaInsumo(
       }),
     );
   }
-  const quantidade = lerQuantidade(String(dados.get("quantidade") ?? ""));
+  const quantidade = lerQuantidade(lerTexto(dados, "quantidade"));
   if (quantidade === null) {
     return dadosInvalidos("Informe a quantidade a remover como número, por exemplo 1 ou 0,5.");
   }

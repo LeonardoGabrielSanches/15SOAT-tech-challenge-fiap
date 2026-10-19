@@ -56,7 +56,7 @@ function ConfirmacaoDaRemocao({
   servico: ServicoDaOsDto;
   aoRemover: () => void;
 }) {
-  const { resultado, enviar, pendente } = useAcaoDeFormulario(() => removerServicoDaOs(osId, servico.servicoId), aoRemover);
+  const { falha, enviar, pendente } = useAcaoDeFormulario(() => removerServicoDaOs(osId, servico.servicoId), aoRemover);
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">
@@ -66,7 +66,7 @@ function ConfirmacaoDaRemocao({
           O Serviço sai da OS. Ele pode ser incluído de novo enquanto o Status permitir.
         </AlertDialogDescription>
       </AlertDialogHeader>
-      {resultado && !resultado.ok && <FalhaDaAcao falha={resultado.falha} />}
+      {falha && <FalhaDaAcao falha={falha} />}
       <AlertDialogFooter>
         <AlertDialogCancel type="button">Voltar</AlertDialogCancel>
         <Button type="submit" variant="destructive" disabled={pendente}>

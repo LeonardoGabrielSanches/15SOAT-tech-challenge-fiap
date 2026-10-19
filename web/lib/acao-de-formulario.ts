@@ -3,12 +3,18 @@
 import { useState, useTransition, type FormEvent } from "react";
 import type { Resultado } from "@/lib/api/resultado";
 
-export function useAcaoDeFormulario<T>(
-  acao: (dados: FormData) => Promise<Resultado<T>>,
-  aoConcluir?: (dados: T, formulario: HTMLFormElement) => void,
+type Sucesso<R> = Extract<R, { ok: true }>;
+
+type Fracasso<R> = Extract<R, { ok: false }>;
+
+export function useAcaoDeFormulario<R extends Resultado<unknown>>(
+  acao: (dados: FormData) => Promise<R>,
+  aoConcluir?: (dados: Sucesso<R>["dados"], formulario: HTMLFormElement) => void,
 ) {
-  const [resultado, setResultado] = useState<Resultado<T> | null>(null);
+  const [resultado, setResultado] = useState<R | null>(null);
   const [pendente, startTransition] = useTransition();
+  const fracasso = resultado && !resultado.ok ? (resultado as Fracasso<R>) : null;
+  const falha = fracasso ? fracasso.falha : null;
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -19,7 +25,7 @@ export function useAcaoDeFormulario<T>(
       startTransition(() => {
         setResultado(novo);
         if (novo.ok) {
-          aoConcluir?.(novo.dados, formulario);
+          aoConcluir?.((novo as Sucesso<R>).dados, formulario);
         }
       });
     });
@@ -29,5 +35,5 @@ export function useAcaoDeFormulario<T>(
     setResultado(null);
   }
 
-  return { resultado, enviar, pendente, limpar };
+  return { resultado, fracasso, falha, dadosInvalidos: falha?.status === 422, enviar, pendente, limpar };
 }

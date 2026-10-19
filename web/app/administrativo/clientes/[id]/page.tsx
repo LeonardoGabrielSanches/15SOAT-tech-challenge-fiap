@@ -1,6 +1,8 @@
 import { ArrowLeft, Pencil } from "lucide-react";
 import Link from "next/link";
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
+import { InativarComConfirmacao } from "@/components/inativar-com-confirmacao";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +11,8 @@ import type { ClienteDto } from "@/lib/api/dtos";
 import { resultadoDaApi } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { DadosDoCliente } from "../dados-do-cliente";
-import { SituacaoDoCliente } from "../situacao-do-cliente";
-import { InativarCliente } from "./inativar-cliente";
+import { enderecoDoCliente } from "../endereco-do-cliente";
+import { inativarCliente } from "../acoes";
 import { VeiculosDoCliente } from "./veiculos-do-cliente";
 
 function VoltarParaClientes() {
@@ -48,7 +50,7 @@ export default async function PaginaDoCliente({ params }: PageProps<"/administra
       <VoltarParaClientes />
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold break-words">{cliente.nome}</h1>
-        <SituacaoDoCliente ativo={cliente.ativo} />
+        <AtivoOuInativo ativo={cliente.ativo} />
       </div>
 
       {!cliente.ativo && (
@@ -68,7 +70,7 @@ export default async function PaginaDoCliente({ params }: PageProps<"/administra
           {cliente.ativo && (
             <CardAction>
               <Button asChild variant="outline" size="sm">
-                <Link href={`/administrativo/clientes/${cliente.id}/editar`}>
+                <Link href={`${enderecoDoCliente(cliente.id)}/editar`}>
                   <Pencil />
                   Editar
                 </Link>
@@ -90,7 +92,13 @@ export default async function PaginaDoCliente({ params }: PageProps<"/administra
             <CardDescription>Retira o Cliente de novas operações sem perder o histórico.</CardDescription>
           </CardHeader>
           <CardContent>
-            <InativarCliente id={cliente.id} nome={cliente.nome} />
+            <InativarComConfirmacao
+              rotulo="Inativar Cliente"
+              tamanho="default"
+              titulo={`Inativar o Cliente ${cliente.nome}?`}
+              descricao="O Cliente não poderá ser usado em novas operações, mas continua visível no histórico. Não há como reativá-lo depois."
+              acao={inativarCliente.bind(null, cliente.id)}
+            />
           </CardContent>
         </Card>
       )}

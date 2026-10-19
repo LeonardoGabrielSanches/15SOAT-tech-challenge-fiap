@@ -1,21 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  campoDaFalha,
-  estadoInicial,
-  type CampoDoCliente,
-  type EstadoDoFormularioDeCliente,
-  type ValoresDoCliente,
-} from "./formulario";
+import { useAcaoDeFormulario } from "@/lib/acao-de-formulario";
+import type { ClienteDto } from "@/lib/api/dtos";
+import type { Resultado } from "@/lib/api/resultado";
+import { enderecoDoCliente } from "./endereco-do-cliente";
+import { campoDaFalha, type CampoDoCliente, type ValoresDoCliente } from "./formulario";
 
 type Props = {
-  acao: (estado: EstadoDoFormularioDeCliente, dados: FormData) => Promise<EstadoDoFormularioDeCliente>;
+  acao: (dados: FormData) => Promise<Resultado<ClienteDto>>;
   valoresIniciais: Partial<ValoresDoCliente>;
   comDocumento: boolean;
   rotuloDoEnvio: string;
@@ -44,13 +43,23 @@ export function FormularioDeCliente({
   rotuloDoEnvio,
   enderecoDeCancelamento,
 }: Props) {
-  const [estado, enviar, enviando] = useActionState(acao, estadoInicial(valoresIniciais));
-  const campoInvalido = campoDaFalha(estado.falha);
+  const router = useRouter();
+  const { falha, enviar, pendente } = useAcaoDeFormulario(
+    (dados) => acao(dados),
+    (cliente) => router.push(enderecoDoCliente(cliente.id)),
+  );
+  const campoInvalido = campoDaFalha(falha);
   const campos = definicoesDosCampos.filter((definicao) => comDocumento || definicao.campo !== "documento");
 
+  useEffect(() => {
+    if (campoInvalido) {
+      document.getElementById(`cliente-${campoInvalido}`)?.focus();
+    }
+  }, [falha, campoInvalido]);
+
   return (
-    <form key={estado.tentativa} action={enviar} noValidate className="flex max-w-xl flex-col gap-4">
-      {estado.falha && <AvisoDeFalha falha={estado.falha} />}
+    <form onSubmit={enviar} noValidate className="flex max-w-xl flex-col gap-4">
+      {falha && <AvisoDeFalha falha={falha} />}
       {campos.map(({ campo, rotulo, type, autoComplete, inputMode }) => (
         <div key={campo} className="flex flex-col gap-2">
           <Label htmlFor={`cliente-${campo}`}>{rotulo}</Label>
@@ -60,15 +69,14 @@ export function FormularioDeCliente({
             type={type}
             inputMode={inputMode}
             autoComplete={autoComplete}
-            defaultValue={estado.valores[campo]}
+            defaultValue={valoresIniciais[campo] ?? ""}
             aria-invalid={campoInvalido === campo || undefined}
-            autoFocus={campoInvalido === campo}
           />
         </div>
       ))}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={enviando}>
-          {enviando ? "Salvando..." : rotuloDoEnvio}
+        <Button type="submit" disabled={pendente}>
+          {pendente ? "Salvando..." : rotuloDoEnvio}
         </Button>
         {enderecoDeCancelamento && (
           <Button asChild variant="outline">
