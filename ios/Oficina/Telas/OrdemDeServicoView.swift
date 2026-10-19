@@ -21,6 +21,14 @@ struct OrdemDeServicoView: View {
                 ProgressView()
             }
         }
+        .alert("Não foi possível atualizar", isPresented: Binding(
+            get: { erro != nil && detalhe != nil },
+            set: { if !$0 { erro = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(erro ?? "")
+        }
         .navigationTitle(ordem.numero)
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await carregar() }

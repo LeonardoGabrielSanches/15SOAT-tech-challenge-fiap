@@ -22,6 +22,14 @@ struct FilaDeExecucaoView: View {
                 ProgressView()
             }
         }
+        .alert("Não foi possível atualizar", isPresented: Binding(
+            get: { erro != nil && !ordens.isEmpty },
+            set: { if !$0 { erro = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(erro ?? "")
+        }
         .navigationDestination(for: OrdemDeServicoResumo.self) { OrdemDeServicoView(ordem: $0) }
         .refreshable { await carregar() }
         .task { await carregar() }
@@ -34,6 +42,6 @@ struct FilaDeExecucaoView: View {
         } catch {
             if !Task.isCancelled { self.erro = error.localizedDescription }
         }
-        carregada = true
+        if !Task.isCancelled { carregada = true }
     }
 }
