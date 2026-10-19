@@ -71,11 +71,10 @@ export function FormularioDeVeiculo({ clienteId, veiculo }: Props) {
 }
 
 function CamposDoVeiculo({ clienteId, veiculo, aoSalvar }: Props & { aoSalvar: () => void }) {
-  const { resultado, enviar, pendente } = useAcaoDeFormulario(
+  const { falha, enviar, pendente } = useAcaoDeFormulario(
     (dados) => (veiculo ? editarVeiculo(clienteId, veiculo.id, dados) : cadastrarVeiculo(clienteId, dados)),
     aoSalvar,
   );
-  const falha = resultado && !resultado.ok ? resultado.falha : null;
   const campoInvalido = campoDaFalha(falha);
   const invalido = (campo: CampoDoVeiculo) => campoInvalido === campo || undefined;
 

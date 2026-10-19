@@ -10,7 +10,7 @@ import { nomeDoTipoPecaInsumo } from "@/lib/formatacao";
 import { cadastrarPecaInsumo } from "./acoes";
 
 export function CadastroDePecaInsumo() {
-  const { resultado, enviar, pendente } = useAcaoDeFormulario(cadastrarPecaInsumo, (_, formulario) =>
+  const { resultado, falha, enviar, pendente } = useAcaoDeFormulario(cadastrarPecaInsumo, (_, formulario) =>
     formulario.reset(),
   );
 
@@ -49,7 +49,7 @@ export function CadastroDePecaInsumo() {
               <Input id="cadastro-preco" name="preco" required inputMode="decimal" placeholder="0,00" />
             </div>
           </div>
-          {resultado && !resultado.ok && <AvisoDeFalha falha={resultado.falha} />}
+          {falha && <AvisoDeFalha falha={falha} />}
           {resultado?.ok && (
             <p className="text-sm text-muted-foreground" role="status">
               {resultado.dados.nome} cadastrada com saldo zero.

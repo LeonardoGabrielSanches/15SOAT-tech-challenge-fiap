@@ -52,7 +52,7 @@ function CamposDaRemocao({
   aoRemover: () => void;
 }) {
   const [modo, setModo] = useState<Modo>("tudo");
-  const { resultado, enviar, pendente, limpar } = useAcaoDeFormulario(
+  const { falha, dadosInvalidos, enviar, pendente, limpar } = useAcaoDeFormulario(
     (dados) => removerPecaInsumo(osId, pecaInsumo.pecaInsumoId, dados),
     aoRemover,
   );
@@ -108,14 +108,14 @@ function CamposDaRemocao({
             inputMode="decimal"
             placeholder="1"
             aria-describedby="quantidade-a-remover-ajuda"
-            aria-invalid={resultado !== null && !resultado.ok && resultado.falha.status === 422}
+            aria-invalid={dadosInvalidos || undefined}
           />
           <p id="quantidade-a-remover-ajuda" className="text-xs text-muted-foreground">
             Até {naOs}. Inteiro para Peça; frações (até 3 casas decimais) para Insumo.
           </p>
         </div>
       )}
-      {resultado && !resultado.ok && <FalhaDaAcao falha={resultado.falha} />}
+      {falha && <FalhaDaAcao falha={falha} />}
       <DialogFooter>
         <DialogClose asChild>
           <Button type="button" variant="outline">

@@ -12,8 +12,7 @@ import { localizarOs } from "./acoes";
 
 export function FormularioAbrirOs() {
   const router = useRouter();
-  const { resultado, enviar, pendente } = useAcaoDeFormulario(localizarOs, ({ id }) => router.push(enderecoDaOs(id)));
-  const falha = resultado && !resultado.ok ? resultado.falha : null;
+  const { resultado, falha, enviar, pendente } = useAcaoDeFormulario(localizarOs, ({ id }) => router.push(enderecoDaOs(id)));
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">

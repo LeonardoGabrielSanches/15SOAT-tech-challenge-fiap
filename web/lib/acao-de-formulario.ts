@@ -9,6 +9,7 @@ export function useAcaoDeFormulario<T>(
 ) {
   const [resultado, setResultado] = useState<Resultado<T> | null>(null);
   const [pendente, startTransition] = useTransition();
+  const falha = resultado && !resultado.ok ? resultado.falha : null;
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -29,5 +30,5 @@ export function useAcaoDeFormulario<T>(
     setResultado(null);
   }
 
-  return { resultado, enviar, pendente, limpar };
+  return { resultado, falha, dadosInvalidos: falha?.status === 422, enviar, pendente, limpar };
 }

@@ -52,7 +52,7 @@ export function InclusaoDeServico({ osId, servicosDisponiveis, falhaAoCarregar }
 }
 
 function FormularioDeInclusao({ osId, servicosDisponiveis, falhaAoCarregar, aoIncluir }: Props & { aoIncluir: () => void }) {
-  const { resultado, enviar, pendente } = useAcaoDeFormulario((dados) => incluirServicoNaOs(osId, dados), aoIncluir);
+  const { falha, dadosInvalidos, enviar, pendente } = useAcaoDeFormulario((dados) => incluirServicoNaOs(osId, dados), aoIncluir);
   const semOpcoes = !falhaAoCarregar && servicosDisponiveis.length === 0;
 
   return (
@@ -73,7 +73,7 @@ function FormularioDeInclusao({ osId, servicosDisponiveis, falhaAoCarregar, aoIn
             name="servicoId"
             required
             defaultValue=""
-            aria-invalid={(resultado && !resultado.ok && resultado.falha.status === 422) || undefined}
+            aria-invalid={dadosInvalidos || undefined}
             className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60 aria-invalid:border-destructive"
           >
             <option value="" disabled>
@@ -87,7 +87,7 @@ function FormularioDeInclusao({ osId, servicosDisponiveis, falhaAoCarregar, aoIn
           </select>
         </div>
       )}
-      {resultado && !resultado.ok && <FalhaDaAcao falha={resultado.falha} />}
+      {falha && <FalhaDaAcao falha={falha} />}
       <DialogFooter>
         <DialogClose asChild>
           <Button type="button" variant="outline">
