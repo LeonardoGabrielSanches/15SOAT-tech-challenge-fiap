@@ -1,5 +1,5 @@
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ServicoDto } from "@/lib/api/dtos";
@@ -54,7 +54,7 @@ function TabelaDeServicos({ servicos }: { servicos: ServicoDto[] }) {
             <TableCell className="max-w-sm whitespace-normal">{servico.descricao ?? "—"}</TableCell>
             <TableCell className="text-right tabular-nums">{formatarDinheiro(servico.preco)}</TableCell>
             <TableCell>
-              {servico.ativo ? <Badge variant="secondary">Ativo</Badge> : <Badge variant="destructive">Inativo</Badge>}
+              <AtivoOuInativo ativo={servico.ativo} />
             </TableCell>
             <TableCell>
               <div className="flex justify-end gap-2">

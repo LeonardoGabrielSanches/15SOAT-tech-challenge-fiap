@@ -1,3 +1,4 @@
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -5,7 +6,6 @@ import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ClienteDto, VeiculoDto } from "@/lib/api/dtos";
 import { resultadoDaApi } from "@/lib/api/resultado";
 import { cn } from "@/lib/utils";
-import { SituacaoDoCliente } from "../situacao-do-cliente";
 import { AcoesDoVeiculo } from "./acoes-do-veiculo";
 import { FormularioDeVeiculo } from "./formulario-de-veiculo";
 
@@ -64,7 +64,7 @@ function TabelaDeVeiculos({ cliente, veiculos }: { cliente: ClienteDto; veiculos
             <TableCell>{veiculo.modelo}</TableCell>
             <TableCell className="text-right tabular-nums">{veiculo.anoFabricacao}</TableCell>
             <TableCell>
-              <SituacaoDoCliente ativo={veiculo.ativo} />
+              <AtivoOuInativo ativo={veiculo.ativo} />
             </TableCell>
             <TableCell>
               <AcoesDoVeiculo cliente={cliente} veiculo={veiculo} />

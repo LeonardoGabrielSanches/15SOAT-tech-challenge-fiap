@@ -1,5 +1,6 @@
 import { ArrowLeft, Pencil } from "lucide-react";
 import Link from "next/link";
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { resultadoDaApi } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { DadosDoCliente } from "../dados-do-cliente";
 import { enderecoDoCliente } from "../endereco-do-cliente";
-import { SituacaoDoCliente } from "../situacao-do-cliente";
 import { InativarCliente } from "./inativar-cliente";
 import { VeiculosDoCliente } from "./veiculos-do-cliente";
 
@@ -49,7 +49,7 @@ export default async function PaginaDoCliente({ params }: PageProps<"/administra
       <VoltarParaClientes />
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold break-words">{cliente.nome}</h1>
-        <SituacaoDoCliente ativo={cliente.ativo} />
+        <AtivoOuInativo ativo={cliente.ativo} />
       </div>
 
       {!cliente.ativo && (

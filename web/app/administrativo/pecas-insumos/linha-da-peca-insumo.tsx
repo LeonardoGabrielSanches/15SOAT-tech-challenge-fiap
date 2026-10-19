@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +40,7 @@ export function LinhaDaPecaInsumo({ item, mostrarSituacao, podeEscrever }: Props
         <TableCell className="text-right tabular-nums">{formatarSaldo(item.saldo, item.unidadeDeMedida)}</TableCell>
         {mostrarSituacao && (
           <TableCell>
-            <Badge variant={item.ativo ? "secondary" : "outline"}>{item.ativo ? "Ativa" : "Inativa"}</Badge>
+            <AtivoOuInativo ativo={item.ativo} />
           </TableCell>
         )}
         {podeEscrever && (

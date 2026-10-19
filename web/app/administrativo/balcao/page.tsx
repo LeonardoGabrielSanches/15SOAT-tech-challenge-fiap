@@ -1,6 +1,7 @@
 import { ArrowRight, Search, UserPlus } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
+import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import { cadastrarCliente } from "../clientes/acoes";
 import { DadosDoCliente } from "../clientes/dados-do-cliente";
 import { enderecoDoCliente } from "../clientes/endereco-do-cliente";
 import { FormularioDeCliente } from "../clientes/formulario-de-cliente";
-import { SituacaoDoCliente } from "../clientes/situacao-do-cliente";
 
 function BuscaPorDocumento({ documento, falha }: { documento: string; falha: boolean }) {
   return (
@@ -51,7 +51,7 @@ function ClienteEncontrado({ cliente }: { cliente: ClienteDto }) {
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
           {cliente.nome}
-          <SituacaoDoCliente ativo={cliente.ativo} />
+          <AtivoOuInativo ativo={cliente.ativo} />
         </CardTitle>
         <CardDescription>
           {cliente.ativo ? "Cliente encontrado." : "Cliente Inativo: não pode ser usado em novas operações."}
