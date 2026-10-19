@@ -121,3 +121,8 @@ export function lerQuantidade(texto: string): number | null {
   const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
   return /^-?\d+(\.\d+)?$/.test(normalizado) ? Number(normalizado) : null;
 }
+
+export const nomeDoTipoDoItemDaVersao: Record<"Servico" | "PecaInsumo", string> = {
+  Servico: "Serviço",
+  PecaInsumo: "Peça/insumo",
+};

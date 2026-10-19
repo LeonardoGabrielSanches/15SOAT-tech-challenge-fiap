@@ -33,6 +33,14 @@ export async function exigirTela(id: TelaId): Promise<Funcionario & { papel: Pap
   return { ...funcionario, papel: funcionario.papel };
 }
 
+export async function exigirPapel(): Promise<Funcionario & { papel: Papel }> {
+  const funcionario = await exigirSessao();
+  if (!funcionario.papel) {
+    redirect("/administrativo");
+  }
+  return { ...funcionario, papel: funcionario.papel };
+}
+
 export async function obterAccessToken(): Promise<string> {
   const token = await getToken({
     req: { headers: { cookie: (await cookies()).toString() } },
