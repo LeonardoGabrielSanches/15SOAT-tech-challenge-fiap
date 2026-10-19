@@ -5,14 +5,10 @@ import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ClienteDto, VeiculoDto } from "@/lib/api/dtos";
 import { resultadoDaApi, type Falha, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
-
-function texto(dados: FormData, campo: string): string {
-  const valor = dados.get(campo);
-  return typeof valor === "string" ? valor.trim() : "";
-}
+import { lerTexto } from "@/lib/dados-do-formulario";
 
 function lerAno(dados: FormData): number {
-  const ano = Number(texto(dados, "anoFabricacao"));
+  const ano = Number(lerTexto(dados, "anoFabricacao"));
   return Number.isInteger(ano) ? ano : 0;
 }
 
@@ -37,9 +33,9 @@ export async function cadastrarVeiculo(clienteId: string, dados: FormData): Prom
   const resultado = await resultadoDaApi<VeiculoDto>(
     api.POST("/api/administrativo/veiculos", {
       body: {
-        placa: texto(dados, "placa"),
-        marca: texto(dados, "marca"),
-        modelo: texto(dados, "modelo"),
+        placa: lerTexto(dados, "placa"),
+        marca: lerTexto(dados, "marca"),
+        modelo: lerTexto(dados, "modelo"),
         anoFabricacao: lerAno(dados),
         proprietarioId: clienteId,
       },
@@ -61,7 +57,7 @@ export async function editarVeiculo(
   const resultado = await resultadoDaApi<VeiculoDto>(
     api.PUT("/api/administrativo/veiculos/{id}", {
       params: { path: { id: veiculoId } },
-      body: { marca: texto(dados, "marca"), modelo: texto(dados, "modelo"), anoFabricacao: lerAno(dados) },
+      body: { marca: lerTexto(dados, "marca"), modelo: lerTexto(dados, "modelo"), anoFabricacao: lerAno(dados) },
     }),
   );
   if (resultado.ok) {
@@ -87,7 +83,7 @@ export async function buscarNovoProprietario(
   dados: FormData,
 ): Promise<Resultado<ClienteDto>> {
   await exigirTela("clientes");
-  const documento = texto(dados, "documento");
+  const documento = lerTexto(dados, "documento");
   if (!documento) {
     return falhaLocal(422, "Dados inválidos", "Informe o CPF ou CNPJ do novo Proprietário atual.");
   }

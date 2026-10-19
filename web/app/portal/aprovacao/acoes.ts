@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { apiPublica } from "@/lib/api/cliente";
 import { resultadoDaApi, type Falha, type Resultado } from "@/lib/api/resultado";
+import { lerTexto } from "@/lib/dados-do-formulario";
 
 export type EstadoDoToken = { erro?: string } | undefined;
 
@@ -40,7 +41,7 @@ function estadoDaFalha(resultado: Resultado<undefined>): EstadoDaDecisao {
 }
 
 export async function irParaAprovacao(_estado: EstadoDoToken, formData: FormData): Promise<EstadoDoToken> {
-  const token = String(formData.get("token") ?? "").replace(/\s+/g, "");
+  const token = lerTexto(formData, "token").replace(/\s+/g, "");
   if (!token) {
     return { erro: "Informe o Token de aprovação." };
   }
@@ -62,7 +63,7 @@ export async function recusarOrcamento(
   _estado: EstadoDaDecisao,
   formData: FormData,
 ): Promise<EstadoDaDecisao> {
-  const motivo = String(formData.get("motivo") ?? "").trim();
+  const motivo = lerTexto(formData, "motivo");
   const resultado = await resultadoDaApi(
     apiPublica().POST("/api/publico/orcamentos/{token}/recusar", {
       params: { path: { token } },

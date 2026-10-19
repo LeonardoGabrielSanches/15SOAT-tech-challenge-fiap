@@ -6,19 +6,15 @@ import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ClienteDto } from "@/lib/api/dtos";
 import { resultadoDaApi, type Falha } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
+import { lerTexto } from "@/lib/dados-do-formulario";
 import type { EstadoDoFormularioDeCliente, ValoresDoCliente } from "./formulario";
-
-function texto(dados: FormData, campo: keyof ValoresDoCliente): string {
-  const valor = dados.get(campo);
-  return typeof valor === "string" ? valor.trim() : "";
-}
 
 function valoresDoFormulario(dados: FormData): ValoresDoCliente {
   return {
-    nome: texto(dados, "nome"),
-    documento: texto(dados, "documento"),
-    email: texto(dados, "email"),
-    telefone: texto(dados, "telefone"),
+    nome: lerTexto(dados, "nome"),
+    documento: lerTexto(dados, "documento"),
+    email: lerTexto(dados, "email"),
+    telefone: lerTexto(dados, "telefone"),
   };
 }
 

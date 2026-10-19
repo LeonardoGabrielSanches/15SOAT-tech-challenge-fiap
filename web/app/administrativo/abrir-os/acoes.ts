@@ -4,6 +4,7 @@ import { apiAdministrativa } from "@/lib/api/cliente";
 import type { OrdemDeServicoDetalheDto } from "@/lib/api/dtos";
 import { resultadoDaApi, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
+import { lerTexto } from "@/lib/dados-do-formulario";
 
 const identificador = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const identificadorNoLink = new RegExp(`ordens-de-servico/(${identificador})`, "i");
@@ -16,7 +17,7 @@ function lerIdentificador(texto: string): string | null {
 
 export async function localizarOs(dados: FormData): Promise<Resultado<{ id: string }>> {
   await exigirTela("abrirOs");
-  const texto = String(dados.get("referencia") ?? "").trim();
+  const texto = lerTexto(dados, "referencia");
   if (!texto) {
     return {
       ok: false,
