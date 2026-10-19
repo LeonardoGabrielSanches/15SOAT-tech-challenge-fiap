@@ -63,3 +63,7 @@ export function telasDoMenu(papel: Papel): Tela[] {
 export function telaInicial(papel: Papel): Tela {
   return tela(telaInicialDoPapel[papel]);
 }
+
+export function podeGerirPecasInsumos(papel: Papel): boolean {
+  return permite(papel, []);
+}

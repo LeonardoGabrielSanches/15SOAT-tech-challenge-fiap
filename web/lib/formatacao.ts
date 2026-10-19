@@ -1,4 +1,5 @@
 import type { SituacaoDaVersao, StatusOs } from "@/lib/api/dtos";
+import type { TipoPecaInsumo } from "@/lib/api/dtos";
 
 const fusoHorario = "America/Sao_Paulo";
 
@@ -46,4 +47,23 @@ export function formatarData(valor: string): string {
 
 export function formatarQuantidade(valor: number): string {
   return quantidade.format(valor);
+}
+
+export const nomeDoTipoPecaInsumo: Record<TipoPecaInsumo, string> = {
+  Peca: "Peça",
+  Insumo: "Insumo",
+};
+
+export function formatarSaldo(valor: number, unidadeDeMedida: string): string {
+  return `${formatarQuantidade(valor)} ${unidadeDeMedida}`;
+}
+
+export function formatarParaCampoDecimal(valor: number): string {
+  return String(valor).replace(".", ",");
+}
+
+export function lerNumeroDigitado(texto: string): number | null {
+  const limpo = texto.trim().replace(/\s/g, "");
+  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
+  return /^-?\d+(\.\d+)?$/.test(normalizado) ? Number(normalizado) : null;
 }
