@@ -39,7 +39,7 @@ struct OrdensDeServicoView: View {
         .searchable(text: $busca, prompt: "Número da OS")
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled()
-        .navigationDestination(for: OrdemDeServicoResumo.self) { OrdemProvisoriaView(ordem: $0) }
+        .navigationDestination(for: OrdemDeServicoResumo.self) { OrdemDeServicoView(ordem: $0) }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Menu {

@@ -5,6 +5,7 @@ enum ErroApi: LocalizedError {
     case semConexao
     case respostaInvalida
     case sessaoExpirada
+    case naoEncontrado
 
     var errorDescription: String? {
         switch self {
@@ -16,6 +17,8 @@ enum ErroApi: LocalizedError {
             "A API devolveu uma resposta inesperada."
         case .sessaoExpirada:
             "Sua sessão expirou. Entre de novo."
+        case .naoEncontrado:
+            "O registro não foi encontrado."
         }
     }
 }

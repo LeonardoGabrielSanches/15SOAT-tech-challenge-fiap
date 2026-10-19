@@ -55,6 +55,7 @@ struct ClienteApi {
     private func validar(_ dados: Data, status: Int) throws -> Data {
         if (200..<300).contains(status) { return dados }
         if status == 401 { throw ErroApi.sessaoExpirada }
+        if status == 404 { throw ErroApi.naoEncontrado }
         if let problema = try? JSONDecoder().decode(ProblemDetails.self, from: dados), let titulo = problema.title {
             throw ErroApi.problema(titulo: titulo, detalhe: problema.detail)
         }

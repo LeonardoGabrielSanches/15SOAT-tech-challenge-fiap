@@ -22,7 +22,7 @@ struct FilaDeExecucaoView: View {
                 ProgressView()
             }
         }
-        .navigationDestination(for: OrdemDeServicoResumo.self) { OrdemProvisoriaView(ordem: $0) }
+        .navigationDestination(for: OrdemDeServicoResumo.self) { OrdemDeServicoView(ordem: $0) }
         .refreshable { await carregar() }
         .task { await carregar() }
     }
