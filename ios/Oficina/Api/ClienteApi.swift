@@ -14,13 +14,17 @@ struct ClienteApi {
         }
     }
 
-    private func enviar(metodo: String, caminho: String, consulta: [URLQueryItem]) async throws -> Data {
+    func acionar(_ metodo: String, _ caminho: String, consulta: [URLQueryItem] = [], corpo: Data? = nil) async throws {
+        _ = try await enviar(metodo: metodo, caminho: caminho, consulta: consulta, corpo: corpo)
+    }
+
+    private func enviar(metodo: String, caminho: String, consulta: [URLQueryItem], corpo: Data? = nil) async throws -> Data {
         let token = try await tokenDaSessao { try await sessao.tokenDeAcesso() }
-        let (dados, status) = try await executar(metodo: metodo, caminho: caminho, consulta: consulta, token: token)
+        let (dados, status) = try await executar(metodo: metodo, caminho: caminho, consulta: consulta, corpo: corpo, token: token)
         if status != 401 { return try validar(dados, status: status) }
 
         let novoToken = try await tokenDaSessao { try await sessao.renovarAposNaoAutorizado() }
-        let (novosDados, novoStatus) = try await executar(metodo: metodo, caminho: caminho, consulta: consulta, token: novoToken)
+        let (novosDados, novoStatus) = try await executar(metodo: metodo, caminho: caminho, consulta: consulta, corpo: corpo, token: novoToken)
         return try validar(novosDados, status: novoStatus)
     }
 
@@ -34,13 +38,17 @@ struct ClienteApi {
         }
     }
 
-    private func executar(metodo: String, caminho: String, consulta: [URLQueryItem], token: String) async throws -> (Data, Int) {
+    private func executar(metodo: String, caminho: String, consulta: [URLQueryItem], corpo: Data?, token: String) async throws -> (Data, Int) {
         var url = urlBase.appending(path: caminho)
         if !consulta.isEmpty { url.append(queryItems: consulta) }
         var requisicao = URLRequest(url: url)
         requisicao.httpMethod = metodo
         requisicao.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         requisicao.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let corpo {
+            requisicao.httpBody = corpo
+            requisicao.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         do {
             let (dados, resposta) = try await URLSession.shared.data(for: requisicao)
             guard let http = resposta as? HTTPURLResponse else { throw ErroApi.respostaInvalida }
@@ -56,6 +64,10 @@ struct ClienteApi {
         if (200..<300).contains(status) { return dados }
         if status == 401 { throw ErroApi.sessaoExpirada }
         if status == 404 { throw ErroApi.naoEncontrado }
+        if status == 409 {
+            let conflito = try? JSONDecoder().decode(ProblemDetails.self, from: dados)
+            throw ErroApi.conflito(titulo: conflito?.title ?? "Conflito", detalhe: conflito?.detail)
+        }
         if let problema = try? JSONDecoder().decode(ProblemDetails.self, from: dados), let titulo = problema.title {
             throw ErroApi.problema(titulo: titulo, detalhe: problema.detail)
         }

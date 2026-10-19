@@ -2,6 +2,7 @@ import Foundation
 
 enum ErroApi: LocalizedError {
     case problema(titulo: String, detalhe: String?)
+    case conflito(titulo: String, detalhe: String?)
     case semConexao
     case respostaInvalida
     case sessaoExpirada
@@ -9,7 +10,7 @@ enum ErroApi: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case let .problema(titulo, detalhe):
+        case let .problema(titulo, detalhe), let .conflito(titulo, detalhe):
             if let detalhe, !detalhe.isEmpty { "\(titulo): \(detalhe)" } else { titulo }
         case .semConexao:
             "Não foi possível falar com a API. Verifique se o ambiente está rodando e tente de novo."
