@@ -49,6 +49,7 @@ final class Sessao {
     }
 
     func entrar() async {
+        guard !ocupada else { return }
         ocupada = true
         mensagemDeErro = nil
         defer { ocupada = false }
@@ -84,8 +85,12 @@ final class Sessao {
         return try await renovar().tokenDeAcesso
     }
 
-    func renovarAposNaoAutorizado() async throws -> String {
-        try await renovar().tokenDeAcesso
+    func renovarAposNaoAutorizado(tokenRecusado: String) async throws -> String {
+        if let atuais = credenciais, atuais.tokenDeAcesso != tokenRecusado,
+           atuais.expiraEm.timeIntervalSinceNow > margemDeRenovacao {
+            return atuais.tokenDeAcesso
+        }
+        return try await renovar().tokenDeAcesso
     }
 
     private func renovar() async throws -> Credenciais {
