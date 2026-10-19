@@ -72,3 +72,36 @@ export function formatarTelefone(telefone: string): string {
   }
   return telefone;
 }
+
+export function formatarDuracao(segundos: number): string {
+  const minutosTotais = Math.round(segundos / 60);
+  if (minutosTotais < 1) {
+    return "menos de 1 min";
+  }
+  const horas = Math.floor(minutosTotais / 60);
+  const minutos = minutosTotais % 60;
+  if (horas === 0) {
+    return `${minutos} min`;
+  }
+  const textoDasHoras = `${formatarQuantidade(horas)} h`;
+  return minutos === 0 ? textoDasHoras : `${textoDasHoras} ${minutos} min`;
+}
+
+const dinheiroParaEdicao = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  useGrouping: false,
+});
+
+export function formatarDinheiroParaEdicao(valor: number): string {
+  return dinheiroParaEdicao.format(valor);
+}
+
+export function lerDinheiro(texto: string): number | null {
+  const limpo = texto.replace(/R\$/gi, "").replace(/\s/g, "");
+  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
+  if (!/^-?\d+(\.\d+)?$/.test(normalizado)) {
+    return null;
+  }
+  return Number(normalizado);
+}
