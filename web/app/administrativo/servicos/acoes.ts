@@ -8,35 +8,16 @@ import { exigirTela } from "@/lib/autenticacao/sessao";
 import { lerTexto } from "@/lib/dados-do-formulario";
 import { lerDinheiro } from "@/lib/formatacao";
 
-export type ValoresDoServico = {
-  nome: string;
-  descricao: string;
-  preco: string;
-};
-
-export type EstadoDoFormularioDeServico = {
-  resultado: Resultado<ServicoDto> | null;
-  valores: ValoresDoServico;
-};
-
 const enderecoDaTela = "/administrativo/servicos";
 
-export async function salvarServico(
-  _estadoAnterior: EstadoDoFormularioDeServico,
-  formData: FormData,
-): Promise<EstadoDoFormularioDeServico> {
+export async function salvarServico(dados: FormData): Promise<Resultado<ServicoDto>> {
   await exigirTela("servicos");
-  const id = lerTexto(formData, "id");
-  const valores: ValoresDoServico = {
-    nome: lerTexto(formData, "nome"),
-    descricao: lerTexto(formData, "descricao"),
-    preco: lerTexto(formData, "preco"),
-  };
-  const preco = lerDinheiro(valores.preco);
+  const id = lerTexto(dados, "id");
+  const preco = lerDinheiro(lerTexto(dados, "preco"));
   if (preco === null) {
-    return { valores, resultado: dadosInvalidos("Informe o preço em reais, por exemplo 120,50.") };
+    return dadosInvalidos("Informe o preço em reais, por exemplo 120,50.");
   }
-  const corpo = { nome: valores.nome, descricao: valores.descricao || null, preco };
+  const corpo = { nome: lerTexto(dados, "nome"), descricao: lerTexto(dados, "descricao") || null, preco };
   const api = await apiAdministrativa();
   const resultado = id
     ? await resultadoDaApi<ServicoDto>(
@@ -46,7 +27,7 @@ export async function salvarServico(
   if (resultado.ok) {
     revalidatePath(enderecoDaTela);
   }
-  return { resultado, valores };
+  return resultado;
 }
 
 export async function inativarServico(id: string): Promise<Resultado<undefined>> {

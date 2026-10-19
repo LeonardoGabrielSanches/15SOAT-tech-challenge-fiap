@@ -86,7 +86,7 @@ function BuscaDoNovoProprietario({
 }) {
   const { falha, enviar, pendente } = useAcaoDeFormulario(
     (dados) => buscarNovoProprietario(clienteId, dados),
-    aoEncontrar,
+    (cliente) => aoEncontrar(cliente),
   );
 
   return (

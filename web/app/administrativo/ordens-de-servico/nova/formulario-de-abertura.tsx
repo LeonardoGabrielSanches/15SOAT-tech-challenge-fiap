@@ -3,13 +3,14 @@
 import { ClipboardPlus, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { useState } from "react";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
 import { Button } from "@/components/ui/button";
+import { useAcaoDeFormulario } from "@/lib/acao-de-formulario";
 import type { ServicoDto } from "@/lib/api/dtos";
 import { formatarDinheiro } from "@/lib/formatacao";
 import { enderecoDaOs } from "../endereco-da-os";
-import { abrirOs, type ResultadoDaAbertura } from "./acoes";
+import { abrirOs } from "./acoes";
 
 type Props = {
   clienteId: string;
@@ -20,33 +21,20 @@ type Props = {
 
 export function FormularioDeAbertura({ clienteId, veiculoId, servicos, enderecoDeVolta }: Props) {
   const router = useRouter();
-  const [falha, setFalha] = useState<Extract<ResultadoDaAbertura, { ok: false }> | null>(null);
   const [selecionados, setSelecionados] = useState<string[]>([]);
-  const [pendente, startTransition] = useTransition();
+  const { fracasso, falha, dadosInvalidos, enviar, pendente } = useAcaoDeFormulario(
+    (dados) => abrirOs(clienteId, veiculoId, dados),
+    (os) => router.push(`${enderecoDaOs(os.id)}?aberta=1`),
+  );
   const total = servicos.filter((s) => selecionados.includes(s.id)).reduce((soma, s) => soma + s.preco, 0);
 
   function alternar(id: string, marcado: boolean) {
     setSelecionados((atuais) => (marcado ? [...atuais, id] : atuais.filter((atual) => atual !== id)));
   }
 
-  function enviar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
-    const dados = new FormData(evento.currentTarget);
-    startTransition(async () => {
-      const resultado = await abrirOs(clienteId, veiculoId, dados);
-      startTransition(() => {
-        if (resultado.ok) {
-          router.push(`${enderecoDaOs(resultado.dados.id)}?aberta=1`);
-        } else {
-          setFalha(resultado);
-        }
-      });
-    });
-  }
-
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">
-      <fieldset className="flex flex-col gap-2" aria-invalid={falha?.falha.status === 422 || undefined}>
+      <fieldset className="flex flex-col gap-2" aria-invalid={dadosInvalidos || undefined}>
         <legend className="mb-2 text-sm font-medium">Serviços (escolha ao menos um)</legend>
         {servicos.map((servico) => (
           <label
@@ -78,12 +66,12 @@ export function FormularioDeAbertura({ clienteId, veiculoId, servicos, enderecoD
 
       {falha && (
         <div className="flex flex-col gap-2">
-          <AvisoDeFalha falha={falha.falha} />
-          {falha.osEmAndamento && (
+          <AvisoDeFalha falha={falha} />
+          {fracasso?.osEmAndamento && (
             <Button asChild variant="outline" size="sm" className="self-start">
-              <Link href={enderecoDaOs(falha.osEmAndamento.id)}>
+              <Link href={enderecoDaOs(fracasso.osEmAndamento.id)}>
                 <ExternalLink />
-                Ver a OS {falha.osEmAndamento.numero}
+                Ver a OS {fracasso.osEmAndamento.numero}
               </Link>
             </Button>
           )}
