@@ -52,7 +52,7 @@ function FormularioDeCancelamento({ os, aoCancelar }: { os: OrdemDeServicoDetalh
         <DialogDescription>
           O cancelamento encerra a OS e não pode ser desfeito.
           {temPecasInsumos && " As Peças/insumos incluídas voltam ao estoque."}
-          {os.status === "AguardandoAprovacao" && " O link de aprovação enviado ao Cliente deixa de valer."}
+          {os.status === "AguardandoAprovacao" && " O Token de aprovação enviado ao Cliente deixa de valer."}
         </DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-2">

@@ -127,7 +127,7 @@ export default async function PaginaDaOs({ params, searchParams }: PageProps<"/a
       {aberta === "1" && (
         <Alert>
           <CircleCheck />
-          <AlertTitle>OS aberta</AlertTitle>
+          <AlertTitle>OS Recebida</AlertTitle>
           <AlertDescription>Informe ao Cliente o Número da OS {os.numero} para que ele acompanhe o atendimento.</AlertDescription>
         </Alert>
       )}

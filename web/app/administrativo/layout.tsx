@@ -22,7 +22,7 @@ export default async function LayoutAdministrativo({ children }: LayoutProps<"/a
           <Alert>
             <AlertTitle>Sem papel na oficina</AlertTitle>
             <AlertDescription>
-              Seu usuário não tem o papel de Atendente, Mecânico ou Gerente. Peça ao Gerente para ajustar seu acesso no
+              Sua conta não tem o papel de Atendente, Mecânico ou Gerente. Peça ao Gerente para ajustar seu acesso no
               Keycloak.
             </AlertDescription>
           </Alert>
