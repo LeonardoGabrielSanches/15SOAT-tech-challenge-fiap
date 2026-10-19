@@ -9,6 +9,7 @@ import { resultadoDaApi } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { formatarDocumento, formatarTelefone } from "@/lib/formatacao";
 import { cn } from "@/lib/utils";
+import { enderecoDoCliente } from "./endereco-do-cliente";
 import { SituacaoDoCliente } from "./situacao-do-cliente";
 
 function TabelaDeClientes({ clientes }: { clientes: ClienteDto[] }) {
@@ -29,7 +30,7 @@ function TabelaDeClientes({ clientes }: { clientes: ClienteDto[] }) {
             <TableRow key={cliente.id} className={cn(!cliente.ativo && "text-muted-foreground")}>
               <TableCell>
                 <Link
-                  href={`/administrativo/clientes/${cliente.id}`}
+                  href={enderecoDoCliente(cliente.id)}
                   className="font-medium underline-offset-4 hover:underline"
                 >
                   {cliente.nome}

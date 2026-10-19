@@ -6,14 +6,11 @@ import type { ClienteDto, VeiculoDto } from "@/lib/api/dtos";
 import { dadosInvalidos, resultadoDaApi, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { lerTexto } from "@/lib/dados-do-formulario";
+import { enderecoDoCliente } from "../endereco-do-cliente";
 
 function lerAno(dados: FormData): number {
   const ano = Number(lerTexto(dados, "anoFabricacao"));
   return Number.isInteger(ano) ? ano : 0;
-}
-
-function enderecoDoCliente(id: string): string {
-  return `/administrativo/clientes/${id}`;
 }
 
 function semSugestaoParaPlacaRepetida<T>(resultado: Resultado<T>): Resultado<T> {

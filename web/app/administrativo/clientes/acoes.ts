@@ -7,6 +7,7 @@ import type { ClienteDto } from "@/lib/api/dtos";
 import { resultadoDaApi, type Falha } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { lerTexto } from "@/lib/dados-do-formulario";
+import { enderecoDoCliente } from "./endereco-do-cliente";
 import type { EstadoDoFormularioDeCliente, ValoresDoCliente } from "./formulario";
 
 function valoresDoFormulario(dados: FormData): ValoresDoCliente {
@@ -16,10 +17,6 @@ function valoresDoFormulario(dados: FormData): ValoresDoCliente {
     email: lerTexto(dados, "email"),
     telefone: lerTexto(dados, "telefone"),
   };
-}
-
-function enderecoDoCliente(id: string): string {
-  return `/administrativo/clientes/${id}`;
 }
 
 export async function cadastrarCliente(

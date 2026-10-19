@@ -13,6 +13,7 @@ import { resultadoDaApi, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { cadastrarCliente } from "../clientes/acoes";
 import { DadosDoCliente } from "../clientes/dados-do-cliente";
+import { enderecoDoCliente } from "../clientes/endereco-do-cliente";
 import { FormularioDeCliente } from "../clientes/formulario-de-cliente";
 import { SituacaoDoCliente } from "../clientes/situacao-do-cliente";
 
@@ -57,7 +58,7 @@ function ClienteEncontrado({ cliente }: { cliente: ClienteDto }) {
         </CardDescription>
         <CardAction>
           <Button asChild>
-            <Link href={`/administrativo/clientes/${cliente.id}`}>
+            <Link href={enderecoDoCliente(cliente.id)}>
               Abrir Cliente
               <ArrowRight />
             </Link>

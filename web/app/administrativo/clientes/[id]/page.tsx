@@ -9,6 +9,7 @@ import type { ClienteDto } from "@/lib/api/dtos";
 import { resultadoDaApi } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { DadosDoCliente } from "../dados-do-cliente";
+import { enderecoDoCliente } from "../endereco-do-cliente";
 import { SituacaoDoCliente } from "../situacao-do-cliente";
 import { InativarCliente } from "./inativar-cliente";
 import { VeiculosDoCliente } from "./veiculos-do-cliente";
@@ -68,7 +69,7 @@ export default async function PaginaDoCliente({ params }: PageProps<"/administra
           {cliente.ativo && (
             <CardAction>
               <Button asChild variant="outline" size="sm">
-                <Link href={`/administrativo/clientes/${cliente.id}/editar`}>
+                <Link href={`${enderecoDoCliente(cliente.id)}/editar`}>
                   <Pencil />
                   Editar
                 </Link>

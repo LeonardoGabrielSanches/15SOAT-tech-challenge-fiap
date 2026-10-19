@@ -11,6 +11,7 @@ import { resultadoDaApi, type Falha } from "@/lib/api/resultado";
 import { exigirPapel } from "@/lib/autenticacao/sessao";
 import { podeAcessarTela, tela, telaInicial, type Papel } from "@/lib/capacidades";
 import { formatarDataHora, formatarDocumento, formatarTelefone } from "@/lib/formatacao";
+import { enderecoDoCliente } from "../../clientes/endereco-do-cliente";
 import { enderecoDaOs } from "../endereco-da-os";
 import { StatusDaOs } from "../status-da-os";
 import { AcoesDeStatusDaOs } from "./acoes/acoes-da-os";
@@ -65,7 +66,7 @@ function ClienteEVeiculo({ os, papel }: { os: OrdemDeServicoDetalheDto; papel: P
           {podeAcessarTela(papel, "clientes") && (
             <CardAction>
               <Button asChild variant="outline" size="sm">
-                <Link href={`/administrativo/clientes/${cliente.id}`}>Abrir Cliente</Link>
+                <Link href={enderecoDoCliente(cliente.id)}>Abrir Cliente</Link>
               </Button>
             </CardAction>
           )}
