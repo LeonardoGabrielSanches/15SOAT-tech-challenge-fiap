@@ -47,3 +47,28 @@ export function formatarData(valor: string): string {
 export function formatarQuantidade(valor: number): string {
   return quantidade.format(valor);
 }
+
+export const nomeDoTipoDeDocumento: Record<"Cpf" | "Cnpj", string> = {
+  Cpf: "CPF",
+  Cnpj: "CNPJ",
+};
+
+export function formatarDocumento(tipo: "Cpf" | "Cnpj", documento: string): string {
+  if (tipo === "Cpf" && documento.length === 11) {
+    return documento.replace(/^(.{3})(.{3})(.{3})(.{2})$/, "$1.$2.$3-$4");
+  }
+  if (tipo === "Cnpj" && documento.length === 14) {
+    return documento.replace(/^(.{2})(.{3})(.{3})(.{4})(.{2})$/, "$1.$2.$3/$4-$5");
+  }
+  return documento;
+}
+
+export function formatarTelefone(telefone: string): string {
+  if (/^\d{11}$/.test(telefone)) {
+    return telefone.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+  }
+  if (/^\d{10}$/.test(telefone)) {
+    return telefone.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
+  }
+  return telefone;
+}
