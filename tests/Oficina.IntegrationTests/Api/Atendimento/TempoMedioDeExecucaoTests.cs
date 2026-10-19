@@ -18,6 +18,7 @@ public class TempoMedioDeExecucaoTests : IAsyncLifetime
     private const string Rota = "/api/administrativo/ordens-de-servico";
     private const string RotaPublica = "/api/publico/orcamentos";
 
+    private readonly PostgresFixture _postgres;
     private readonly ApiFactory _origem;
     private readonly WebApplicationFactory<Program> _factory;
     private readonly List<string> _tokens = [];
@@ -25,6 +26,7 @@ public class TempoMedioDeExecucaoTests : IAsyncLifetime
 
     public TempoMedioDeExecucaoTests(PostgresFixture postgres)
     {
+        _postgres = postgres;
         _origem = new ApiFactory(postgres);
         var notificador = new Mock<INotificador>();
         notificador
@@ -75,10 +77,12 @@ public class TempoMedioDeExecucaoTests : IAsyncLifetime
     private static string PlacaNova() =>
         new string(Enumerable.Range(0, 3).Select(_ => (char)('A' + Random.Shared.Next(26))).ToArray()) + Random.Shared.Next(1000, 10000);
 
-    private async Task<(Guid OsId, Guid ServicoId)> OsAprovada()
+    private async Task<ServicoDto> Servico(string nome) =>
+        (await (await Como("gerente").PostAsJsonAsync("/api/administrativo/servicos",
+            new { nome = $"{nome} {Guid.NewGuid():N}", descricao = (string?)null, preco = 150m })).Content.ReadFromJsonAsync<ServicoDto>())!;
+
+    private async Task<Guid> OsAprovada(params ServicoDto[] servicos)
     {
-        var servico = (await (await Como("gerente").PostAsJsonAsync("/api/administrativo/servicos",
-            new { nome = $"Servico {Guid.NewGuid():N}", descricao = (string?)null, preco = 150m })).Content.ReadFromJsonAsync<ServicoDto>())!;
         var atendente = Como("atendente");
         var cpf = CpfNovo();
         var cliente = (await (await atendente.PostAsJsonAsync("/api/administrativo/clientes",
@@ -86,14 +90,14 @@ public class TempoMedioDeExecucaoTests : IAsyncLifetime
         var veiculo = (await (await atendente.PostAsJsonAsync("/api/administrativo/veiculos",
             new { placa = PlacaNova(), marca = "Fiat", modelo = "Uno", anoFabricacao = 2015, proprietarioId = cliente.Id })).Content.ReadFromJsonAsync<VeiculoDto>())!;
         var os = (await (await atendente.PostAsJsonAsync(Rota,
-            new { clienteId = cliente.Id, veiculoId = veiculo.Id, servicoIds = new[] { servico.Id } })).Content.ReadFromJsonAsync<OrdemDeServicoResumoDto>())!;
+            new { clienteId = cliente.Id, veiculoId = veiculo.Id, servicoIds = servicos.Select(s => s.Id).ToArray() })).Content.ReadFromJsonAsync<OrdemDeServicoResumoDto>())!;
 
         var mecanico = Como("mecanico");
         Assert.Equal(HttpStatusCode.NoContent, (await mecanico.PostAsync($"{Rota}/{os.Id}/diagnostico/iniciar", null)).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await mecanico.PostAsync($"{Rota}/{os.Id}/diagnostico/concluir", null)).StatusCode);
         var token = _tokens[^1];
         Assert.Equal(HttpStatusCode.NoContent, (await _factory.CreateClient().PostAsync($"{RotaPublica}/{token}/aprovar", null)).StatusCode);
-        return (os.Id, servico.Id);
+        return os.Id;
     }
 
     private async Task Executar(Guid osId, TimeSpan duracao, bool entregar)
@@ -109,34 +113,54 @@ public class TempoMedioDeExecucaoTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Media_de_duas_os_executadas_em_tempos_diferentes_com_filtro_por_servico()
+    public async Task Tempo_medio_geral_e_por_combinacao_de_servicos()
     {
-        var (osA, servicoA) = await OsAprovada();
-        var (osB, servicoB) = await OsAprovada();
-        await Executar(osA, TimeSpan.FromHours(1), entregar: false);
-        await Executar(osB, TimeSpan.FromHours(3), entregar: true);
-        var gerente = Como("gerente");
+        var oleo = await Servico("Troca de oleo");
+        var pneu = await Servico("Troca de pneu");
+        var osOleoEPneu = await OsAprovada(pneu, oleo);
+        var osOleo = await OsAprovada(oleo);
+        await Executar(osOleoEPneu, TimeSpan.FromMinutes(55), entregar: false);
+        await Executar(osOleo, TimeSpan.FromMinutes(15), entregar: true);
 
-        var geral = await gerente.GetFromJsonAsync<JsonElement>($"{Rota}/tempo-medio-de-execucao");
-        Assert.True(geral.GetProperty("quantidadeDeOs").GetInt32() >= 2);
+        var corpo = await Como("gerente").GetFromJsonAsync<JsonElement>($"{Rota}/tempo-medio-de-execucao");
 
-        var deA = await gerente.GetFromJsonAsync<JsonElement>($"{Rota}/tempo-medio-de-execucao?servicoId={servicoA}");
-        Assert.Equal(1, deA.GetProperty("quantidadeDeOs").GetInt32());
-        Assert.Equal(3600, deA.GetProperty("tempoMedioEmSegundos").GetDouble());
+        Assert.True(corpo.GetProperty("quantidadeDeOs").GetInt32() >= 2);
+        Assert.Equal(JsonValueKind.Number, corpo.GetProperty("tempoMedioEmSegundos").ValueKind);
+        var combinacoes = corpo.GetProperty("combinacoes").EnumerateArray()
+            .Where(c => c.GetProperty("servicos").EnumerateArray().Any(s => s.GetProperty("id").GetGuid() == oleo.Id))
+            .ToList();
+        Assert.Equal(2, combinacoes.Count);
 
-        var deB = await gerente.GetFromJsonAsync<JsonElement>($"{Rota}/tempo-medio-de-execucao?servicoId={servicoB}");
-        Assert.Equal(10800, deB.GetProperty("tempoMedioEmSegundos").GetDouble());
+        var soOleo = Assert.Single(combinacoes, c => c.GetProperty("servicos").GetArrayLength() == 1);
+        Assert.Equal(1, soOleo.GetProperty("quantidadeDeOs").GetInt32());
+        Assert.Equal(900, soOleo.GetProperty("tempoMedioEmSegundos").GetDouble());
+        var servicoDoOleo = soOleo.GetProperty("servicos")[0];
+        Assert.Equal(oleo.Nome, servicoDoOleo.GetProperty("nome").GetString());
+        Assert.True(servicoDoOleo.GetProperty("ativo").GetBoolean());
+
+        var oleoEPneu = Assert.Single(combinacoes, c => c.GetProperty("servicos").GetArrayLength() == 2);
+        Assert.Equal(1, oleoEPneu.GetProperty("quantidadeDeOs").GetInt32());
+        Assert.Equal(3300, oleoEPneu.GetProperty("tempoMedioEmSegundos").GetDouble());
+        Assert.Equal(
+            [oleo.Id, pneu.Id],
+            oleoEPneu.GetProperty("servicos").EnumerateArray().Select(s => s.GetProperty("id").GetGuid()));
     }
 
     [Fact]
     public async Task Sem_os_elegivel_retorna_vazio()
     {
-        var resposta = await Como("gerente").GetAsync($"{Rota}/tempo-medio-de-execucao?servicoId={Guid.NewGuid()}");
+        await using var semOs = _origem.WithWebHostBuilder(b =>
+            b.UseSetting("ConnectionStrings:Oficina", _postgres.ConnectionString($"oficina_sem_os_{Guid.NewGuid():N}")));
+        var http = semOs.CreateClient();
+        http.DefaultRequestHeaders.Add(ApiFactory.CabecalhoPapel, "gerente");
+
+        var resposta = await http.GetAsync($"{Rota}/tempo-medio-de-execucao");
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(0, corpo.GetProperty("quantidadeDeOs").GetInt32());
         Assert.Equal(JsonValueKind.Null, corpo.GetProperty("tempoMedioEmSegundos").ValueKind);
+        Assert.Equal(0, corpo.GetProperty("combinacoes").GetArrayLength());
     }
 
     [Fact]

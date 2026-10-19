@@ -1,6 +1,7 @@
 using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Entities.Enums;
 using Oficina.Domain.Atendimento.Interfaces;
+using Oficina.Domain.CatalogoEstoque.Interfaces;
 
 namespace Oficina.Application.Atendimento.UseCases;
 
@@ -53,16 +54,40 @@ public sealed class RegistrarEntrega(IOrdemDeServicoRepository ordens, IUnidadeD
     }
 }
 
-public sealed record TempoMedioDeExecucaoDto(int QuantidadeDeOs, double? TempoMedioEmSegundos);
+public sealed record ServicoDaCombinacaoDto(Guid Id, string Nome, bool Ativo);
 
-public sealed class ConsultarTempoMedioDeExecucao(IOrdemDeServicoRepository ordens)
+public sealed record TempoMedioDaCombinacaoDto(IReadOnlyList<ServicoDaCombinacaoDto> Servicos, int QuantidadeDeOs, double TempoMedioEmSegundos);
+
+public sealed record TempoMedioDeExecucaoDto(int QuantidadeDeOs, double? TempoMedioEmSegundos, IReadOnlyList<TempoMedioDaCombinacaoDto> Combinacoes);
+
+public sealed class ConsultarTempoMedioDeExecucao(IOrdemDeServicoRepository ordens, IServicoRepository servicos)
 {
-    public async Task<TempoMedioDeExecucaoDto> Executar(Guid? servicoId, CancellationToken cancellationToken)
+    public async Task<TempoMedioDeExecucaoDto> Executar(CancellationToken cancellationToken)
     {
-        var tempos = await ordens.ObterTemposDeExecucao(servicoId, cancellationToken);
+        var tempos = await ordens.ObterTemposDeExecucao(cancellationToken);
 
-        return tempos.Count == 0
-            ? new TempoMedioDeExecucaoDto(0, null)
-            : new TempoMedioDeExecucaoDto(tempos.Count, tempos.Average(t => t.TotalSeconds));
+        if (tempos.Count == 0)
+        {
+            return new TempoMedioDeExecucaoDto(0, null, []);
+        }
+
+        var catalogo = (await servicos.ObterPorIds(tempos.SelectMany(t => t.ServicoIds).Distinct().ToList(), cancellationToken))
+            .ToDictionary(s => s.Id);
+
+        var combinacoes = tempos
+            .GroupBy(t => string.Join(',', t.ServicoIds.Order()))
+            .Select(g => new TempoMedioDaCombinacaoDto(
+                g.First().ServicoIds
+                    .Select(id => catalogo[id])
+                    .Select(s => new ServicoDaCombinacaoDto(s.Id, s.Nome, s.Ativo))
+                    .OrderBy(s => s.Nome)
+                    .ToList(),
+                g.Count(),
+                g.Average(t => t.Tempo.TotalSeconds)))
+            .OrderByDescending(c => c.QuantidadeDeOs)
+            .ThenBy(c => c.TempoMedioEmSegundos)
+            .ToList();
+
+        return new TempoMedioDeExecucaoDto(tempos.Count, tempos.Average(t => t.Tempo.TotalSeconds), combinacoes);
     }
 }

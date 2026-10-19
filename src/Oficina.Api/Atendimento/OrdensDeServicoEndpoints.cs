@@ -113,8 +113,8 @@ public static class OrdensDeServicoEndpoints
                 Results.Ok(await caso.Executar(ct)))
             .RequireAuthorization(Politicas.Mecanico);
 
-        ordens.MapGet("/tempo-medio-de-execucao", async (Guid? servicoId, ConsultarTempoMedioDeExecucao caso, CancellationToken ct) =>
-                Results.Ok(await caso.Executar(servicoId, ct)))
+        ordens.MapGet("/tempo-medio-de-execucao", async (ConsultarTempoMedioDeExecucao caso, CancellationToken ct) =>
+                Results.Ok(await caso.Executar(ct)))
             .RequireAuthorization(Politicas.Gerente);
 
         ordens.MapPost("/{id:guid}/execucao/iniciar", async (Guid id, IniciarExecucao caso, ClaimsPrincipal usuario, CancellationToken ct) =>

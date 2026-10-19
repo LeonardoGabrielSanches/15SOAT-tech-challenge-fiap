@@ -3,6 +3,8 @@ using Oficina.Domain.Atendimento.Entities.Enums;
 
 namespace Oficina.Domain.Atendimento.Interfaces;
 
+public sealed record TempoDeExecucaoDaOs(IReadOnlyCollection<Guid> ServicoIds, TimeSpan Tempo);
+
 public interface IOrdemDeServicoRepository
 {
     Task<OrdemDeServico?> ObterPorId(Guid id, CancellationToken cancellationToken);
@@ -15,7 +17,7 @@ public interface IOrdemDeServicoRepository
 
     Task<IReadOnlyList<OrdemDeServico>> Listar(StatusOs? status, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<TimeSpan>> ObterTemposDeExecucao(Guid? servicoId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<TempoDeExecucaoDaOs>> ObterTemposDeExecucao(CancellationToken cancellationToken);
 
     void Adicionar(OrdemDeServico ordemDeServico);
 }
