@@ -33,6 +33,14 @@ Recebida → Em diagnóstico → Aguardando aprovação → **Aprovada** → Em 
 
 **Por que Aprovada e Cancelada, além dos seis status do enunciado?** O enunciado lista seis status obrigatórios, mas não proíbe outros. *Aprovada* separa a decisão do Cliente do início real do trabalho: o Mecânico enxerga uma fila de OS aprovadas e escolhe a próxima, em vez de a aprovação já significar "em execução". *Cancelada* dá um fim explícito às OS abandonadas antes da execução; o cancelamento exige motivo, estorna ao estoque tudo o que foi baixado e invalida o token pendente. Os seis status obrigatórios continuam todos presentes, com os mesmos nomes.
 
+### Tempo médio de execução
+
+O tempo de execução de uma OS vai da entrada em Em execução até Finalizada, lido no Histórico de status, e entram no cálculo as OS Finalizadas ou Entregues. O tempo é **corrido** e medido para a **OS inteira**: noites, fins de semana, esperas e OS executadas em paralelo pelo mesmo Mecânico entram no intervalo, porque o Mecânico não registra início e fim de cada serviço.
+
+O Gerente vê a média geral e a média de cada **Combinação de serviços**, que é o conjunto exato de Serviços da OS. A ordem dos Serviços não importa e as peças/insumos não entram. Assim, uma OS com troca de óleo e troca de pneu (55 min) não infla a média de uma OS só com troca de óleo (15 min): aparecem "Troca de óleo" com 15 min e "Troca de óleo + Troca de pneu" com 55 min. A lista vem da combinação mais frequente para a menos frequente (no empate, a de menor tempo médio), traz a quantidade de OS ao lado de cada média, não tem amostra mínima nem paginação, e mantém os Serviços inativos identificados como tais.
+
+O requisito "tempo médio de execução dos serviços" é lido como o tempo dos serviços da oficina, medido por OS. A alternativa de medir cada serviço exigiria apontamento pelo Mecânico, e ratear o tempo da OS entre os serviços inventaria números ([ADR 0008](docs/adr/0008-tempo-de-execucao-por-os-recortado-por-combinacao.md)).
+
 ### Fora do MVP
 
 - Reparos adicionais durante a execução (não há transição de Em execução para Aguardando aprovação).
@@ -42,7 +50,7 @@ Recebida → Em diagnóstico → Aguardando aprovação → **Aprovada** → Em 
 - Descontos no orçamento.
 - Login ou conta de Cliente.
 - Cancelamento de OS Aprovada, Em execução ou posterior.
-- Tempo de execução por Serviço individual (o tempo é da OS inteira; o filtro por Serviço seleciona as OS que o contêm).
+- Tempo de execução por Serviço individual (o tempo é da OS inteira e é comparado por Combinação de serviços).
 - Gestão de usuários pela API (feita no Keycloak).
 
 ## Arquitetura
@@ -212,7 +220,7 @@ Com isso é possível abrir uma OS imediatamente.
 | `POST/DELETE .../{id}/pecas-insumos` | Mecânico |
 | `GET .../ordens-de-servico/fila-de-execucao`, `POST .../{id}/execucao/iniciar`, `.../execucao/finalizar` | Mecânico |
 | `POST .../{id}/entrega`, `POST .../{id}/cancelar` | Atendente |
-| `GET .../ordens-de-servico/tempo-medio-de-execucao?servicoId=` | Gerente |
+| `GET .../ordens-de-servico/tempo-medio-de-execucao` (média geral e por Combinação de serviços) | Gerente |
 | `POST /api/publico/ordens-de-servico/consulta` (`numero` + `documento`) | público |
 | `POST /api/publico/orcamentos/{token}/aprovar`, `.../recusar` | público (token) |
 

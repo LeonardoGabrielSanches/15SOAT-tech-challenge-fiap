@@ -41,7 +41,8 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 | Em execução / Finalizada | `OrdemDeServico.IniciarExecucao`, `FinalizarExecucao`; casos de uso `IniciarExecucao`, `FinalizarExecucao` | `UseCases/CasosDeUsoDeExecucao.cs` |
 | Entregue | `OrdemDeServico.RegistrarEntrega`; caso de uso `RegistrarEntrega` | `UseCases/CasosDeUsoDeExecucao.cs` |
 | Cancelada | `OrdemDeServico.Cancelar` (motivo obrigatório; estorna todas as Peças/insumos); caso de uso `CancelarOs`; evento `OsCancelada` | |
-| Tempo de execução | intervalo entre `EmExecucao` e `Finalizada` no Histórico de status; `ConsultarTempoMedioDeExecucao` (filtro opcional por Serviço) | `UseCases/CasosDeUsoDeExecucao.cs` |
+| Tempo de execução | intervalo corrido entre `EmExecucao` e `Finalizada` no Histórico de status, medido para a OS inteira; `TempoDeExecucaoDaOs` lido por `IOrdemDeServicoRepository.ObterTemposDeExecucao` | `Interfaces/IOrdemDeServicoRepository.cs`, `OrdemDeServicoRepository.cs` |
+| Combinação de serviços | `CombinacaoDeServicos`: conjunto exato de `ServicoDaOs` da OS (sem ordem, sem peças/insumos); `ConsultarTempoMedioDeExecucao` agrupa os tempos por ela e devolve `TempoMedioDaCombinacaoDto` | `Entities/ValueObjects/CombinacaoDeServicos.cs`, `UseCases/CasosDeUsoDeExecucao.cs` |
 | Consulta do Cliente | `ConsultarOsPublica` (Número da OS + CPF/CNPJ) | `UseCases/ConsultarOsPublica.cs` |
 
 ### Orçamento
@@ -88,6 +89,10 @@ O enunciado exige seis status (Recebida, Em diagnóstico, Aguardando aprovação
 
 Os seis status obrigatórios mantêm nome e significado.
 
+## Por que o tempo é medido por OS e comparado por Combinação de serviços
+
+O Mecânico registra o início e a finalização da execução da OS, e não de cada serviço. Por isso o Tempo de execução é da OS inteira e em tempo corrido: noites, fins de semana, esperas e OS executadas em paralelo pelo mesmo Mecânico entram no intervalo. O tempo médio é recortado pela Combinação de serviços exata, e não pelas "OS que contêm o Serviço X", porque esse recorte atribuía a um serviço o tempo dos outros serviços da mesma OS: uma troca de óleo de 15 min parecia levar 35 min quando a média incluía uma OS com troca de óleo e troca de pneu (55 min). Uma OS de serviço único já mostra o tempo daquele serviço, sem estimativa. Ver [ADR 0008](../adr/0008-tempo-de-execucao-por-os-recortado-por-combinacao.md).
+
 ## Fora do MVP
 
 - Reparos adicionais durante a execução (sem transição de Em execução para Aguardando aprovação).
@@ -97,5 +102,5 @@ Os seis status obrigatórios mantêm nome e significado.
 - Descontos no orçamento.
 - Login ou conta de Cliente.
 - Cancelamento de OS Aprovada, Em execução ou posterior.
-- Tempo de execução por Serviço individual.
+- Tempo de execução por Serviço individual (sem apontamento por serviço; o tempo é comparado por Combinação de serviços).
 - Gestão de usuários pela API.

@@ -1,5 +1,6 @@
 using Oficina.Domain.Atendimento.Entities;
 using Oficina.Domain.Atendimento.Entities.Enums;
+using Oficina.Domain.Atendimento.Entities.ValueObjects;
 
 namespace Oficina.Domain.Atendimento.Interfaces;
 
@@ -15,7 +16,7 @@ public interface IOrdemDeServicoRepository
 
     Task<IReadOnlyList<OrdemDeServico>> Listar(StatusOs? status, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<TimeSpan>> ObterTemposDeExecucao(Guid? servicoId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<TempoDeExecucaoDaOs>> ObterTemposDeExecucao(CancellationToken cancellationToken);
 
     void Adicionar(OrdemDeServico ordemDeServico);
 }

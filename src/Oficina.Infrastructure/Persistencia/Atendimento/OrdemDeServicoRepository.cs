@@ -38,25 +38,19 @@ public sealed class OrdemDeServicoRepository(DbContext contexto) : IOrdemDeServi
         return await consulta.ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<TimeSpan>> ObterTemposDeExecucao(Guid? servicoId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<TempoDeExecucaoDaOs>> ObterTemposDeExecucao(CancellationToken cancellationToken)
     {
-        var consulta = contexto.Set<OrdemDeServico>()
-            .Where(o => o.Historico.Any(h => h.Destino == StatusOs.Finalizada));
-
-        if (servicoId is not null)
-        {
-            consulta = consulta.Where(o => o.Servicos.Any(s => s.ServicoId == servicoId));
-        }
-
-        var intervalos = await consulta
+        var intervalos = await contexto.Set<OrdemDeServico>()
+            .Where(o => o.Historico.Any(h => h.Destino == StatusOs.Finalizada))
             .Select(o => new
             {
+                ServicoIds = o.Servicos.Select(s => s.ServicoId).ToList(),
                 Inicio = o.Historico.Where(h => h.Destino == StatusOs.EmExecucao).Max(h => h.Momento),
                 Fim = o.Historico.Where(h => h.Destino == StatusOs.Finalizada).Max(h => h.Momento)
             })
             .ToListAsync(cancellationToken);
 
-        return intervalos.Select(i => i.Fim - i.Inicio).ToList();
+        return intervalos.Select(i => new TempoDeExecucaoDaOs(CombinacaoDeServicos.De(i.ServicoIds), i.Fim - i.Inicio)).ToList();
     }
 
     public void Adicionar(OrdemDeServico ordemDeServico) => contexto.Set<OrdemDeServico>().Add(ordemDeServico);

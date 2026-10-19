@@ -66,8 +66,12 @@ Etapa em que o Mecânico avalia o Veículo e ajusta os serviços e peças/insumo
 _Avoid_: Avaliação, vistoria
 
 **Tempo de execução**:
-Intervalo entre o início e a finalização da execução de uma OS, medido para a OS inteira e não por serviço.
+Intervalo corrido entre o início e a finalização da execução de uma OS, sem descontar noites, fins de semana ou esperas, medido para a OS inteira e não por serviço.
 _Avoid_: Duração do serviço, lead time
+
+**Combinação de serviços**:
+O conjunto exato de Serviços de uma OS, sem considerar ordem nem peças/insumos; é por ela que o tempo de execução é comparado entre OS.
+_Avoid_: Pacote, composição, kit
 
 ## Orçamento
 
