@@ -29,6 +29,7 @@ struct OrdemDeServicoView: View {
 
     private func conteudo(_ os: OrdemDeServicoDetalhe) -> some View {
         List {
+            AcoesDeExecucaoView(os: os) { await carregar() }
             Section("OS") {
                 LabeledContent("Número da OS", value: os.numero)
                 LabeledContent("Status", value: os.rotuloDoStatus)

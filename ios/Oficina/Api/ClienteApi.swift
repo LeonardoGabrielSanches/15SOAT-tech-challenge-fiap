@@ -14,6 +14,10 @@ struct ClienteApi {
         }
     }
 
+    func postar(_ caminho: String) async throws {
+        _ = try await enviar(metodo: "POST", caminho: caminho, consulta: [])
+    }
+
     private func enviar(metodo: String, caminho: String, consulta: [URLQueryItem]) async throws -> Data {
         let token = try await tokenDaSessao { try await sessao.tokenDeAcesso() }
         let (dados, status) = try await executar(metodo: metodo, caminho: caminho, consulta: consulta, token: token)
