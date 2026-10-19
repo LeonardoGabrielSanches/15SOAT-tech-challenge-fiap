@@ -827,9 +827,7 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: {
-                    servicoId?: string;
-                };
+                query?: never;
                 header?: never;
                 path?: never;
                 cookie?: never;

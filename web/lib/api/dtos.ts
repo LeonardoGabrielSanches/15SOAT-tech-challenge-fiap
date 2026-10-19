@@ -119,9 +119,22 @@ export type OrdemDeServicoDetalheDto = {
   motivoDaUltimaRecusa: string | null;
 };
 
+export type ServicoDaCombinacaoDto = {
+  id: string;
+  nome: string;
+  ativo: boolean;
+};
+
+export type TempoMedioDaCombinacaoDto = {
+  servicos: ServicoDaCombinacaoDto[];
+  quantidadeDeOs: number;
+  tempoMedioEmSegundos: number;
+};
+
 export type TempoMedioDeExecucaoDto = {
   quantidadeDeOs: number;
   tempoMedioEmSegundos: number | null;
+  combinacoes: TempoMedioDaCombinacaoDto[];
 };
 
 export type ItemDoOrcamentoPublicoDto = {
