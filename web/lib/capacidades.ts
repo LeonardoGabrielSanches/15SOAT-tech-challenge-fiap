@@ -1,3 +1,5 @@
+import type { StatusOs } from "@/lib/api/dtos";
+
 export const papeis = ["atendente", "mecanico", "gerente"] as const;
 
 export type Papel = (typeof papeis)[number];
@@ -66,4 +68,65 @@ export function telaInicial(papel: Papel): Tela {
 
 export function podeGerirPecasInsumos(papel: Papel): boolean {
   return permite(papel, []);
+}
+
+export type AcaoDaOs =
+  | "iniciarDiagnostico"
+  | "incluirServico"
+  | "removerServico"
+  | "incluirPecaInsumo"
+  | "removerPecaInsumo"
+  | "concluirDiagnostico"
+  | "iniciarExecucao"
+  | "finalizarExecucao"
+  | "registrarEntrega"
+  | "cancelar";
+
+export const acoesDaOs: readonly AcaoDaOs[] = [
+  "iniciarDiagnostico",
+  "incluirServico",
+  "removerServico",
+  "incluirPecaInsumo",
+  "removerPecaInsumo",
+  "concluirDiagnostico",
+  "iniciarExecucao",
+  "finalizarExecucao",
+  "registrarEntrega",
+  "cancelar",
+];
+
+const papeisDasAcoesPorStatus: Record<StatusOs, Partial<Record<AcaoDaOs, readonly Papel[]>>> = {
+  Recebida: {
+    iniciarDiagnostico: ["mecanico"],
+    incluirServico: ["atendente"],
+    removerServico: ["atendente"],
+    cancelar: ["atendente"],
+  },
+  EmDiagnostico: {
+    incluirServico: ["mecanico"],
+    removerServico: ["mecanico"],
+    incluirPecaInsumo: ["mecanico"],
+    removerPecaInsumo: ["mecanico"],
+    concluirDiagnostico: ["mecanico"],
+    cancelar: ["atendente"],
+  },
+  AguardandoAprovacao: { cancelar: ["atendente"] },
+  Aprovada: { iniciarExecucao: ["mecanico"] },
+  EmExecucao: { finalizarExecucao: ["mecanico"] },
+  Finalizada: { registrarEntrega: ["atendente"] },
+  Entregue: {},
+  Cancelada: {},
+};
+
+export function permiteAcaoNaOs(status: StatusOs, papel: Papel, acao: AcaoDaOs): boolean {
+  const papeisPermitidos = papeisDasAcoesPorStatus[status][acao];
+  return papeisPermitidos !== undefined && permite(papel, papeisPermitidos);
+}
+
+export function acoesPermitidasNaOs(status: StatusOs, papel: Papel): AcaoDaOs[] {
+  return acoesDaOs.filter((acao) => permiteAcaoNaOs(status, papel, acao));
+}
+
+export function podeAbrirOs(papel: Papel): boolean {
+  return permite(papel, ["atendente"]);
 }
