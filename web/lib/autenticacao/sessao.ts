@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { podeAcessarTela, telaInicial, type Papel, type TelaId } from "@/lib/capacidades";
+import { configuracao } from "@/lib/configuracao";
 
 export type Funcionario = {
   nome: string;
@@ -44,8 +45,8 @@ export async function exigirPapel(): Promise<Funcionario & { papel: Papel }> {
 export async function obterAccessToken(): Promise<string> {
   const token = await getToken({
     req: { headers: { cookie: (await cookies()).toString() } },
-    secret: process.env.AUTH_SECRET,
-    secureCookie: process.env.AUTH_URL?.startsWith("https://") ?? false,
+    secret: configuracao.authSecret,
+    secureCookie: configuracao.cookieSeguro,
   });
   if (!token?.accessToken || token.erro) {
     redirect(enderecoDeEntrada());
