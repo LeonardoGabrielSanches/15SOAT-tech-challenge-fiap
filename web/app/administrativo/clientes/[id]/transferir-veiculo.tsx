@@ -63,7 +63,6 @@ function Transferencia({ clienteId, veiculo, aoTransferir }: Props & { aoTransfe
         />
       ) : (
         <BuscaDoNovoProprietario
-          clienteId={clienteId}
           documento={documento}
           aoMudarDocumento={setDocumento}
           aoEncontrar={setNovoProprietario}
@@ -74,18 +73,16 @@ function Transferencia({ clienteId, veiculo, aoTransferir }: Props & { aoTransfe
 }
 
 function BuscaDoNovoProprietario({
-  clienteId,
   documento,
   aoMudarDocumento,
   aoEncontrar,
 }: {
-  clienteId: string;
   documento: string;
   aoMudarDocumento: (documento: string) => void;
   aoEncontrar: (cliente: ClienteDto) => void;
 }) {
   const { falha, enviar, pendente } = useAcaoDeFormulario(
-    (dados) => buscarNovoProprietario(clienteId, dados),
+    (dados) => buscarNovoProprietario(dados),
     (cliente) => aoEncontrar(cliente),
   );
 

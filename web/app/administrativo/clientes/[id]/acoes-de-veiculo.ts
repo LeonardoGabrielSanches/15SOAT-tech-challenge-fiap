@@ -71,10 +71,7 @@ export async function inativarVeiculo(clienteId: string, veiculoId: string): Pro
   return resultado;
 }
 
-export async function buscarNovoProprietario(
-  proprietarioAtualId: string,
-  dados: FormData,
-): Promise<Resultado<ClienteDto>> {
+export async function buscarNovoProprietario(dados: FormData): Promise<Resultado<ClienteDto>> {
   await exigirTela("clientes");
   const documento = lerTexto(dados, "documento");
   if (!documento) {
@@ -98,12 +95,6 @@ export async function buscarNovoProprietario(
           "Nenhum Cliente cadastrado com este documento. Cadastre o novo Proprietário atual no Balcão e tente de novo.",
       },
     };
-  }
-  if (cliente.id === proprietarioAtualId) {
-    return dadosInvalidos("Este Cliente já é o Proprietário atual do Veículo.", "Mesmo Proprietário atual");
-  }
-  if (!cliente.ativo) {
-    return { ok: false, falha: { status: 409, titulo: "Cliente Inativo", mensagem: `${cliente.nome} está Inativo e não pode receber o Veículo.` } };
   }
   return { ok: true, dados: cliente };
 }
