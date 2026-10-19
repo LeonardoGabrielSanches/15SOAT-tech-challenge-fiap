@@ -38,7 +38,7 @@ function Impedimento({ titulo, mensagem }: { titulo: string; mensagem: string })
 }
 
 export default async function AbrirOsDoVeiculo({ searchParams }: PageProps<"/administrativo/ordens-de-servico/nova">) {
-  await exigirTela("ordensDeServico");
+  await exigirTela("clientes");
   const { veiculoId } = await searchParams;
   if (typeof veiculoId !== "string" || !veiculoId) {
     return (

@@ -18,7 +18,7 @@ async function osEmAndamentoDoVeiculo(api: Api, veiculoId: string): Promise<Orde
 }
 
 export async function abrirOs(clienteId: string, veiculoId: string, dados: FormData): Promise<ResultadoDaAbertura> {
-  await exigirTela("ordensDeServico");
+  await exigirTela("clientes");
   const servicoIds = dados.getAll("servicoIds").filter((valor): valor is string => typeof valor === "string");
   if (servicoIds.length === 0) {
     return dadosInvalidos("Escolha ao menos um Serviço para abrir a OS.");
