@@ -324,7 +324,12 @@ private struct MensagemDeErroView: View {
 enum QuantidadeDigitada {
     static func interpretar(_ texto: String, inteira: Bool) -> Decimal? {
         let limpo = texto.trimmingCharacters(in: .whitespaces)
-        guard let valor = Decimal(string: limpo, locale: Locale(identifier: "pt_BR")), valor > 0 else { return nil }
+        let normalizado = limpo.replacingOccurrences(of: ",", with: ".")
+        guard normalizado.allSatisfy({ $0.isASCII && ($0.isNumber || $0 == ".") }),
+              normalizado.filter({ $0 == "." }).count <= 1,
+              let valor = Decimal(string: normalizado, locale: Locale(identifier: "en_US_POSIX")),
+              valor > 0
+        else { return nil }
         if inteira && valor != valor.rounded(0) { return nil }
         return valor
     }

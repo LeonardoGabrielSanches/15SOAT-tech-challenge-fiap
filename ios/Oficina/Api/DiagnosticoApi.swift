@@ -5,9 +5,17 @@ extension ClienteApi {
         "api/administrativo/ordens-de-servico/\(id.uuidString.lowercased())"
     }
 
-    private func corpo(_ campos: [String: String]) -> Data {
-        let json = campos.map { "\"\($0.key)\":\($0.value)" }.sorted().joined(separator: ",")
-        return Data("{\(json)}".utf8)
+    private struct CorpoDeServico: Encodable {
+        let servicoId: UUID
+    }
+
+    private struct CorpoDePecaInsumo: Encodable {
+        let pecaInsumoId: UUID
+        let quantidade: Decimal
+    }
+
+    private func corpo<T: Encodable>(_ valor: T) throws -> Data {
+        try JSONEncoder().encode(valor)
     }
 
     func iniciarDiagnostico(ordemId: UUID) async throws {
@@ -19,7 +27,7 @@ extension ClienteApi {
     }
 
     func incluirServico(ordemId: UUID, servicoId: UUID) async throws {
-        try await acionar("POST", "\(caminhoDaOs(ordemId))/servicos", corpo: corpo(["servicoId": "\"\(servicoId.uuidString.lowercased())\""]))
+        try await acionar("POST", "\(caminhoDaOs(ordemId))/servicos", corpo: try corpo(CorpoDeServico(servicoId: servicoId)))
     }
 
     func removerServico(ordemId: UUID, servicoId: UUID) async throws {
@@ -27,8 +35,8 @@ extension ClienteApi {
     }
 
     func incluirPecaInsumo(ordemId: UUID, pecaInsumoId: UUID, quantidade: Decimal) async throws {
-        let campos = ["pecaInsumoId": "\"\(pecaInsumoId.uuidString.lowercased())\"", "quantidade": "\(quantidade)"]
-        try await acionar("POST", "\(caminhoDaOs(ordemId))/pecas-insumos", corpo: corpo(campos))
+        let dados = try corpo(CorpoDePecaInsumo(pecaInsumoId: pecaInsumoId, quantidade: quantidade))
+        try await acionar("POST", "\(caminhoDaOs(ordemId))/pecas-insumos", corpo: dados)
     }
 
     func removerPecaInsumo(ordemId: UUID, pecaInsumoId: UUID, quantidade: Decimal?) async throws {

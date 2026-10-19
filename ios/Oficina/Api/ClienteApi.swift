@@ -14,10 +14,6 @@ struct ClienteApi {
         }
     }
 
-    func postar(_ caminho: String) async throws {
-        _ = try await enviar(metodo: "POST", caminho: caminho, consulta: [])
-    }
-
     func acionar(_ metodo: String, _ caminho: String, consulta: [URLQueryItem] = [], corpo: Data? = nil) async throws {
         _ = try await enviar(metodo: metodo, caminho: caminho, consulta: consulta, corpo: corpo)
     }
@@ -27,7 +23,7 @@ struct ClienteApi {
         let (dados, status) = try await executar(metodo: metodo, caminho: caminho, consulta: consulta, corpo: corpo, token: token)
         if status != 401 { return try validar(dados, status: status) }
 
-        let novoToken = try await tokenDaSessao { try await sessao.renovarAposNaoAutorizado() }
+        let novoToken = try await tokenDaSessao { try await sessao.renovarAposNaoAutorizado(tokenRecusado: token) }
         let (novosDados, novoStatus) = try await executar(metodo: metodo, caminho: caminho, consulta: consulta, corpo: corpo, token: novoToken)
         return try validar(novosDados, status: novoStatus)
     }
