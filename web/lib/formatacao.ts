@@ -61,3 +61,22 @@ export function formatarDuracao(segundos: number): string {
   const textoDasHoras = `${formatarQuantidade(horas)} h`;
   return minutos === 0 ? textoDasHoras : `${textoDasHoras} ${minutos} min`;
 }
+
+const dinheiroParaEdicao = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  useGrouping: false,
+});
+
+export function formatarDinheiroParaEdicao(valor: number): string {
+  return dinheiroParaEdicao.format(valor);
+}
+
+export function lerDinheiro(texto: string): number | null {
+  const limpo = texto.replace(/R\$/gi, "").replace(/\s/g, "");
+  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
+  if (!/^-?\d+(\.\d+)?$/.test(normalizado)) {
+    return null;
+  }
+  return Number(normalizado);
+}
