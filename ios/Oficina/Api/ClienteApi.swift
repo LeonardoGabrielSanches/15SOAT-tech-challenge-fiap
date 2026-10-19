@@ -14,6 +14,10 @@ struct ClienteApi {
         }
     }
 
+    func postar(_ caminho: String) async throws {
+        _ = try await enviar(metodo: "POST", caminho: caminho, consulta: [])
+    }
+
     func acionar(_ metodo: String, _ caminho: String, consulta: [URLQueryItem] = [], corpo: Data? = nil) async throws {
         _ = try await enviar(metodo: metodo, caminho: caminho, consulta: consulta, corpo: corpo)
     }
