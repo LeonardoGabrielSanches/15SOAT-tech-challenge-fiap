@@ -2,6 +2,7 @@ import { ArrowLeft, Pencil } from "lucide-react";
 import Link from "next/link";
 import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
+import { InativarComConfirmacao } from "@/components/inativar-com-confirmacao";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { resultadoDaApi } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { DadosDoCliente } from "../dados-do-cliente";
 import { enderecoDoCliente } from "../endereco-do-cliente";
-import { InativarCliente } from "./inativar-cliente";
+import { inativarCliente } from "../acoes";
 import { VeiculosDoCliente } from "./veiculos-do-cliente";
 
 function VoltarParaClientes() {
@@ -91,7 +92,13 @@ export default async function PaginaDoCliente({ params }: PageProps<"/administra
             <CardDescription>Retira o Cliente de novas operações sem perder o histórico.</CardDescription>
           </CardHeader>
           <CardContent>
-            <InativarCliente id={cliente.id} nome={cliente.nome} />
+            <InativarComConfirmacao
+              rotulo="Inativar Cliente"
+              tamanho="default"
+              titulo={`Inativar o Cliente ${cliente.nome}?`}
+              descricao="O Cliente não poderá ser usado em novas operações, mas continua visível no histórico. Não há como reativá-lo depois."
+              acao={inativarCliente.bind(null, cliente.id)}
+            />
           </CardContent>
         </Card>
       )}

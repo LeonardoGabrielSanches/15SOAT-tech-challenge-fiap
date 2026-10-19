@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ClienteDto } from "@/lib/api/dtos";
-import { resultadoDaApi, type Falha } from "@/lib/api/resultado";
+import { resultadoDaApi, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { lerTexto } from "@/lib/dados-do-formulario";
 import { enderecoDoCliente } from "./endereco-do-cliente";
@@ -66,16 +66,15 @@ export async function atualizarCliente(
   redirect(enderecoDoCliente(id));
 }
 
-export async function inativarCliente(id: string): Promise<Falha | null> {
+export async function inativarCliente(id: string): Promise<Resultado<undefined>> {
   await exigirTela("clientes");
   const api = await apiAdministrativa();
   const resultado = await resultadoDaApi(
     api.DELETE("/api/administrativo/clientes/{id}", { params: { path: { id } } }),
   );
-  if (!resultado.ok) {
-    return resultado.falha;
+  if (resultado.ok) {
+    revalidatePath("/administrativo/clientes");
+    revalidatePath(enderecoDoCliente(id));
   }
-  revalidatePath("/administrativo/clientes");
-  revalidatePath(enderecoDoCliente(id));
-  return null;
+  return resultado;
 }

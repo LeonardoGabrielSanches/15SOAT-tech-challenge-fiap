@@ -19,8 +19,6 @@ export type EstadoDoFormularioDeServico = {
   valores: ValoresDoServico;
 };
 
-export type EstadoDaInativacao = Resultado<undefined> | null;
-
 const enderecoDaTela = "/administrativo/servicos";
 
 export async function salvarServico(
@@ -51,7 +49,7 @@ export async function salvarServico(
   return { resultado, valores };
 }
 
-export async function inativarServico(id: string): Promise<EstadoDaInativacao> {
+export async function inativarServico(id: string): Promise<Resultado<undefined>> {
   await exigirTela("servicos");
   const api = await apiAdministrativa();
   const resultado = await resultadoDaApi(

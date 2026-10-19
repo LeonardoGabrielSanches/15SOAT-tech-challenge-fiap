@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AtivoOuInativo } from "@/components/ativo-ou-inativo";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
+import { InativarComConfirmacao } from "@/components/inativar-com-confirmacao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,7 @@ import {
 } from "@/lib/formatacao";
 import { editarPecaInsumo, inativarPecaInsumo, registrarEntradaDeMercadoria } from "./acoes";
 
-type Painel = "entrada" | "edicao" | "inativacao";
+type Painel = "entrada" | "edicao";
 
 type Props = {
   item: PecaInsumoDto;
@@ -63,13 +64,11 @@ export function LinhaDaPecaInsumo({ item, mostrarSituacao, podeEscrever }: Props
                 Editar
               </Button>
               {item.ativo && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setPainel(painel === "inativacao" ? null : "inativacao")}
-                >
-                  Inativar
-                </Button>
+                <InativarComConfirmacao
+                  titulo={`Inativar a Peça/insumo ${item.nome}?`}
+                  descricao="Ela sai da lista padrão e deixa de aceitar Entrada de mercadoria e inclusão em OS. O saldo atual é mantido."
+                  acao={() => inativarPecaInsumo(item.id)}
+                />
               )}
             </div>
           </TableCell>
@@ -80,7 +79,6 @@ export function LinhaDaPecaInsumo({ item, mostrarSituacao, podeEscrever }: Props
           <TableCell colSpan={colunas} className="whitespace-normal">
             {painel === "entrada" && <EntradaDeMercadoria item={item} aoFechar={fechar} />}
             {painel === "edicao" && <EdicaoDaPecaInsumo item={item} aoFechar={fechar} />}
-            {painel === "inativacao" && <InativacaoDaPecaInsumo item={item} aoFechar={fechar} />}
           </TableCell>
         </TableRow>
       )}
@@ -179,28 +177,6 @@ function EdicaoDaPecaInsumo({ item, aoFechar }: PropsDoPainel) {
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={pendente}>
           {pendente ? "Salvando..." : "Salvar"}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>
-          Cancelar
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function InativacaoDaPecaInsumo({ item, aoFechar }: PropsDoPainel) {
-  const { resultado, enviar, pendente } = useAcaoDeFormulario(() => inativarPecaInsumo(item.id), () => aoFechar());
-
-  return (
-    <form onSubmit={enviar} className="flex max-w-xl flex-col gap-3 py-2">
-      <p className="font-medium">Inativar {item.nome}?</p>
-      <p className="text-sm text-muted-foreground">
-        Ela sai da lista padrão e deixa de aceitar Entrada de mercadoria e inclusão em OS. O saldo atual é mantido.
-      </p>
-      {resultado && !resultado.ok && <AvisoDeFalha falha={resultado.falha} />}
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" variant="destructive" disabled={pendente}>
-          {pendente ? "Inativando..." : "Confirmar inativação"}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>
           Cancelar
