@@ -213,7 +213,8 @@ Com isso é possível abrir uma OS imediatamente.
 | `POST/GET/PUT/DELETE /api/administrativo/veiculos`, `POST .../veiculos/{id}/transferencia`, `GET .../clientes/{id}/veiculos` | Atendente |
 | `GET/POST/PUT/DELETE /api/administrativo/servicos` | leitura: qualquer papel; escrita: Gerente |
 | `POST/GET/PUT/DELETE /api/pecas-insumos`, `POST .../{id}/entradas`, `GET .../{id}/saldo` | escrita: Gerente; leitura: Mecânico |
-| `POST/GET /api/administrativo/ordens-de-servico` (abrir, listar com filtro `status`) | Atendente |
+| `POST /api/administrativo/ordens-de-servico` (abrir) | Atendente |
+| `GET /api/administrativo/ordens-de-servico` (listar com filtro `status`) | Atendente ou Mecânico |
 | `GET /api/administrativo/ordens-de-servico/{id}` (detalhe) | Atendente ou Mecânico |
 | `POST/DELETE .../ordens-de-servico/{id}/servicos` | Atendente ou Mecânico |
 | `POST .../{id}/diagnostico/iniciar`, `.../diagnostico/concluir` | Mecânico |
