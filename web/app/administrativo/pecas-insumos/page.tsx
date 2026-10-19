@@ -62,10 +62,10 @@ export default async function PecasInsumos({ searchParams }: PageProps<"/adminis
               </TableRow>
             </TableHeader>
             <TableBody>
-              {resultado.dados.map((item) => (
+              {resultado.dados.map((pecaInsumo) => (
                 <LinhaDaPecaInsumo
-                  key={item.id}
-                  item={item}
+                  key={pecaInsumo.id}
+                  pecaInsumo={pecaInsumo}
                   mostrarSituacao={incluirInativos}
                   podeEscrever={podeEscrever}
                 />

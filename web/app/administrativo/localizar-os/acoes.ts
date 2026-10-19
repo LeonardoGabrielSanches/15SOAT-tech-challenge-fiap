@@ -16,7 +16,7 @@ function lerIdentificador(texto: string): string | null {
 }
 
 export async function localizarOs(dados: FormData): Promise<Resultado<{ id: string }>> {
-  await exigirTela("abrirOs");
+  await exigirTela("localizarOs");
   const texto = lerTexto(dados, "referencia");
   if (!texto) {
     return dadosInvalidos("Cole o link da OS ou o identificador.");

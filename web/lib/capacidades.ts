@@ -21,7 +21,11 @@ const definicoesDeTelas = {
   clientes: { titulo: "Clientes", href: "/administrativo/clientes", papeis: ["atendente"] },
   ordensDeServico: { titulo: "OS", href: "/administrativo/ordens-de-servico", papeis: ["atendente"] },
   filaDeExecucao: { titulo: "Fila de execução", href: "/administrativo/fila-de-execucao", papeis: ["mecanico"] },
-  abrirOs: { titulo: "Abrir OS por link/identificador", href: "/administrativo/abrir-os", papeis: ["mecanico"] },
+  localizarOs: {
+    titulo: "Abrir OS por link/identificador",
+    href: "/administrativo/localizar-os",
+    papeis: ["mecanico"],
+  },
   servicos: { titulo: "Serviços", href: "/administrativo/servicos", papeis: [] },
   pecasInsumos: { titulo: "Peças/insumos", href: "/administrativo/pecas-insumos", papeis: ["mecanico"] },
   tempoMedioDeExecucao: {
@@ -125,8 +129,4 @@ export function permiteAcaoNaOs(status: StatusOs, papel: Papel, acao: AcaoDaOs):
 
 export function acoesPermitidasNaOs(status: StatusOs, papel: Papel): AcaoDaOs[] {
   return acoesDaOs.filter((acao) => permiteAcaoNaOs(status, papel, acao));
-}
-
-export function podeAbrirOs(papel: Papel): boolean {
-  return permite(papel, ["atendente"]);
 }

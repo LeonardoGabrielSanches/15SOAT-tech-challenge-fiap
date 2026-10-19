@@ -10,7 +10,7 @@ import { useAcaoDeFormulario } from "@/lib/acao-de-formulario";
 import { enderecoDaOs } from "../ordens-de-servico/endereco-da-os";
 import { localizarOs } from "./acoes";
 
-export function FormularioAbrirOs() {
+export function FormularioDeLocalizacao() {
   const router = useRouter();
   const { resultado, falha, enviar, pendente } = useAcaoDeFormulario(localizarOs, ({ id }) => router.push(enderecoDaOs(id)));
 
