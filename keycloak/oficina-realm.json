@@ -98,6 +98,33 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "oficina-ios",
+      "name": "App iOS da Oficina",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["oficina://autenticacao"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "oficina://autenticacao"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-oficina-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "oficina-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     }
   ]
 }
