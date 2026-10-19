@@ -12,6 +12,7 @@ import { apiAdministrativa } from "@/lib/api/cliente";
 import type { ClienteDto } from "@/lib/api/dtos";
 import { resultadoDaApi, type Resultado } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
+import { VeiculosDoCliente } from "../clientes/[id]/veiculos-do-cliente";
 import { cadastrarCliente } from "../clientes/acoes";
 import { DadosDoCliente } from "../clientes/dados-do-cliente";
 import { enderecoDoCliente } from "../clientes/endereco-do-cliente";
@@ -103,7 +104,15 @@ function ResultadoDaBusca({ documento, resultado }: { documento: string; resulta
     return <AvisoDeFalha falha={resultado.falha} />;
   }
   const [cliente] = resultado.dados;
-  return cliente ? <ClienteEncontrado cliente={cliente} /> : <CadastroNoBalcao documento={documento} />;
+  if (!cliente) {
+    return <CadastroNoBalcao documento={documento} />;
+  }
+  return (
+    <>
+      <ClienteEncontrado cliente={cliente} />
+      <VeiculosDoCliente cliente={cliente} />
+    </>
+  );
 }
 
 export default async function Balcao({ searchParams }: PageProps<"/administrativo/balcao">) {
