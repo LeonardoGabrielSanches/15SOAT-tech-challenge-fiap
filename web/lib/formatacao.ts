@@ -47,3 +47,17 @@ export function formatarData(valor: string): string {
 export function formatarQuantidade(valor: number): string {
   return quantidade.format(valor);
 }
+
+export function formatarDuracao(segundos: number): string {
+  const minutosTotais = Math.round(segundos / 60);
+  if (minutosTotais < 1) {
+    return "menos de 1 min";
+  }
+  const horas = Math.floor(minutosTotais / 60);
+  const minutos = minutosTotais % 60;
+  if (horas === 0) {
+    return `${minutos} min`;
+  }
+  const textoDasHoras = `${formatarQuantidade(horas)} h`;
+  return minutos === 0 ? textoDasHoras : `${textoDasHoras} ${minutos} min`;
+}
