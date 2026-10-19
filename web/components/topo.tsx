@@ -2,7 +2,6 @@ import { LogOut, Wrench } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { sair } from "@/lib/autenticacao/acoes";
 import type { Funcionario } from "@/lib/autenticacao/sessao";
 import { nomeDoPapel } from "@/lib/capacidades";
 
@@ -18,7 +17,7 @@ export function Topo({ funcionario }: { funcionario: Funcionario }) {
           <span className="hidden font-medium sm:inline">{funcionario.nome}</span>
           <Badge variant="secondary">{funcionario.papel ? nomeDoPapel[funcionario.papel] : "Sem papel"}</Badge>
         </div>
-        <form action={sair}>
+        <form action="/sair" method="post">
           <Button type="submit" variant="outline" size="sm">
             <LogOut />
             Sair
