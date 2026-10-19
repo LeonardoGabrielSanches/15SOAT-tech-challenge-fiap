@@ -1,39 +1,64 @@
 "use client";
 
+import { Ban } from "lucide-react";
 import { useActionState, useState } from "react";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { inativarCliente } from "../acoes";
 
 export function InativarCliente({ id, nome }: { id: string; nome: string }) {
-  const [confirmando, setConfirmando] = useState(false);
-  const [falha, inativar, inativando] = useActionState(() => inativarCliente(id), null);
+  const [aberto, setAberto] = useState(false);
 
   return (
-    <div className="flex flex-col gap-3">
+    <AlertDialog open={aberto} onOpenChange={setAberto}>
+      <AlertDialogTrigger asChild>
+        <Button variant="destructive">
+          <Ban />
+          Inativar Cliente
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <ConfirmacaoDaInativacao id={id} nome={nome} aoInativar={() => setAberto(false)} />
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function ConfirmacaoDaInativacao({ id, nome, aoInativar }: { id: string; nome: string; aoInativar: () => void }) {
+  const [falha, acao, enviando] = useActionState(async () => {
+    const resultado = await inativarCliente(id);
+    if (!resultado) {
+      aoInativar();
+    }
+    return resultado;
+  }, null);
+
+  return (
+    <form action={acao} className="flex flex-col gap-4">
+      <AlertDialogHeader>
+        <AlertDialogTitle>Inativar o Cliente {nome}?</AlertDialogTitle>
+        <AlertDialogDescription>
+          O Cliente não poderá ser usado em novas operações, mas continua visível no histórico. Não há como reativá-lo
+          depois.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
       {falha && <AvisoDeFalha falha={falha} />}
-      {confirmando ? (
-        <form action={inativar} className="flex flex-col gap-3">
-          <p className="text-sm">
-            Inativar <strong>{nome}</strong>? O Cliente não poderá ser usado em novas operações, mas continua visível no
-            histórico. Não há como reativá-lo depois.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" variant="destructive" disabled={inativando}>
-              {inativando ? "Inativando..." : "Confirmar inativação"}
-            </Button>
-            <Button type="button" variant="outline" disabled={inativando} onClick={() => setConfirmando(false)}>
-              Voltar
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <div>
-          <Button type="button" variant="destructive" onClick={() => setConfirmando(true)}>
-            Inativar Cliente
-          </Button>
-        </div>
-      )}
-    </div>
+      <AlertDialogFooter>
+        <AlertDialogCancel type="button">Cancelar</AlertDialogCancel>
+        <Button type="submit" variant="destructive" disabled={enviando}>
+          {enviando ? "Inativando..." : "Inativar"}
+        </Button>
+      </AlertDialogFooter>
+    </form>
   );
 }
