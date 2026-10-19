@@ -83,6 +83,7 @@ Erros de domínio retornam ProblemDetails: `404` para recurso inexistente ou con
 - Keycloak 26.2 (JWT, papéis `atendente`, `mecanico`, `gerente`)
 - xUnit, Moq, Testcontainers (PostgreSQL), `WebApplicationFactory`
 - coverlet + ReportGenerator (cobertura)
+- App iOS: SwiftUI (Swift 6), sem dependências de terceiros
 - Interface web: Next.js (App Router) + TypeScript, Tailwind CSS, shadcn/ui, Auth.js e openapi-fetch
 - Docker / Docker Compose
 - GitHub Actions (build, testes, cobertura, Trivy e `dotnet list package --vulnerable`)
@@ -125,7 +126,7 @@ Neste modo o botão Authorize do Swagger não funciona (o redirecionamento OAuth
 
 ## Interface web
 
-A interface web (`web/`, Next.js) atende os funcionários e é a forma recomendada de usar a oficina no dia a dia. Com o ambiente de pé, acesse <http://localhost:3000>: o navegador é levado ao login do Keycloak e volta para a área administrativa com o nome e o papel do funcionário no topo, um menu montado para o papel e a tela inicial do papel (Balcão para o Atendente, Fila de execução para o Mecânico, Serviços para o Gerente). Use os usuários de demonstração da seção abaixo. O botão **Sair** encerra a sessão da interface e a do Keycloak.
+A interface web (`web/`, Next.js) atende os funcionários e é a forma recomendada de usar a oficina no dia a dia. Com o ambiente de pé, acesse <http://localhost:3000>: o navegador é levado ao login do Keycloak e volta para a área administrativa com o nome e o papel do funcionário no topo, um menu montado para o papel e a tela inicial do papel (Balcão para o Atendente, Fila de execução para o Mecânico, Serviços para o Gerente). O Mecânico também vê no menu "Ordens de serviço" (lista com filtro por Status) e continua podendo abrir uma OS pelo link em "Localizar OS". Use os usuários de demonstração da seção abaixo. O botão **Sair** encerra a sessão da interface e a do Keycloak.
 
 A interface funciona como BFF ([ADR 0007](docs/adr/0007-interface-web-como-bff.md)): o login usa authorization code + PKCE no client confidencial `oficina-web`, o JWT fica num cookie criptografado da sessão do servidor e toda chamada à API parte do servidor Next.js. O navegador nunca vê o token, e a API continua sem CORS. O secret do client `oficina-web` (`oficina-web-secret-somente-dev`) e o `AUTH_SECRET` versionados no realm, no `docker-compose.yml` e em `web/.env.development` são **exclusivos do ambiente de demonstração local**.
 
@@ -166,6 +167,38 @@ Outros comandos em `web/`:
 | `npm run api:tipos` | regenera `lib/api/openapi.ts` a partir de <http://localhost:8081/openapi/v1.json> (API no ar) |
 
 Variáveis de ambiente da interface (definidas no `docker-compose.yml` e em `web/.env.development`): `API_URL`, `KEYCLOAK_URL_PUBLICA` (usada pelo navegador e como issuer), `KEYCLOAK_URL_INTERNA` (usada pelo servidor Next.js para trocar código e refresh token), `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `AUTH_SECRET` e `AUTH_URL`.
+
+## App iOS
+
+O app iOS (`ios/`, SwiftUI) é feito para o **Mecânico** (e para o Gerente, que pode tudo), que trabalha ao lado do Veículo e não no computador do balcão. Ele tem duas abas: **Fila de execução** (OS Aprovadas) e **Ordens de serviço** (OS em andamento, com filtro por Status e busca pelo Número da OS, como `OS-2026-00001`). Ambas levam à página da OS, onde o Mecânico faz o diagnóstico (Serviços e Peças/insumos, conclusão) e a execução (início e finalização). O Atendente que entrar vê uma tela dizendo que o app é do Mecânico e que deve usar a interface web.
+
+O app chama a API diretamente, com o token no Keychain ([ADR 0009](docs/adr/0009-app-ios-chama-a-api-com-token-no-keychain.md)): o login usa authorization code + PKCE na página do Keycloak, pelo client público `oficina-ios` (redirect `oficina://autenticacao`), e o app renova o token sozinho e encerra a sessão no Keycloak ao sair.
+
+### Requisitos
+
+- macOS com Xcode 26 e o Simulador do iOS (alvo mínimo iOS 18, só iPhone).
+- Docker com Docker Compose v2, para o ambiente que o app consome.
+
+### Passo a passo
+
+1. Suba o ambiente na raiz do repositório e espere o Keycloak e a API ficarem prontos:
+
+   ```bash
+   docker compose up --build
+   ```
+
+2. Abra `ios/Oficina.xcodeproj` no Xcode.
+3. Escolha um iPhone no Simulador e rode o app (Cmd+R).
+4. Toque em entrar e faça login na página do Keycloak com `mecanico` / `mecanico123` ou `gerente` / `gerente123` (veja [Autenticação e usuários de demonstração](#autenticação-e-usuários-de-demonstração)).
+
+A API fica em `http://localhost:8081` e o Keycloak em `http://localhost:8080/realms/oficina`, configurados num único lugar do app (`ios/Oficina/Configuracao.swift`).
+
+### Limitações conhecidas
+
+- **Só roda no Simulador do iOS.** O Simulador alcança o `localhost` do Mac, e o issuer dos tokens é `localhost`; o ATS libera HTTP sem TLS apenas para `localhost`. iPhone físico, TestFlight e App Store exigiriam outro hostname no Keycloak, TLS e conta de desenvolvedor.
+- **As listas não mostram a placa.** O resumo da API não traz o Veículo, então a OS é identificada pelo Número da OS e o Veículo é conferido na página da OS.
+- **Só as ações do Mecânico.** Balcão, Clientes, Veículos, abertura, cancelamento e entrega (Atendente), catálogo, estoque e tempo médio (Gerente) e o Portal do Cliente continuam na interface web.
+- Sem modo offline, cache ou notificações, e sem testes automatizados nem CI para o app.
 
 ## Swagger
 
@@ -213,7 +246,8 @@ Com isso é possível abrir uma OS imediatamente.
 | `POST/GET/PUT/DELETE /api/administrativo/veiculos`, `POST .../veiculos/{id}/transferencia`, `GET .../clientes/{id}/veiculos` | Atendente |
 | `GET/POST/PUT/DELETE /api/administrativo/servicos` | leitura: qualquer papel; escrita: Gerente |
 | `POST/GET/PUT/DELETE /api/pecas-insumos`, `POST .../{id}/entradas`, `GET .../{id}/saldo` | escrita: Gerente; leitura: Mecânico |
-| `POST/GET /api/administrativo/ordens-de-servico` (abrir, listar com filtro `status`) | Atendente |
+| `POST /api/administrativo/ordens-de-servico` (abrir) | Atendente |
+| `GET /api/administrativo/ordens-de-servico` (listar com filtro `status`) | Atendente ou Mecânico |
 | `GET /api/administrativo/ordens-de-servico/{id}` (detalhe) | Atendente ou Mecânico |
 | `POST/DELETE .../ordens-de-servico/{id}/servicos` | Atendente ou Mecânico |
 | `POST .../{id}/diagnostico/iniciar`, `.../diagnostico/concluir` | Mecânico |
@@ -270,7 +304,8 @@ O relatório final consolidado está em [`docs/seguranca/relatorio-vulnerabilida
 │   ├── ddd/                     Event Storming, diagramas e linguagem ubíqua
 │   └── seguranca/               relatório de vulnerabilidades e relatórios brutos
 ├── web/                         interface web (Next.js, BFF)
-├── keycloak/oficina-realm.json  realm importado (papéis, usuários de demonstração, clients do Swagger e da interface web)
+├── ios/                         app iOS do Mecânico (SwiftUI)
+├── keycloak/oficina-realm.json  realm importado (papéis, usuários de demonstração, clients do Swagger, da interface web e do app iOS)
 ├── scripts/cobertura.sh         testes + gate de cobertura
 ├── .github/workflows/           ci.yml e vulnerabilidades.yml
 ├── Dockerfile                   build multi-stage da API

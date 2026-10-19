@@ -11,3 +11,8 @@ obj/
 TestResults/
 coverage/
 .vs/
+
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcuserstate
