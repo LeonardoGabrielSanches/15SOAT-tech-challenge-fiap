@@ -1,5 +1,6 @@
 using Moq;
 using Oficina.Application.Atendimento.UseCases;
+using Oficina.Domain.Atendimento.Entities.ValueObjects;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
@@ -32,7 +33,7 @@ public class ConsultarTempoMedioDeExecucaoTests
         _ordens.Setup(r => r.ObterTemposDeExecucao(It.IsAny<CancellationToken>())).ReturnsAsync(tempos);
 
     private static TempoDeExecucaoDaOs Os(TimeSpan tempo, params Servico[] servicos) =>
-        new(servicos.Select(s => s.Id).ToList(), tempo);
+        new(CombinacaoDeServicos.De(servicos.Select(s => s.Id)), tempo);
 
     [Fact]
     public async Task Troca_de_oleo_sozinha_nao_recebe_o_tempo_da_troca_de_pneu()
@@ -76,6 +77,26 @@ public class ConsultarTempoMedioDeExecucaoTests
             resultado.Combinacoes.Select(c => Assert.Single(c.Servicos).Nome));
         Assert.Equal([2, 1, 1], resultado.Combinacoes.Select(c => c.QuantidadeDeOs));
         Assert.Equal(1200, resultado.Combinacoes[0].TempoMedioEmSegundos);
+    }
+
+    [Fact]
+    public async Task Combinacoes_empatadas_em_quantidade_e_tempo_medio_vem_em_ordem_alfabetica_dos_servicos()
+    {
+        var pneu = NoCatalogo("Troca de pneu");
+        var oleo = NoCatalogo("Troca de oleo");
+        var alinhamento = NoCatalogo("Alinhamento");
+        var balanceamento = NoCatalogo("Balanceamento");
+        OsExecutadas(
+            Os(TimeSpan.FromMinutes(30), pneu),
+            Os(TimeSpan.FromMinutes(30), oleo, pneu),
+            Os(TimeSpan.FromMinutes(30), balanceamento, alinhamento),
+            Os(TimeSpan.FromMinutes(30), oleo));
+
+        var resultado = await Caso().Executar(CancellationToken.None);
+
+        Assert.Equal(
+            ["Alinhamento + Balanceamento", "Troca de oleo", "Troca de oleo + Troca de pneu", "Troca de pneu"],
+            resultado.Combinacoes.Select(c => string.Join(" + ", c.Servicos.Select(s => s.Nome))));
     }
 
     [Fact]

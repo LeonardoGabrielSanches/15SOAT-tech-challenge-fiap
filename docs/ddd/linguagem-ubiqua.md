@@ -42,7 +42,7 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 | Entregue | `OrdemDeServico.RegistrarEntrega`; caso de uso `RegistrarEntrega` | `UseCases/CasosDeUsoDeExecucao.cs` |
 | Cancelada | `OrdemDeServico.Cancelar` (motivo obrigatório; estorna todas as Peças/insumos); caso de uso `CancelarOs`; evento `OsCancelada` | |
 | Tempo de execução | intervalo corrido entre `EmExecucao` e `Finalizada` no Histórico de status, medido para a OS inteira; `TempoDeExecucaoDaOs` lido por `IOrdemDeServicoRepository.ObterTemposDeExecucao` | `Interfaces/IOrdemDeServicoRepository.cs`, `OrdemDeServicoRepository.cs` |
-| Combinação de serviços | conjunto exato de `ServicoDaOs` da OS (sem ordem, sem peças/insumos); `ConsultarTempoMedioDeExecucao` agrupa os tempos por ela e devolve `TempoMedioDaCombinacaoDto` | `UseCases/CasosDeUsoDeExecucao.cs` |
+| Combinação de serviços | `CombinacaoDeServicos`: conjunto exato de `ServicoDaOs` da OS (sem ordem, sem peças/insumos); `ConsultarTempoMedioDeExecucao` agrupa os tempos por ela e devolve `TempoMedioDaCombinacaoDto` | `Entities/ValueObjects/CombinacaoDeServicos.cs`, `UseCases/CasosDeUsoDeExecucao.cs` |
 | Consulta do Cliente | `ConsultarOsPublica` (Número da OS + CPF/CNPJ) | `UseCases/ConsultarOsPublica.cs` |
 
 ### Orçamento

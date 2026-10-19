@@ -50,7 +50,7 @@ public sealed class OrdemDeServicoRepository(DbContext contexto) : IOrdemDeServi
             })
             .ToListAsync(cancellationToken);
 
-        return intervalos.Select(i => new TempoDeExecucaoDaOs(i.ServicoIds, i.Fim - i.Inicio)).ToList();
+        return intervalos.Select(i => new TempoDeExecucaoDaOs(CombinacaoDeServicos.De(i.ServicoIds), i.Fim - i.Inicio)).ToList();
     }
 
     public void Adicionar(OrdemDeServico ordemDeServico) => contexto.Set<OrdemDeServico>().Add(ordemDeServico);

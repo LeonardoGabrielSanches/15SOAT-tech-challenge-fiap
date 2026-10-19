@@ -1,6 +1,8 @@
 using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Entities.Enums;
+using Oficina.Domain.Atendimento.Entities.ValueObjects;
 using Oficina.Domain.Atendimento.Interfaces;
+using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 
 namespace Oficina.Application.Atendimento.UseCases;
@@ -54,7 +56,10 @@ public sealed class RegistrarEntrega(IOrdemDeServicoRepository ordens, IUnidadeD
     }
 }
 
-public sealed record ServicoDaCombinacaoDto(Guid Id, string Nome, bool Ativo);
+public sealed record ServicoDaCombinacaoDto(Guid Id, string Nome, bool Ativo)
+{
+    public static ServicoDaCombinacaoDto De(Servico servico) => new(servico.Id, servico.Nome, servico.Ativo);
+}
 
 public sealed record TempoMedioDaCombinacaoDto(IReadOnlyList<ServicoDaCombinacaoDto> Servicos, int QuantidadeDeOs, double TempoMedioEmSegundos);
 
@@ -71,23 +76,51 @@ public sealed class ConsultarTempoMedioDeExecucao(IOrdemDeServicoRepository orde
             return new TempoMedioDeExecucaoDto(0, null, []);
         }
 
-        var catalogo = (await servicos.ObterPorIds(tempos.SelectMany(t => t.ServicoIds).Distinct().ToList(), cancellationToken))
-            .ToDictionary(s => s.Id);
+        var catalogo = await CatalogoDosServicos(tempos, cancellationToken);
 
         var combinacoes = tempos
-            .GroupBy(t => string.Join(',', t.ServicoIds.Order()))
-            .Select(g => new TempoMedioDaCombinacaoDto(
-                g.First().ServicoIds
-                    .Select(id => catalogo[id])
-                    .Select(s => new ServicoDaCombinacaoDto(s.Id, s.Nome, s.Ativo))
-                    .OrderBy(s => s.Nome)
-                    .ToList(),
-                g.Count(),
-                g.Average(t => t.Tempo.TotalSeconds)))
+            .GroupBy(t => t.Combinacao)
+            .Select(osDaCombinacao => TempoMedioDaCombinacao(osDaCombinacao.Key, osDaCombinacao.ToList(), catalogo));
+
+        return new TempoMedioDeExecucaoDto(tempos.Count, MediaEmSegundos(tempos), DaMaisFrequenteParaAMenosFrequente(combinacoes));
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, Servico>> CatalogoDosServicos(
+        IReadOnlyList<TempoDeExecucaoDaOs> tempos,
+        CancellationToken cancellationToken)
+    {
+        var servicoIds = tempos.SelectMany(t => t.Combinacao.ServicoIds).Distinct().ToList();
+
+        return (await servicos.ObterPorIds(servicoIds, cancellationToken)).ToDictionary(s => s.Id);
+    }
+
+    private static TempoMedioDaCombinacaoDto TempoMedioDaCombinacao(
+        CombinacaoDeServicos combinacao,
+        IReadOnlyList<TempoDeExecucaoDaOs> tempos,
+        IReadOnlyDictionary<Guid, Servico> catalogo) =>
+        new(
+            combinacao.ServicoIds
+                .Select(id => ServicoDoCatalogo(id, catalogo))
+                .Select(ServicoDaCombinacaoDto.De)
+                .OrderBy(s => s.Nome)
+                .ToList(),
+            tempos.Count,
+            MediaEmSegundos(tempos));
+
+    private static Servico ServicoDoCatalogo(Guid servicoId, IReadOnlyDictionary<Guid, Servico> catalogo) =>
+        catalogo.TryGetValue(servicoId, out var servico)
+            ? servico
+            : throw new InvalidOperationException(
+                $"Servico {servicoId} de uma OS finalizada nao esta no catalogo, mas Servico e apenas inativado, nunca excluido.");
+
+    private static List<TempoMedioDaCombinacaoDto> DaMaisFrequenteParaAMenosFrequente(IEnumerable<TempoMedioDaCombinacaoDto> combinacoes) =>
+        combinacoes
             .OrderByDescending(c => c.QuantidadeDeOs)
             .ThenBy(c => c.TempoMedioEmSegundos)
+            .ThenBy(c => string.Join(" + ", c.Servicos.Select(s => s.Nome)))
+            .ThenBy(c => string.Join(',', c.Servicos.Select(s => s.Id)), StringComparer.Ordinal)
             .ToList();
 
-        return new TempoMedioDeExecucaoDto(tempos.Count, tempos.Average(t => t.Tempo.TotalSeconds), combinacoes);
-    }
+    private static double MediaEmSegundos(IEnumerable<TempoDeExecucaoDaOs> tempos) =>
+        tempos.Average(t => t.Tempo.TotalSeconds);
 }

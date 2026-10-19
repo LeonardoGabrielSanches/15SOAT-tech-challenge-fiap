@@ -1,9 +1,8 @@
 using Oficina.Domain.Atendimento.Entities;
 using Oficina.Domain.Atendimento.Entities.Enums;
+using Oficina.Domain.Atendimento.Entities.ValueObjects;
 
 namespace Oficina.Domain.Atendimento.Interfaces;
-
-public sealed record TempoDeExecucaoDaOs(IReadOnlyCollection<Guid> ServicoIds, TimeSpan Tempo);
 
 public interface IOrdemDeServicoRepository
 {
