@@ -5,8 +5,8 @@ struct ClienteApi {
     let sessao: Sessao
     let urlBase: URL = Configuracao.urlApi
 
-    func obter<T: Decodable>(_ caminho: String) async throws -> T {
-        let dados = try await enviar(metodo: "GET", caminho: caminho)
+    func obter<T: Decodable>(_ caminho: String, consulta: [URLQueryItem] = []) async throws -> T {
+        let dados = try await enviar(metodo: "GET", caminho: caminho, consulta: consulta)
         do {
             return try JSONDecoder().decode(T.self, from: dados)
         } catch {
@@ -14,13 +14,13 @@ struct ClienteApi {
         }
     }
 
-    private func enviar(metodo: String, caminho: String) async throws -> Data {
+    private func enviar(metodo: String, caminho: String, consulta: [URLQueryItem]) async throws -> Data {
         let token = try await tokenDaSessao { try await sessao.tokenDeAcesso() }
-        let (dados, status) = try await executar(metodo: metodo, caminho: caminho, token: token)
+        let (dados, status) = try await executar(metodo: metodo, caminho: caminho, consulta: consulta, token: token)
         if status != 401 { return try validar(dados, status: status) }
 
         let novoToken = try await tokenDaSessao { try await sessao.renovarAposNaoAutorizado() }
-        let (novosDados, novoStatus) = try await executar(metodo: metodo, caminho: caminho, token: novoToken)
+        let (novosDados, novoStatus) = try await executar(metodo: metodo, caminho: caminho, consulta: consulta, token: novoToken)
         return try validar(novosDados, status: novoStatus)
     }
 
@@ -34,8 +34,10 @@ struct ClienteApi {
         }
     }
 
-    private func executar(metodo: String, caminho: String, token: String) async throws -> (Data, Int) {
-        var requisicao = URLRequest(url: urlBase.appending(path: caminho))
+    private func executar(metodo: String, caminho: String, consulta: [URLQueryItem], token: String) async throws -> (Data, Int) {
+        var url = urlBase.appending(path: caminho)
+        if !consulta.isEmpty { url.append(queryItems: consulta) }
+        var requisicao = URLRequest(url: url)
         requisicao.httpMethod = metodo
         requisicao.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         requisicao.setValue("application/json", forHTTPHeaderField: "Accept")

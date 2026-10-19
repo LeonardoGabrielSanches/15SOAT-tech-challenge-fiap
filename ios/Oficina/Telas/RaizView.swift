@@ -13,7 +13,7 @@ struct RaizView: View {
             if usuario.papel == nil {
                 SemAcessoView(usuario: usuario)
             } else {
-                InicioView(usuario: usuario)
+                PrincipalView(usuario: usuario)
             }
         }
     }
