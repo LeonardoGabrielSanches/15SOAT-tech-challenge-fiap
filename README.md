@@ -320,8 +320,8 @@ O relatório final consolidado está em [`docs/seguranca/relatorio-vulnerabilida
 - [Event Storming](docs/ddd/event-storming.md) (quadro em [PDF](docs/ddd/event-storming.pdf) e [imagem](docs/ddd/event-storming.png)) e [alterações aplicadas ao quadro](docs/ddd/alteracoes-event-storming.md)
 - [Diagramas](docs/ddd/diagramas.pdf): agregados, bounded contexts e máquina de status da OS
 - [Glossário](GLOSSARY.md)
-- Quadro online (Miro ou equivalente): **PENDENTE — link público a ser inserido pelo grupo**
+- Quadro do Event Storming: versionado no próprio repositório, em [`docs/ddd/event-storming.pdf`](docs/ddd/event-storming.pdf) e [`docs/ddd/event-storming.png`](docs/ddd/event-storming.png)
 
 ## Vídeo da entrega
 
-**PENDENTE — link do vídeo público no YouTube (máximo de 15 minutos) a ser inserido pelo grupo:** `<LINK_DO_VIDEO>`
+<https://youtu.be/4QP7ZSufk6w>
