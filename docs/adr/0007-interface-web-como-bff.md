@@ -1,0 +1,3 @@
+# Interface web como BFF em Next.js
+
+A interface web (`web/`, Next.js + TypeScript + Tailwind) atende os funcionários e o Cliente. Ela faz o login no Keycloak por authorization code + PKCE com um client próprio (`oficina-web`), guarda o JWT na sessão do servidor e chama a API a partir do servidor Next.js (Server Components, Server Actions e route handlers). O navegador nunca vê o token e a API continua sem CORS. Descartamos o navegador chamando a API diretamente com keycloak-js: isso exigiria CORS e deixaria o token no navegador. Também descartamos o login por usuário e senha no client do Swagger: ele levaria senhas para a interface e misturaria dois clients com propósitos diferentes.
