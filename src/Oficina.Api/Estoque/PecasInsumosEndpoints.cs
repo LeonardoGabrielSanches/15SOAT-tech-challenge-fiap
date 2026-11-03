@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 using Oficina.Api.Autenticacao;
-using Oficina.Application.Estoque.UseCases;
+using Oficina.Application.Estoque;
 using Oficina.Domain.Estoque.Entities.ValueObjects;
 using Oficina.Domain.Estoque.Interfaces;
 using Oficina.Infrastructure.Persistencia.Estoque;
@@ -19,7 +19,9 @@ public static class PecasInsumosEndpoints
         services.AddScoped<AtualizarPecaInsumo>();
         services.AddScoped<InativarPecaInsumo>();
         services.AddScoped<RegistrarEntradaDeMercadoria>();
-        services.AddScoped<ConsultarPecasInsumos>();
+        services.AddScoped<ConsultarPecaInsumo>();
+        services.AddScoped<ListarPecasInsumos>();
+        services.AddScoped<ConsultarSaldo>();
         return services;
     }
 
@@ -34,12 +36,12 @@ public static class PecasInsumosEndpoints
             return Results.Created($"/api/pecas-insumos/{dto.Id}", dto);
         }).RequireAuthorization(Politicas.Gerente);
 
-        grupo.MapGet("/", async (bool? incluirInativos, ConsultarPecasInsumos caso, CancellationToken ct) =>
-            Results.Ok(await caso.Listar(incluirInativos ?? false, ct)))
+        grupo.MapGet("/", async (bool? incluirInativos, ListarPecasInsumos caso, CancellationToken ct) =>
+            Results.Ok(await caso.Executar(incluirInativos ?? false, ct)))
             .RequireAuthorization(Politicas.Mecanico);
 
-        grupo.MapGet("/{id:guid}", async (Guid id, ConsultarPecasInsumos caso, CancellationToken ct) =>
-            Results.Ok(await caso.Obter(id, ct)))
+        grupo.MapGet("/{id:guid}", async (Guid id, ConsultarPecaInsumo caso, CancellationToken ct) =>
+            Results.Ok(await caso.Executar(id, ct)))
             .RequireAuthorization(Politicas.Mecanico);
 
         grupo.MapPut("/{id:guid}", async (Guid id, AtualizarPecaInsumoComando comando, AtualizarPecaInsumo caso, CancellationToken ct) =>
@@ -56,8 +58,8 @@ public static class PecasInsumosEndpoints
             Results.Ok(await caso.Executar(id, corpo.Quantidade, ct)))
             .RequireAuthorization(Politicas.Gerente);
 
-        grupo.MapGet("/{id:guid}/saldo", async (Guid id, ConsultarPecasInsumos caso, CancellationToken ct) =>
-            Results.Ok(await caso.ConsultarSaldo(id, ct)))
+        grupo.MapGet("/{id:guid}/saldo", async (Guid id, ConsultarSaldo caso, CancellationToken ct) =>
+            Results.Ok(await caso.Executar(id, ct)))
             .RequireAuthorization(Politicas.Mecanico);
 
         return app;

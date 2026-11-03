@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
-using Oficina.Application.Atendimento.UseCases;
-using Oficina.Application.CatalogoEstoque.UseCases;
+using Oficina.Application.Atendimento.Clientes;
+using Oficina.Application.Atendimento.OrdensDeServico;
+using Oficina.Application.Atendimento.Veiculos;
+using Oficina.Application.Catalogo;
 using Oficina.Application.Common;
 using Oficina.IntegrationTests.Support;
 

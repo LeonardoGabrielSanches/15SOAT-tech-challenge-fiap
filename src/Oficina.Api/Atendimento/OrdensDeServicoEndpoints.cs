@@ -1,6 +1,9 @@
 using System.Security.Claims;
 using Oficina.Api.Autenticacao;
-using Oficina.Application.Atendimento.UseCases;
+using Oficina.Application.Atendimento.Diagnostico;
+using Oficina.Application.Atendimento.Execucao;
+using Oficina.Application.Atendimento.Orcamento;
+using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Entities.Enums;
 using Oficina.Domain.Atendimento.Events;

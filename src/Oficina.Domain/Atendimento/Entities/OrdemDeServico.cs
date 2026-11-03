@@ -104,6 +104,25 @@ public sealed class OrdemDeServico : RaizDeAgregado
         string autor,
         DateTimeOffset agora)
     {
+        GarantirAberturaPermitida(cliente, veiculo, servicos);
+
+        var os = new OrdemDeServico
+        {
+            Id = Guid.NewGuid(),
+            Numero = numero,
+            ClienteId = cliente.Id,
+            VeiculoId = veiculo.Id,
+            Status = StatusOs.Recebida,
+            AbertaEm = agora
+        };
+        os._servicos.AddRange(servicos.Select(s => new ServicoDaOs(s.Id)));
+        os._historico.Add(new EntradaDoHistoricoDeStatus(null, StatusOs.Recebida, agora, autor));
+        os.Registrar(new OsAberta(os.Id, numero.Valor, cliente.Id, veiculo.Id, agora));
+        return os;
+    }
+
+    public static void GarantirAberturaPermitida(Cliente cliente, Veiculo veiculo, IReadOnlyCollection<Servico> servicos)
+    {
         cliente.GarantirAtivo();
         veiculo.GarantirAtivo();
 
@@ -126,20 +145,6 @@ public sealed class OrdemDeServico : RaizDeAgregado
         {
             servico.GarantirAtivo();
         }
-
-        var os = new OrdemDeServico
-        {
-            Id = Guid.NewGuid(),
-            Numero = numero,
-            ClienteId = cliente.Id,
-            VeiculoId = veiculo.Id,
-            Status = StatusOs.Recebida,
-            AbertaEm = agora
-        };
-        os._servicos.AddRange(servicos.Select(s => new ServicoDaOs(s.Id)));
-        os._historico.Add(new EntradaDoHistoricoDeStatus(null, StatusOs.Recebida, agora, autor));
-        os.Registrar(new OsAberta(os.Id, numero.Valor, cliente.Id, veiculo.Id, agora));
-        return os;
     }
 
     public void IncluirServico(Servico servico)

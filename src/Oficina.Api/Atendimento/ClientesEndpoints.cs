@@ -1,5 +1,5 @@
 using Oficina.Api.Autenticacao;
-using Oficina.Application.Atendimento.UseCases;
+using Oficina.Application.Atendimento.Clientes;
 
 namespace Oficina.Api.Atendimento;
 

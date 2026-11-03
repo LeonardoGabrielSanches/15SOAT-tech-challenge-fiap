@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Oficina.Application.Atendimento.UseCases;
-using Oficina.Application.CatalogoEstoque.UseCases;
+using Oficina.Application.Atendimento.Clientes;
+using Oficina.Application.Atendimento.OrdensDeServico;
+using Oficina.Application.Atendimento.Veiculos;
+using Oficina.Application.Catalogo;
 using Oficina.IntegrationTests.Support;
 
 namespace Oficina.IntegrationTests.Api.Atendimento;
