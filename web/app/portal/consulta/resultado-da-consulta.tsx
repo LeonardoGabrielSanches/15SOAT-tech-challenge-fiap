@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ConsultaPublicaDaOsDto } from "@/lib/api/dtos";
 import {
   formatarDataHora,
@@ -10,7 +11,7 @@ import {
   nomeDoStatus,
 } from "@/lib/formatacao";
 
-export function ResultadoDaConsulta({ os }: { os: ConsultaPublicaDaOsDto }) {
+export function ResultadoDaConsulta({ os, decisao }: { os: ConsultaPublicaDaOsDto; decisao?: ReactNode }) {
   const orcamento = os.orcamentoVigente;
 
   return (
@@ -75,6 +76,7 @@ export function ResultadoDaConsulta({ os }: { os: ConsultaPublicaDaOsDto }) {
             <p className="text-muted-foreground">Esta OS ainda não tem orçamento.</p>
           )}
         </CardContent>
+        {decisao && <CardFooter className="flex-col items-stretch">{decisao}</CardFooter>}
       </Card>
 
       <Card>
