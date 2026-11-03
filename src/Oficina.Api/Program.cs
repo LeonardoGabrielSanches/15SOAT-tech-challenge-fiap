@@ -17,7 +17,7 @@ var connectionString = builder.Configuration.GetConnectionString("Oficina")
 var keycloak = builder.Configuration.GetSection(OpcoesDoKeycloak.Secao).Get<OpcoesDoKeycloak>()
     ?? throw new InvalidOperationException("Secao Keycloak nao configurada.");
 
-builder.Services.AddInfrastructure(connectionString);
+builder.Services.AddInfrastructure(connectionString, builder.Configuration);
 builder.Services.AddCadastroDeClientes();
 builder.Services.AddCadastroDeVeiculos();
 builder.Services.AddOrdensDeServico();
