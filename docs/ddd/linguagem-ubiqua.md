@@ -31,17 +31,18 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 |---|---|---|
 | Ordem de Serviço (OS) | `OrdemDeServico` (raiz do agregado do fluxo); `OrdemDeServico.Abrir` | `Entities/OrdemDeServico.cs` |
 | Número da OS | `NumeroOs` (`OS-AAAA-NNNNN`); gerado por `IGeradorNumeroOs`, implementado com sequência por ano no PostgreSQL (`GeradorNumeroOs`) | `Entities/ValueObjects/NumeroOs.cs`, `Interfaces/IGeradorNumeroOs.cs`, `Oficina.Infrastructure/Persistencia/Atendimento/GeradorNumeroOs.cs` |
-| Status da OS | enum `StatusOs` (`Recebida`, `EmDiagnostico`, `AguardandoAprovacao`, `Aprovada`, `EmExecucao`, `Finalizada`, `Entregue`, `Cancelada`) | `Entities/Enums/StatusOs.cs` |
+| Status da OS | enum `StatusOs` (`Recebida`, `EmDiagnostico`, `AguardandoAprovacao`, `Aprovada`, `EmExecucao`, `Finalizada`, `Entregue`, `Cancelada`); regras em `RegrasDoStatusOs` (`EstaEmAndamento`, `ApareceNaListagemPadrao`, `PrioridadeNaListagem`) | `Entities/Enums/StatusOs.cs`, `Entities/Enums/RegrasDoStatusOs.cs` |
+| Listagem de OS | `ListarOs` (paginada, `PaginaDeOrdensDeServicoDto`); consulta `IConsultaDeOrdensDeServico`, que filtra, ordena por prioridade do status e abertura e pagina no banco | `Application/Atendimento/OrdensDeServico/ListarOs.cs`, `Application/Atendimento/OrdensDeServico/IConsultaDeOrdensDeServico.cs`, `Oficina.Infrastructure/Persistencia/Atendimento/ConsultaDeOrdensDeServico.cs` |
 | Histórico de status | `EntradaDoHistoricoDeStatus` (origem, destino, momento, autor); `OrdemDeServico.Historico` | `Entities/OrdemDeServico.cs` |
-| OS em andamento (no máximo uma por Veículo) | `IOrdemDeServicoRepository.ExisteEmAndamentoDoVeiculo`, verificado em `AbrirOs`; índice único parcial `ux_ordens_de_servico_veiculo_em_andamento` como segunda barreira | `Interfaces/IOrdemDeServicoRepository.cs`, `Application/Atendimento/OrdensDeServico/AbrirOs.cs`, `OrdemDeServicoConfiguration.cs` |
+| OS em andamento (no máximo uma por Veículo) | `StatusOs.EstaEmAndamento`; `IOrdemDeServicoRepository.ExisteEmAndamentoDoVeiculo`, verificado em `AbrirOs`; índice único parcial `ux_ordens_de_servico_veiculo_em_andamento` como segunda barreira | `Interfaces/IOrdemDeServicoRepository.cs`, `Application/Atendimento/OrdensDeServico/AbrirOs.cs`, `OrdemDeServicoConfiguration.cs` |
 | Recebida | `StatusOs.Recebida`; caso de uso `AbrirOs`, evento `OsAberta` | |
 | Serviço da OS | `ServicoDaOs`; `OrdemDeServico.IncluirServico`, `RemoverServico`; casos de uso `IncluirServicoNaOs`, `RemoverServicoDaOs` | `Entities/OrdemDeServico.cs` |
 | Diagnóstico | `OrdemDeServico.IniciarDiagnostico`, `ConcluirDiagnostico`; casos de uso `IniciarDiagnostico`, `ConcluirDiagnostico`; eventos `DiagnosticoIniciado`, `DiagnosticoConcluido` | |
-| Aprovada | `StatusOs.Aprovada`; `OrdemDeServico.AprovarOrcamento`; fila `ListarFilaDeExecucao` | |
+| Aprovada | `StatusOs.Aprovada`; `OrdemDeServico.AprovarOrcamento`; fila `ListarFilaDeExecucao` (via `IConsultaDeOrdensDeServico.ListarPorStatus`) | |
 | Em execução / Finalizada | `OrdemDeServico.IniciarExecucao`, `FinalizarExecucao`; casos de uso `IniciarExecucao`, `FinalizarExecucao` | `Application/Atendimento/Execucao/` |
 | Entregue | `OrdemDeServico.RegistrarEntrega`; caso de uso `RegistrarEntrega` | `Application/Atendimento/Execucao/RegistrarEntrega.cs` |
 | Cancelada | `OrdemDeServico.Cancelar` (motivo obrigatório; estorna todas as Peças/insumos); caso de uso `CancelarOs`; evento `OsCancelada` | |
-| Tempo de execução | intervalo corrido entre `EmExecucao` e `Finalizada` no Histórico de status, medido para a OS inteira; `TempoDeExecucaoDaOs` lido por `IOrdemDeServicoRepository.ObterTemposDeExecucao` | `Interfaces/IOrdemDeServicoRepository.cs`, `OrdemDeServicoRepository.cs` |
+| Tempo de execução | intervalo corrido entre `EmExecucao` e `Finalizada` no Histórico de status, medido para a OS inteira; `TempoDeExecucaoDaOs` lido por `IConsultaDeOrdensDeServico.ObterTemposDeExecucao` | `Application/Atendimento/OrdensDeServico/IConsultaDeOrdensDeServico.cs`, `ConsultaDeOrdensDeServico.cs` |
 | Combinação de serviços | `CombinacaoDeServicos`: conjunto exato de `ServicoDaOs` da OS (sem ordem, sem peças/insumos); `ConsultarTempoMedioDeExecucao` agrupa os tempos por ela e devolve `TempoMedioDaCombinacaoDto` | `Entities/ValueObjects/CombinacaoDeServicos.cs`, `Application/Atendimento/Execucao/ConsultarTempoMedioDeExecucao.cs` |
 | Consulta do Cliente | `ConsultarOsPublica` (Número da OS + CPF/CNPJ) | `Application/Atendimento/OrdensDeServico/ConsultarOsPublica.cs` |
 

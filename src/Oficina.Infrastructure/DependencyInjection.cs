@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Infrastructure.Persistencia;
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IClienteRepository, ClienteRepository>();
         services.AddScoped<IVeiculoRepository, VeiculoRepository>();
         services.AddScoped<IOrdemDeServicoRepository, OrdemDeServicoRepository>();
+        services.AddScoped<IConsultaDeOrdensDeServico, ConsultaDeOrdensDeServico>();
         services.AddScoped<IGeradorNumeroOs, GeradorNumeroOs>();
         services.AddSingleton<INotificador, NotificadorSimulado>();
         services.AddSingleton(TimeProvider.System);

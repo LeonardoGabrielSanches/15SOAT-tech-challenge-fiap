@@ -1,15 +1,15 @@
+using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Domain.Atendimento.Entities.ValueObjects;
-using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 
 namespace Oficina.Application.Atendimento.Execucao;
 
-public sealed class ConsultarTempoMedioDeExecucao(IOrdemDeServicoRepository ordens, IServicoRepository servicos)
+public sealed class ConsultarTempoMedioDeExecucao(IConsultaDeOrdensDeServico consulta, IServicoRepository servicos)
 {
     public async Task<TempoMedioDeExecucaoDto> Executar(CancellationToken cancellationToken)
     {
-        var tempos = await ordens.ObterTemposDeExecucao(cancellationToken);
+        var tempos = await consulta.ObterTemposDeExecucao(cancellationToken);
 
         if (tempos.Count == 0)
         {

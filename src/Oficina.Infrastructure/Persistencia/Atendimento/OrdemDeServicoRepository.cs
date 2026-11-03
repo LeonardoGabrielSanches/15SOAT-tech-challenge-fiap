@@ -8,6 +8,8 @@ namespace Oficina.Infrastructure.Persistencia.Atendimento;
 
 public sealed class OrdemDeServicoRepository(DbContext contexto) : IOrdemDeServicoRepository
 {
+    private static readonly StatusOs[] StatusEmAndamento = Enum.GetValues<StatusOs>().Where(s => s.EstaEmAndamento()).ToArray();
+
     public Task<OrdemDeServico?> ObterPorId(Guid id, CancellationToken cancellationToken) =>
         contexto.Set<OrdemDeServico>().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
@@ -19,39 +21,8 @@ public sealed class OrdemDeServicoRepository(DbContext contexto) : IOrdemDeServi
 
     public Task<bool> ExisteEmAndamentoDoVeiculo(Guid veiculoId, CancellationToken cancellationToken) =>
         contexto.Set<OrdemDeServico>().AnyAsync(
-            o => o.VeiculoId == veiculoId && o.Status != StatusOs.Entregue && o.Status != StatusOs.Cancelada,
+            o => o.VeiculoId == veiculoId && StatusEmAndamento.Contains(o.Status),
             cancellationToken);
-
-    public async Task<IReadOnlyList<OrdemDeServico>> Listar(StatusOs? status, CancellationToken cancellationToken)
-    {
-        var consulta = contexto.Set<OrdemDeServico>().AsQueryable();
-
-        if (status is not null)
-        {
-            consulta = consulta.Where(o => o.Status == status);
-        }
-        else
-        {
-            consulta = consulta.Where(o => o.Status != StatusOs.Entregue && o.Status != StatusOs.Cancelada);
-        }
-
-        return await consulta.ToListAsync(cancellationToken);
-    }
-
-    public async Task<IReadOnlyList<TempoDeExecucaoDaOs>> ObterTemposDeExecucao(CancellationToken cancellationToken)
-    {
-        var intervalos = await contexto.Set<OrdemDeServico>()
-            .Where(o => o.Historico.Any(h => h.Destino == StatusOs.Finalizada))
-            .Select(o => new
-            {
-                ServicoIds = o.Servicos.Select(s => s.ServicoId).ToList(),
-                Inicio = o.Historico.Where(h => h.Destino == StatusOs.EmExecucao).Max(h => h.Momento),
-                Fim = o.Historico.Where(h => h.Destino == StatusOs.Finalizada).Max(h => h.Momento)
-            })
-            .ToListAsync(cancellationToken);
-
-        return intervalos.Select(i => new TempoDeExecucaoDaOs(CombinacaoDeServicos.De(i.ServicoIds), i.Fim - i.Inicio)).ToList();
-    }
 
     public void Adicionar(OrdemDeServico ordemDeServico) => contexto.Set<OrdemDeServico>().Add(ordemDeServico);
 }

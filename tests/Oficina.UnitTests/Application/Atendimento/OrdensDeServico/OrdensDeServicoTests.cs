@@ -70,13 +70,6 @@ public class OrdensDeServicoTests
         return os;
     }
 
-    private OrdemDeServico ComStatus(StatusOs status, DateTimeOffset abertaEm)
-    {
-        var servico = Servico.Cadastrar("S", null, Dinheiro.De(1m));
-        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [servico], "a", abertaEm);
-        typeof(OrdemDeServico).GetProperty(nameof(OrdemDeServico.Status))!.SetValue(os, status);
-        return os;
-    }
 
     [Fact]
     public async Task Abrir_cria_os_recebida_com_numero_historico_e_evento()
@@ -307,39 +300,29 @@ public class OrdensDeServicoTests
     }
 
     [Fact]
-    public async Task Listar_oculta_entregue_e_cancelada_e_ordena_por_prioridade_e_depois_pela_mais_antiga()
+    public async Task Listar_consulta_a_pagina_pedida_com_o_filtro_de_status()
     {
-        var agora = _relogio.GetUtcNow();
-        var os = new List<OrdemDeServico>
-        {
-            ComStatus(StatusOs.Recebida, agora.AddHours(-1)),
-            ComStatus(StatusOs.Finalizada, agora.AddHours(-9)),
-            ComStatus(StatusOs.EmExecucao, agora.AddHours(-2)),
-            ComStatus(StatusOs.EmExecucao, agora.AddHours(-5)),
-            ComStatus(StatusOs.Aprovada, agora.AddHours(-3)),
-            ComStatus(StatusOs.AguardandoAprovacao, agora.AddHours(-4)),
-            ComStatus(StatusOs.EmDiagnostico, agora.AddHours(-6))
-        };
-        _ordens.Setup(r => r.Listar(null, It.IsAny<CancellationToken>())).ReturnsAsync(os);
+        var consulta = new Mock<IConsultaDeOrdensDeServico>();
+        var esperada = new PaginaDeOrdensDeServicoDto([], 3, 50, 120);
+        consulta.Setup(c => c.Listar(StatusOs.Finalizada, 3, 50, It.IsAny<CancellationToken>())).ReturnsAsync(esperada);
 
-        var lista = await new ListarOs(_ordens.Object).Executar(null, CancellationToken.None);
+        var pagina = await new ListarOs(consulta.Object).Executar(StatusOs.Finalizada, 3, 50, CancellationToken.None);
 
-        Assert.Equal(
-            ["EmExecucao", "EmExecucao", "Aprovada", "AguardandoAprovacao", "EmDiagnostico", "Recebida", "Finalizada"],
-            lista.Select(o => o.Status));
-        Assert.Equal(os[3].Id, lista[0].Id);
-        Assert.Equal(os[2].Id, lista[1].Id);
+        Assert.Same(esperada, pagina);
     }
 
-    [Fact]
-    public async Task Listar_com_filtro_de_status_inclui_os_encerradas()
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(1, 0)]
+    [InlineData(1, 101)]
+    public async Task Listar_rejeita_pagina_ou_tamanho_fora_dos_limites_sem_consultar(int pagina, int tamanho)
     {
-        var entregue = ComStatus(StatusOs.Entregue, _relogio.GetUtcNow());
-        _ordens.Setup(r => r.Listar(StatusOs.Entregue, It.IsAny<CancellationToken>())).ReturnsAsync([entregue]);
+        var consulta = new Mock<IConsultaDeOrdensDeServico>();
 
-        var lista = await new ListarOs(_ordens.Object).Executar(StatusOs.Entregue, CancellationToken.None);
+        await Assert.ThrowsAsync<DadosInvalidosException>(() =>
+            new ListarOs(consulta.Object).Executar(null, pagina, tamanho, CancellationToken.None));
 
-        Assert.Equal([entregue.Id], lista.Select(o => o.Id));
+        consulta.VerifyNoOtherCalls();
     }
 
     [Fact]
