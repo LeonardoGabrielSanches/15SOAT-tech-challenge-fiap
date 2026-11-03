@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Oficina.Api.Autenticacao;
 using Oficina.Application.Atendimento.Diagnostico;
 using Oficina.Application.Atendimento.Execucao;
-using Oficina.Application.Atendimento.Orcamento;
+using Oficina.Application.Atendimento.Notificacao;
 using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Entities.Enums;
@@ -38,7 +38,7 @@ public static class OrdensDeServicoEndpoints
         services.AddScoped<RegistrarEntrega>();
         services.AddScoped<CancelarOs>();
         services.AddScoped<ConsultarTempoMedioDeExecucao>();
-        services.AddScoped<IManipuladorDeEvento<DiagnosticoConcluido>, EnviarOrcamentoAoConcluirDiagnostico>();
+        services.AddScoped<IManipuladorDeEvento<StatusDaOsAlterado>, NotificarClienteDaMudancaDeStatus>();
         return services;
     }
 
