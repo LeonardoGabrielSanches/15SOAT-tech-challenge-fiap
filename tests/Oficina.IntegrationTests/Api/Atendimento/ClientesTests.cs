@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using Oficina.Application.Atendimento.UseCases;
+using Oficina.Application.Atendimento.Clientes;
 using Oficina.IntegrationTests.Support;
 
 namespace Oficina.IntegrationTests.Api.Atendimento;

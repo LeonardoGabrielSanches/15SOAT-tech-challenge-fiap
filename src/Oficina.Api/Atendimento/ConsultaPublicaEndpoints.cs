@@ -1,4 +1,4 @@
-using Oficina.Application.Atendimento.UseCases;
+using Oficina.Application.Atendimento.OrdensDeServico;
 
 namespace Oficina.Api.Atendimento;
 

@@ -5,8 +5,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moq;
+using Oficina.Application.Common;
 
 namespace Oficina.IntegrationTests.Support;
 
@@ -14,6 +17,22 @@ public sealed class ApiFactory(PostgresFixture postgres) : WebApplicationFactory
 {
     public const string Esquema = "Teste";
     public const string CabecalhoPapel = "X-Teste-Papel";
+
+    public Mock<INotificador> Notificador { get; } = new();
+
+    public IReadOnlyList<NotificacaoDeStatus> NotificacoesEnviadas() =>
+        Notificador.Invocations
+            .Where(i => i.Method.Name == nameof(INotificador.NotificarMudancaDeStatus))
+            .SelectMany(i => i.Arguments.OfType<NotificacaoDeStatus>())
+            .ToList();
+
+    public IReadOnlyList<OrcamentoDaNotificacao> OrcamentosNotificados() =>
+        NotificacoesEnviadas()
+            .Select(n => n.Orcamento)
+            .OfType<OrcamentoDaNotificacao>()
+            .ToList();
+
+    public string UltimoTokenNotificado() => OrcamentosNotificados()[^1].Token;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -29,6 +48,8 @@ public sealed class ApiFactory(PostgresFixture postgres) : WebApplicationFactory
                     opcoes.DefaultScheme = Esquema;
                 })
                 .AddScheme<AuthenticationSchemeOptions, ManipuladorDeAutenticacaoDeTeste>(Esquema, _ => { });
+            services.RemoveAll<INotificador>();
+            services.AddSingleton(Notificador.Object);
         });
     }
 

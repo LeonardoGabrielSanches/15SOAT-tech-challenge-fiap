@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
-using Oficina.Application.Atendimento.UseCases;
-using Oficina.Application.CatalogoEstoque.UseCases;
+using Oficina.Application.Atendimento.Clientes;
+using Oficina.Application.Atendimento.OrdensDeServico;
+using Oficina.Application.Atendimento.Veiculos;
+using Oficina.Application.Catalogo;
 using Oficina.IntegrationTests.Support;
 
 namespace Oficina.IntegrationTests.Api.Atendimento;
@@ -179,40 +181,11 @@ public partial class OrdensDeServicoTests(PostgresFixture postgres) : IAsyncLife
     }
 
     [Fact]
-    public async Task Lista_ordenada_por_prioridade_com_filtro_de_status()
+    public async Task Listagem_com_status_inexistente_e_422()
     {
-        var servico = await CriarServico();
-        var (cliente, veiculo) = await CriarClienteComVeiculo();
-        var os = await AbrirOs(cliente.Id, veiculo.Id, servico.Id);
-        var http = Atendente();
+        var invalido = await Atendente().GetAsync($"{Rota}?status=Inexistente");
 
-        var lista = (await http.GetFromJsonAsync<List<OrdemDeServicoResumoDto>>(Rota))!;
-        var recebidas = (await http.GetFromJsonAsync<List<OrdemDeServicoResumoDto>>($"{Rota}?status=Recebida"))!;
-        var entregues = (await http.GetFromJsonAsync<List<OrdemDeServicoResumoDto>>($"{Rota}?status=Entregue"))!;
-        var invalido = await http.GetAsync($"{Rota}?status=Inexistente");
-
-        Assert.Contains(lista, o => o.Id == os.Id);
-        Assert.Contains(recebidas, o => o.Id == os.Id);
-        Assert.DoesNotContain(entregues, o => o.Id == os.Id);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, invalido.StatusCode);
-    }
-
-    [Fact]
-    public async Task Mecanico_lista_as_os_com_e_sem_filtro_de_status()
-    {
-        var servico = await CriarServico();
-        var (cliente, veiculo) = await CriarClienteComVeiculo();
-        var os = await AbrirOs(cliente.Id, veiculo.Id, servico.Id);
-        var mecanico = _factory.CriarClienteComPapel("mecanico");
-
-        var lista = await mecanico.GetAsync(Rota);
-        var recebidas = await mecanico.GetAsync($"{Rota}?status=Recebida");
-        var entregues = await mecanico.GetAsync($"{Rota}?status=Entregue");
-
-        Assert.Equal(HttpStatusCode.OK, lista.StatusCode);
-        Assert.Contains((await lista.Content.ReadFromJsonAsync<List<OrdemDeServicoResumoDto>>())!, o => o.Id == os.Id);
-        Assert.Contains((await recebidas.Content.ReadFromJsonAsync<List<OrdemDeServicoResumoDto>>())!, o => o.Id == os.Id);
-        Assert.DoesNotContain((await entregues.Content.ReadFromJsonAsync<List<OrdemDeServicoResumoDto>>())!, o => o.Id == os.Id);
     }
 
     [Fact]
@@ -253,20 +226,5 @@ public partial class OrdensDeServicoTests(PostgresFixture postgres) : IAsyncLife
         Assert.Equal(HttpStatusCode.Forbidden, atendenteEmDiagnostico.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, atendenteIncluiEmDiagnostico.StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, mecanicoEmDiagnostico.StatusCode);
-    }
-
-    [Fact]
-    public async Task Listagem_sem_filtro_omite_entregues_e_canceladas_no_banco()
-    {
-        var servico = await CriarServico();
-        var (cliente, veiculo) = await CriarClienteComVeiculo();
-        var os = await AbrirOs(cliente.Id, veiculo.Id, servico.Id);
-        await Atendente().PostAsJsonAsync($"{Rota}/{os.Id}/cancelar", new { motivo = "Desistencia" });
-
-        var lista = (await Atendente().GetFromJsonAsync<List<OrdemDeServicoResumoDto>>(Rota))!;
-        var canceladas = (await Atendente().GetFromJsonAsync<List<OrdemDeServicoResumoDto>>($"{Rota}?status=Cancelada"))!;
-
-        Assert.DoesNotContain(lista, o => o.Id == os.Id);
-        Assert.Contains(canceladas, o => o.Id == os.Id);
     }
 }

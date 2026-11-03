@@ -1,5 +1,5 @@
 using Oficina.Api.Autenticacao;
-using Oficina.Application.CatalogoEstoque.UseCases;
+using Oficina.Application.Catalogo;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 using Oficina.Infrastructure.Persistencia;
 

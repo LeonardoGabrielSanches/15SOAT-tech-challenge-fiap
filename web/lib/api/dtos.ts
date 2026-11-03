@@ -66,6 +66,13 @@ export type OrdemDeServicoResumoDto = {
   abertaEm: string;
 };
 
+export type PaginaDeOrdensDeServicoDto = {
+  itens: OrdemDeServicoResumoDto[];
+  pagina: number;
+  tamanho: number;
+  total: number;
+};
+
 export type ItemDaVersaoDto = {
   tipo: "Servico" | "PecaInsumo";
   referenciaId: string;

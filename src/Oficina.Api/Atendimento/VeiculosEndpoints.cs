@@ -1,5 +1,5 @@
 using Oficina.Api.Autenticacao;
-using Oficina.Application.Atendimento.UseCases;
+using Oficina.Application.Atendimento.Veiculos;
 
 namespace Oficina.Api.Atendimento;
 
@@ -18,7 +18,7 @@ public static class VeiculosEndpoints
         services.AddScoped<ListarVeiculosDoCliente>();
         services.AddScoped<AtualizarVeiculo>();
         services.AddScoped<InativarVeiculo>();
-        services.AddScoped<TransfereVeiculo>();
+        services.AddScoped<TransferirVeiculo>();
         return services;
     }
 
@@ -50,7 +50,7 @@ public static class VeiculosEndpoints
             return Results.NoContent();
         });
 
-        veiculos.MapPost("/{id:guid}/transferencia", async (Guid id, TransferirVeiculoRequest requisicao, TransfereVeiculo caso, CancellationToken ct) =>
+        veiculos.MapPost("/{id:guid}/transferencia", async (Guid id, TransferirVeiculoRequest requisicao, TransferirVeiculo caso, CancellationToken ct) =>
             Results.Ok(await caso.Executar(new TransferirVeiculoComando(id, requisicao.NovoProprietarioId), ct)));
 
         administrativo.MapGet("/clientes/{clienteId:guid}/veiculos",

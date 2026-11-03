@@ -22,7 +22,7 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 | Veículo | `Veiculo` (raiz de agregado); `Veiculo.Cadastrar`, `AtualizarDados`, `Inativar` | `Entities/Veiculo.cs` |
 | Placa (padrão antigo e Mercosul) | `Placa` (normalizada) | `Entities/ValueObjects/Placa.cs` |
 | Ano do Veículo | `AnoFabricacao` (de 1900 até o ano atual + 1) | `Entities/ValueObjects/AnoFabricacao.cs` |
-| Proprietário atual | `Veiculo.ProprietarioId`; `Veiculo.Transferir`; caso de uso `TransfereVeiculo` | `Entities/Veiculo.cs`, `Application/Atendimento/UseCases/CasosDeUsoDeVeiculo.cs` |
+| Proprietário atual | `Veiculo.ProprietarioId`; `Veiculo.Transferir`; caso de uso `TransferirVeiculo` | `Entities/Veiculo.cs`, `Application/Atendimento/Veiculos/TransferirVeiculo.cs` |
 | Inativo | `Ativo = false` por `Inativar()` em `Cliente`, `Veiculo`, `Servico`, `PecaInsumo`; `GarantirAtivo()` rejeita o uso em novas operações | entidades correspondentes |
 
 ### Ordem de Serviço
@@ -31,19 +31,20 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 |---|---|---|
 | Ordem de Serviço (OS) | `OrdemDeServico` (raiz do agregado do fluxo); `OrdemDeServico.Abrir` | `Entities/OrdemDeServico.cs` |
 | Número da OS | `NumeroOs` (`OS-AAAA-NNNNN`); gerado por `IGeradorNumeroOs`, implementado com sequência por ano no PostgreSQL (`GeradorNumeroOs`) | `Entities/ValueObjects/NumeroOs.cs`, `Interfaces/IGeradorNumeroOs.cs`, `Oficina.Infrastructure/Persistencia/Atendimento/GeradorNumeroOs.cs` |
-| Status da OS | enum `StatusOs` (`Recebida`, `EmDiagnostico`, `AguardandoAprovacao`, `Aprovada`, `EmExecucao`, `Finalizada`, `Entregue`, `Cancelada`) | `Entities/Enums/StatusOs.cs` |
+| Status da OS | enum `StatusOs` (`Recebida`, `EmDiagnostico`, `AguardandoAprovacao`, `Aprovada`, `EmExecucao`, `Finalizada`, `Entregue`, `Cancelada`); regras em `RegrasDoStatusOs` (`EstaEmAndamento`, `ApareceNaListagemPadrao`, `PrioridadeNaListagem`) | `Entities/Enums/StatusOs.cs`, `Entities/Enums/RegrasDoStatusOs.cs` |
+| Listagem de OS | `ListarOs` (paginada, `PaginaDeOrdensDeServicoDto`); consulta `IConsultaDeOrdensDeServico`, que filtra, ordena por prioridade do status e abertura e pagina no banco | `Application/Atendimento/OrdensDeServico/ListarOs.cs`, `Application/Atendimento/OrdensDeServico/IConsultaDeOrdensDeServico.cs`, `Oficina.Infrastructure/Persistencia/Atendimento/ConsultaDeOrdensDeServico.cs` |
 | Histórico de status | `EntradaDoHistoricoDeStatus` (origem, destino, momento, autor); `OrdemDeServico.Historico` | `Entities/OrdemDeServico.cs` |
-| OS em andamento (no máximo uma por Veículo) | `IOrdemDeServicoRepository.ExisteEmAndamentoDoVeiculo`, verificado em `AbrirOs`; índice único parcial `ux_ordens_de_servico_veiculo_em_andamento` como segunda barreira | `Interfaces/IOrdemDeServicoRepository.cs`, `UseCases/CasosDeUsoDeOrdemDeServico.cs`, `OrdemDeServicoConfiguration.cs` |
+| OS em andamento (no máximo uma por Veículo) | `StatusOs.EstaEmAndamento`; `IOrdemDeServicoRepository.ExisteEmAndamentoDoVeiculo`, verificado em `AbrirOs`; índice único parcial `ux_ordens_de_servico_veiculo_em_andamento` como segunda barreira | `Interfaces/IOrdemDeServicoRepository.cs`, `Application/Atendimento/OrdensDeServico/AbrirOs.cs`, `OrdemDeServicoConfiguration.cs` |
 | Recebida | `StatusOs.Recebida`; caso de uso `AbrirOs`, evento `OsAberta` | |
 | Serviço da OS | `ServicoDaOs`; `OrdemDeServico.IncluirServico`, `RemoverServico`; casos de uso `IncluirServicoNaOs`, `RemoverServicoDaOs` | `Entities/OrdemDeServico.cs` |
 | Diagnóstico | `OrdemDeServico.IniciarDiagnostico`, `ConcluirDiagnostico`; casos de uso `IniciarDiagnostico`, `ConcluirDiagnostico`; eventos `DiagnosticoIniciado`, `DiagnosticoConcluido` | |
-| Aprovada | `StatusOs.Aprovada`; `OrdemDeServico.AprovarOrcamento`; fila `ListarFilaDeExecucao` | |
-| Em execução / Finalizada | `OrdemDeServico.IniciarExecucao`, `FinalizarExecucao`; casos de uso `IniciarExecucao`, `FinalizarExecucao` | `UseCases/CasosDeUsoDeExecucao.cs` |
-| Entregue | `OrdemDeServico.RegistrarEntrega`; caso de uso `RegistrarEntrega` | `UseCases/CasosDeUsoDeExecucao.cs` |
+| Aprovada | `StatusOs.Aprovada`; `OrdemDeServico.AprovarOrcamento`; fila `ListarFilaDeExecucao` (via `IConsultaDeOrdensDeServico.ListarPorStatus`) | |
+| Em execução / Finalizada | `OrdemDeServico.IniciarExecucao`, `FinalizarExecucao`; casos de uso `IniciarExecucao`, `FinalizarExecucao` | `Application/Atendimento/Execucao/` |
+| Entregue | `OrdemDeServico.RegistrarEntrega`; caso de uso `RegistrarEntrega` | `Application/Atendimento/Execucao/RegistrarEntrega.cs` |
 | Cancelada | `OrdemDeServico.Cancelar` (motivo obrigatório; estorna todas as Peças/insumos); caso de uso `CancelarOs`; evento `OsCancelada` | |
-| Tempo de execução | intervalo corrido entre `EmExecucao` e `Finalizada` no Histórico de status, medido para a OS inteira; `TempoDeExecucaoDaOs` lido por `IOrdemDeServicoRepository.ObterTemposDeExecucao` | `Interfaces/IOrdemDeServicoRepository.cs`, `OrdemDeServicoRepository.cs` |
-| Combinação de serviços | `CombinacaoDeServicos`: conjunto exato de `ServicoDaOs` da OS (sem ordem, sem peças/insumos); `ConsultarTempoMedioDeExecucao` agrupa os tempos por ela e devolve `TempoMedioDaCombinacaoDto` | `Entities/ValueObjects/CombinacaoDeServicos.cs`, `UseCases/CasosDeUsoDeExecucao.cs` |
-| Consulta do Cliente | `ConsultarOsPublica` (Número da OS + CPF/CNPJ) | `UseCases/ConsultarOsPublica.cs` |
+| Tempo de execução | intervalo corrido entre `EmExecucao` e `Finalizada` no Histórico de status, medido para a OS inteira; `TempoDeExecucaoDaOs` lido por `IConsultaDeOrdensDeServico.ObterTemposDeExecucao` | `Application/Atendimento/OrdensDeServico/IConsultaDeOrdensDeServico.cs`, `ConsultaDeOrdensDeServico.cs` |
+| Combinação de serviços | `CombinacaoDeServicos`: conjunto exato de `ServicoDaOs` da OS (sem ordem, sem peças/insumos); `ConsultarTempoMedioDeExecucao` agrupa os tempos por ela e devolve `TempoMedioDaCombinacaoDto` | `Entities/ValueObjects/CombinacaoDeServicos.cs`, `Application/Atendimento/Execucao/ConsultarTempoMedioDeExecucao.cs` |
+| Consulta do Cliente | `ConsultarOsPublica` (Número da OS + CPF/CNPJ) | `Application/Atendimento/OrdensDeServico/ConsultarOsPublica.cs` |
 
 ### Orçamento
 
@@ -52,8 +53,9 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 | Orçamento | conjunto de `VersaoDoOrcamento` da OS (`OrdemDeServico.Versoes`) | `Entities/VersaoDoOrcamento.cs` |
 | Versão do orçamento | `VersaoDoOrcamento` (itens `ItemDaVersao` com preços congelados, total, situação `SituacaoDaVersao`); gerada em `OrdemDeServico.ConcluirDiagnostico` | `Entities/VersaoDoOrcamento.cs` |
 | Token de aprovação | `VersaoDoOrcamento.Token` (32 bytes aleatórios, uso único, sem expiração por tempo); validado em `OrdemDeServico.AprovarOrcamento` e `RecusarOrcamento` | `Entities/OrdemDeServico.cs` |
-| Aprovar / recusar orçamento | casos de uso `AprovarOrcamento` e `RecusarOrcamento`; eventos `OrcamentoAprovado` e `OrcamentoRecusado`; motivo em `MotivoDaUltimaRecusa` | `UseCases/CasosDeUsoDeAprovacao.cs` |
-| Envio do orçamento | handler `EnviarOrcamentoAoConcluirDiagnostico` do evento `DiagnosticoConcluido`, via `INotificador` (implementação simulada `NotificadorSimulado`) | `Application/Common/INotificador.cs`, `Oficina.Infrastructure/NotificadorSimulado.cs` |
+| Aprovar / recusar orçamento | casos de uso `AprovarOrcamento` e `RecusarOrcamento`; eventos `OrcamentoAprovado` e `OrcamentoRecusado`; motivo em `MotivoDaUltimaRecusa` | `Application/Atendimento/Orcamento/AprovarOrcamento.cs`, `RecusarOrcamento.cs` |
+| Decisão do orçamento | endpoint `POST /api/publico/orcamentos/{token}/decisao` com `DecisaoDoOrcamentoRequest` (`DecisaoDoOrcamento`: `Aprovar` ou `Recusar`, `motivo` opcional); chama `AprovarOrcamento` ou `RecusarOrcamento` | `Oficina.Api/Atendimento/DecisaoDoOrcamentoEndpoints.cs` |
+| Notificação de status | evento `StatusDaOsAlterado`, registrado em `OrdemDeServico.MudarStatus` (inclusive na abertura, com origem vazia); manipulador `NotificarClienteDaMudancaDeStatus` (após o commit, melhor esforço) chama `INotificador.NotificarMudancaDeStatus` com uma `NotificacaoDeStatus`, que leva o `OrcamentoDaNotificacao` (itens, total e Token de aprovação) só quando o destino é Aguardando aprovação; implementação por e-mail `NotificadorPorEmail` (MailKit), com assunto e corpo em `MensagemDeMudancaDeStatus` | `Events/StatusDaOsAlterado.cs`, `Application/Atendimento/Notificacao/NotificarClienteDaMudancaDeStatus.cs`, `Application/Common/INotificador.cs`, `Application/Common/NotificacaoDeStatus.cs`, `Oficina.Infrastructure/Notificacao/NotificadorPorEmail.cs`, `Oficina.Infrastructure/Notificacao/MensagemDeMudancaDeStatus.cs` |
 
 ### Catálogo e estoque
 
@@ -63,9 +65,9 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 | Preço | `Dinheiro` (BRL, objeto de valor) | `CatalogoEstoque/Entities/ValueObjects/Dinheiro.cs` |
 | Peça/insumo | `PecaInsumo` (raiz de agregado, inclui o saldo); `PecaInsumo.Criar`, `Atualizar`, `Inativar` | `Oficina.Domain/Estoque/PecaInsumo.cs` |
 | Peça / Insumo | `TipoPecaInsumo.Peca` (quantidade inteira) / `TipoPecaInsumo.Insumo` (fracionária); `Quantidade.Criar(valor, tipo)` valida | `Estoque/TipoPecaInsumo.cs`, `Estoque/Quantidade.cs` |
-| Baixa | `PecaInsumo.Baixar`, disparada por `OrdemDeServico.IncluirPecaInsumo` (caso de uso `IncluirPecaInsumoNaOs`); evento `ItemIncluido` | `Estoque/PecaInsumo.cs` |
+| Baixa | `PecaInsumo.Baixar`, disparada por `OrdemDeServico.IncluirPecaInsumo` (caso de uso `IncluirPecaInsumoNaOs`) ou pelas `InclusaoDePecaInsumo` de `OrdemDeServico.Abrir` (caso de uso `AbrirOs`, na mesma transação que reserva o Número da OS); evento `ItemIncluido` | `Estoque/PecaInsumo.cs` |
 | Estorno | `PecaInsumo.Estornar`, por `OrdemDeServico.RemoverPecaInsumo` (total ou parcial) e por `Cancelar` | `Estoque/PecaInsumo.cs` |
-| Entrada de mercadoria | `PecaInsumo.RegistrarEntrada`; caso de uso `RegistrarEntradaDeMercadoriaCasoDeUso` | `Estoque/PecaInsumo.cs`, `Application/Estoque/PecasInsumos.cs` |
+| Entrada de mercadoria | `PecaInsumo.RegistrarEntrada`; caso de uso `RegistrarEntradaDeMercadoria` | `Estoque/PecaInsumo.cs`, `Application/Estoque/RegistrarEntradaDeMercadoria.cs` |
 
 ### Pessoas
 

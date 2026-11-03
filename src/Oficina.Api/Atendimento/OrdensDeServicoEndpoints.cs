@@ -1,6 +1,9 @@
 using System.Security.Claims;
 using Oficina.Api.Autenticacao;
-using Oficina.Application.Atendimento.UseCases;
+using Oficina.Application.Atendimento.Diagnostico;
+using Oficina.Application.Atendimento.Execucao;
+using Oficina.Application.Atendimento.Notificacao;
+using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Entities.Enums;
 using Oficina.Domain.Atendimento.Events;
@@ -8,7 +11,13 @@ using Oficina.Domain.Common;
 
 namespace Oficina.Api.Atendimento;
 
-public sealed record AbrirOsRequest(Guid ClienteId, Guid VeiculoId, IReadOnlyCollection<Guid>? ServicoIds);
+public sealed record AbrirOsRequest(
+    Guid ClienteId,
+    Guid VeiculoId,
+    IReadOnlyCollection<Guid>? ServicoIds,
+    IReadOnlyCollection<PecaInsumoNaAberturaRequest>? PecasInsumos = null);
+
+public sealed record PecaInsumoNaAberturaRequest(Guid PecaInsumoId, decimal Quantidade);
 
 public sealed record IncluirServicoNaOsRequest(Guid ServicoId);
 
@@ -35,7 +44,7 @@ public static class OrdensDeServicoEndpoints
         services.AddScoped<RegistrarEntrega>();
         services.AddScoped<CancelarOs>();
         services.AddScoped<ConsultarTempoMedioDeExecucao>();
-        services.AddScoped<IManipuladorDeEvento<DiagnosticoConcluido>, EnviarOrcamentoAoConcluirDiagnostico>();
+        services.AddScoped<IManipuladorDeEvento<StatusDaOsAlterado>, NotificarClienteDaMudancaDeStatus>();
         return services;
     }
 
@@ -45,15 +54,23 @@ public static class OrdensDeServicoEndpoints
 
         ordens.MapPost("/", async (AbrirOsRequest requisicao, AbrirOs caso, ClaimsPrincipal usuario, CancellationToken ct) =>
             {
+                var pecasInsumos = (requisicao.PecasInsumos ?? [])
+                    .Select(p => new PecaInsumoNaAbertura(p.PecaInsumoId, p.Quantidade))
+                    .ToList();
                 var os = await caso.Executar(
-                    new AbrirOsComando(requisicao.ClienteId, requisicao.VeiculoId, requisicao.ServicoIds ?? [], Autor(usuario)),
+                    new AbrirOsComando(requisicao.ClienteId, requisicao.VeiculoId, requisicao.ServicoIds ?? [], pecasInsumos, Autor(usuario)),
                     ct);
                 return Results.Created($"/api/administrativo/ordens-de-servico/{os.Id}", os);
             })
             .RequireAuthorization(Politicas.Atendente);
 
-        ordens.MapGet("/", async (string? status, ListarOs caso, CancellationToken ct) =>
-                Results.Ok(await caso.Executar(InterpretarStatus(status), ct)))
+        ordens.MapGet("/", async (
+                    ListarOs caso,
+                    CancellationToken ct,
+                    string? status,
+                    int pagina = ListarOs.PaginaPadrao,
+                    int tamanho = ListarOs.TamanhoPadrao) =>
+                Results.Ok(await caso.Executar(InterpretarStatus(status), pagina, tamanho, ct)))
             .RequireAuthorization(Politicas.AtendenteOuMecanico);
 
         ordens.MapGet("/{id:guid}", async (Guid id, DetalharOs caso, CancellationToken ct) =>

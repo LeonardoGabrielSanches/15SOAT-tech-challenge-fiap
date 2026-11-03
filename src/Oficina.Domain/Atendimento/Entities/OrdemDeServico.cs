@@ -101,8 +101,36 @@ public sealed class OrdemDeServico : RaizDeAgregado
         Cliente cliente,
         Veiculo veiculo,
         IReadOnlyCollection<Servico> servicos,
+        IReadOnlyCollection<InclusaoDePecaInsumo> pecasInsumos,
         string autor,
         DateTimeOffset agora)
+    {
+        GarantirAberturaPermitida(cliente, veiculo, servicos, pecasInsumos);
+
+        var os = new OrdemDeServico
+        {
+            Id = Guid.NewGuid(),
+            Numero = numero,
+            ClienteId = cliente.Id,
+            VeiculoId = veiculo.Id,
+            AbertaEm = agora
+        };
+        os._servicos.AddRange(servicos.Select(s => new ServicoDaOs(s.Id)));
+        os.MudarStatus(StatusOs.Recebida, autor, agora);
+        os.Registrar(new OsAberta(os.Id, numero.Valor, cliente.Id, veiculo.Id, agora));
+        foreach (var inclusao in pecasInsumos)
+        {
+            os.AdicionarPecaInsumo(inclusao.Peca, inclusao.Quantidade, agora);
+        }
+
+        return os;
+    }
+
+    private static void GarantirAberturaPermitida(
+        Cliente cliente,
+        Veiculo veiculo,
+        IReadOnlyCollection<Servico> servicos,
+        IReadOnlyCollection<InclusaoDePecaInsumo> pecasInsumos)
     {
         cliente.GarantirAtivo();
         veiculo.GarantirAtivo();
@@ -127,19 +155,10 @@ public sealed class OrdemDeServico : RaizDeAgregado
             servico.GarantirAtivo();
         }
 
-        var os = new OrdemDeServico
+        if (pecasInsumos.Select(p => p.Peca.Id).Distinct().Count() != pecasInsumos.Count)
         {
-            Id = Guid.NewGuid(),
-            Numero = numero,
-            ClienteId = cliente.Id,
-            VeiculoId = veiculo.Id,
-            Status = StatusOs.Recebida,
-            AbertaEm = agora
-        };
-        os._servicos.AddRange(servicos.Select(s => new ServicoDaOs(s.Id)));
-        os._historico.Add(new EntradaDoHistoricoDeStatus(null, StatusOs.Recebida, agora, autor));
-        os.Registrar(new OsAberta(os.Id, numero.Valor, cliente.Id, veiculo.Id, agora));
-        return os;
+            throw new DadosInvalidosException("Peca/insumo repetida na OS.");
+        }
     }
 
     public void IncluirServico(Servico servico)
@@ -184,7 +203,11 @@ public sealed class OrdemDeServico : RaizDeAgregado
     public void IncluirPecaInsumo(PecaInsumo peca, Quantidade quantidade, DateTimeOffset agora)
     {
         GarantirEmDiagnostico();
+        AdicionarPecaInsumo(peca, quantidade, agora);
+    }
 
+    private void AdicionarPecaInsumo(PecaInsumo peca, Quantidade quantidade, DateTimeOffset agora)
+    {
         peca.Baixar(quantidade);
 
         var existente = _itensDePecaInsumo.FirstOrDefault(i => i.PecaInsumoId == peca.Id);
@@ -200,28 +223,28 @@ public sealed class OrdemDeServico : RaizDeAgregado
         Registrar(new ItemIncluido(Id, peca.Id, quantidade.Valor, agora));
     }
 
-    public void RemoverPecaInsumo(PecaInsumo peca, decimal? quantidade)
+    public void RemoverPecaInsumo(PecaInsumo peca, Quantidade? quantidade)
     {
         GarantirEmDiagnostico();
 
         var existente = _itensDePecaInsumo.FirstOrDefault(i => i.PecaInsumoId == peca.Id)
             ?? throw new RecursoNaoEncontradoException("A Peca/insumo nao esta na OS.");
 
-        var removida = quantidade ?? existente.Quantidade;
-        if (removida > existente.Quantidade)
+        var removida = quantidade ?? Quantidade.Criar(existente.Quantidade, peca.Tipo);
+        if (removida.Valor > existente.Quantidade)
         {
             throw new DadosInvalidosException("A quantidade a remover excede a quantidade incluida na OS.");
         }
 
-        peca.Estornar(Quantidade.Criar(removida, peca.Tipo));
+        peca.Estornar(removida);
 
-        if (removida == existente.Quantidade)
+        if (removida.Valor == existente.Quantidade)
         {
             _itensDePecaInsumo.Remove(existente);
         }
         else
         {
-            existente.Quantidade -= removida;
+            existente.Quantidade -= removida.Valor;
         }
     }
 
@@ -371,8 +394,10 @@ public sealed class OrdemDeServico : RaizDeAgregado
 
     private void MudarStatus(StatusOs destino, string autor, DateTimeOffset agora)
     {
-        _historico.Add(new EntradaDoHistoricoDeStatus(Status, destino, agora, autor));
+        StatusOs? origem = _historico.Count == 0 ? null : Status;
+        _historico.Add(new EntradaDoHistoricoDeStatus(origem, destino, agora, autor));
         Status = destino;
+        Registrar(new StatusDaOsAlterado(Id, Numero.Valor, ClienteId, origem, destino, agora));
     }
 
     private void GarantirEmDiagnostico()

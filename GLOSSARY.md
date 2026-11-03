@@ -87,6 +87,16 @@ _Avoid_: Revisão
 Código de uso único, emitido para uma Versão do orçamento, que o Cliente usa para aprovar ou recusar essa versão.
 _Avoid_: Senha, link de aprovação
 
+**Decisão do orçamento**:
+A resposta do Cliente a uma Versão do orçamento, informada com o Token de aprovação: Aprovar ou Recusar.
+_Avoid_: Reprovar, rejeitar, resposta
+
+## Comunicação com o Cliente
+
+**Notificação de status**:
+E-mail enviado ao Cliente a cada mudança de Status da OS, inclusive a abertura.
+_Avoid_: Alerta, aviso, push
+
 ## Catálogo e estoque
 
 **Serviço**:
