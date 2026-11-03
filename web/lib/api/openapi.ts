@@ -444,6 +444,8 @@ export interface paths {
             parameters: {
                 query?: {
                     status?: string;
+                    pagina?: number | string;
+                    tamanho?: number | string;
                 };
                 header?: never;
                 path?: never;

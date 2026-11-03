@@ -24,8 +24,6 @@ enum StatusDaOs: String, CaseIterable, Identifiable, Sendable {
         case .cancelada: "Cancelada"
         }
     }
-
-    var emAndamento: Bool { self != .entregue && self != .cancelada }
 }
 
 struct OrdemDeServicoResumo: Decodable, Identifiable, Hashable, Sendable {
@@ -54,6 +52,13 @@ struct OrdemDeServicoResumo: Decodable, Identifiable, Hashable, Sendable {
     }
 }
 
+struct PaginaDeOrdensDeServico: Decodable, Sendable {
+    let itens: [OrdemDeServicoResumo]
+    let pagina: Int
+    let tamanho: Int
+    let total: Int
+}
+
 enum DataDaApi {
     static func interpretar(_ texto: String) -> Date? {
         let comFracao = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
@@ -70,8 +75,11 @@ enum DataDaApi {
 }
 
 extension ClienteApi {
-    func listarOrdensDeServico(status: StatusDaOs?) async throws -> [OrdemDeServicoResumo] {
-        let consulta = status.map { [URLQueryItem(name: "status", value: $0.rawValue)] } ?? []
+    func listarOrdensDeServico(status: StatusDaOs?, pagina: Int) async throws -> PaginaDeOrdensDeServico {
+        var consulta = [URLQueryItem(name: "pagina", value: String(pagina))]
+        if let status {
+            consulta.append(URLQueryItem(name: "status", value: status.rawValue))
+        }
         return try await obter("api/administrativo/ordens-de-servico", consulta: consulta)
     }
 

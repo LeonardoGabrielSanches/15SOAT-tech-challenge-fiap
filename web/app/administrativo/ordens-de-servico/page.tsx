@@ -1,15 +1,15 @@
-import { Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { AvisoDeFalha } from "@/components/aviso-de-falha";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiAdministrativa } from "@/lib/api/cliente";
-import type { ClienteDto, OrdemDeServicoResumoDto, VeiculoDto } from "@/lib/api/dtos";
+import type { ClienteDto, OrdemDeServicoResumoDto, PaginaDeOrdensDeServicoDto, StatusOs, VeiculoDto } from "@/lib/api/dtos";
 import { resultadoDaApi } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 import { formatarDataHora, nomeDoStatus } from "@/lib/formatacao";
 import { enderecoDaOs } from "./endereco-da-os";
-import { FiltroPorStatus, lerStatusDaOs } from "./filtro-por-status";
+import { enderecoDaListagem, FiltroPorStatus, lerStatusDaOs } from "./filtro-por-status";
 import { StatusDaOs } from "./status-da-os";
 
 type Api = Awaited<ReturnType<typeof apiAdministrativa>>;
@@ -93,14 +93,64 @@ function TabelaDeOs({
   );
 }
 
+function lerPagina(valor: string | string[] | undefined): number {
+  const pagina = typeof valor === "string" ? Number(valor) : NaN;
+  return Number.isInteger(pagina) && pagina >= 1 ? pagina : 1;
+}
+
+function NavegacaoEntrePaginas({ resultado, status }: { resultado: PaginaDeOrdensDeServicoDto; status: StatusOs | null }) {
+  const totalDePaginas = Math.max(1, Math.ceil(resultado.total / resultado.tamanho));
+  const anterior = resultado.pagina > 1 ? enderecoDaListagem(status, resultado.pagina - 1) : null;
+  const proxima = resultado.pagina < totalDePaginas ? enderecoDaListagem(status, resultado.pagina + 1) : null;
+
+  return (
+    <nav aria-label="Páginas" className="flex flex-wrap items-center gap-3">
+      <Button asChild={anterior !== null} size="sm" variant="outline" disabled={anterior === null}>
+        {anterior ? (
+          <Link href={anterior}>
+            <ChevronLeft />
+            Anterior
+          </Link>
+        ) : (
+          <span>
+            <ChevronLeft />
+            Anterior
+          </span>
+        )}
+      </Button>
+      <span className="text-sm tabular-nums text-muted-foreground">
+        Página {Math.min(resultado.pagina, totalDePaginas)} de {totalDePaginas} ({resultado.total}{" "}
+        {resultado.total === 1 ? "OS" : "OS no total"})
+      </span>
+      <Button asChild={proxima !== null} size="sm" variant="outline" disabled={proxima === null}>
+        {proxima ? (
+          <Link href={proxima}>
+            Próxima
+            <ChevronRight />
+          </Link>
+        ) : (
+          <span>
+            Próxima
+            <ChevronRight />
+          </span>
+        )}
+      </Button>
+    </nav>
+  );
+}
+
 export default async function OrdensDeServico({ searchParams }: PageProps<"/administrativo/ordens-de-servico">) {
   await exigirTela("ordensDeServico");
-  const status = lerStatusDaOs((await searchParams).status);
+  const parametros = await searchParams;
+  const status = lerStatusDaOs(parametros.status);
+  const pagina = lerPagina(parametros.pagina);
   const api = await apiAdministrativa();
-  const resultado = await resultadoDaApi<OrdemDeServicoResumoDto[]>(
-    api.GET("/api/administrativo/ordens-de-servico", { params: { query: status ? { status } : {} } }),
+  const resultado = await resultadoDaApi<PaginaDeOrdensDeServicoDto>(
+    api.GET("/api/administrativo/ordens-de-servico", {
+      params: { query: status ? { status, pagina } : { pagina } },
+    }),
   );
-  const ordens = resultado.ok ? resultado.dados : [];
+  const ordens = resultado.ok ? resultado.dados.itens : [];
   const [clientes, veiculos] = await Promise.all([
     clientesPorId(
       api,
@@ -127,16 +177,19 @@ export default async function OrdensDeServico({ searchParams }: PageProps<"/admi
       <p className="text-sm text-muted-foreground">
         {status
           ? `Mostrando as OS com Status ${nomeDoStatus[status]}, na ordem de prioridade da oficina.`
-          : "Mostrando as OS em andamento (sem Entregues e Canceladas), na ordem de prioridade da oficina."}
+          : "Mostrando as OS que ainda exigem trabalho (sem Finalizadas, Entregues e Canceladas), na ordem de prioridade da oficina. Use o filtro Finalizada para registrar a entrega."}
       </p>
       {!resultado.ok ? (
         <AvisoDeFalha falha={resultado.falha} />
       ) : ordens.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {status ? `Nenhuma OS com Status ${nomeDoStatus[status]}.` : "Nenhuma OS em andamento."}
+          {status ? `Nenhuma OS com Status ${nomeDoStatus[status]}.` : "Nenhuma OS pendente."}
         </p>
       ) : (
-        <TabelaDeOs ordens={ordens} clientes={clientes} veiculos={veiculos} />
+        <>
+          <TabelaDeOs ordens={ordens} clientes={clientes} veiculos={veiculos} />
+          <NavegacaoEntrePaginas resultado={resultado.dados} status={status} />
+        </>
       )}
     </div>
   );

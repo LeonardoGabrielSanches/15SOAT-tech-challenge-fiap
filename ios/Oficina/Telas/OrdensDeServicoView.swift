@@ -4,35 +4,59 @@ struct OrdensDeServicoView: View {
     @Environment(Sessao.self) private var sessao
 
     enum Filtro: Hashable {
-        case emAndamento
+        case pendentes
         case status(StatusDaOs)
 
         var rotulo: String {
             switch self {
-            case .emAndamento: "OS em andamento"
+            case .pendentes: "OS pendentes"
             case let .status(status): status.rotulo
             }
         }
     }
 
-    @State private var filtro: Filtro = .emAndamento
+    @State private var filtro: Filtro = .pendentes
     @State private var busca = ""
     @State private var ordens: [OrdemDeServicoResumo] = []
+    @State private var ultimaPagina = 0
+    @State private var total = 0
+    @State private var carregandoMais = false
     @State private var carregada = false
     @State private var erro: String?
 
     private var termoDeBusca: String { busca.trimmingCharacters(in: .whitespaces) }
 
     private var visiveis: [OrdemDeServicoResumo] {
-        let doFiltro = filtro == .emAndamento ? ordens.filter { $0.statusDaOs?.emAndamento ?? true } : ordens
-        guard !termoDeBusca.isEmpty else { return doFiltro }
-        return doFiltro.filter { $0.numero.localizedCaseInsensitiveContains(termoDeBusca) }
+        guard !termoDeBusca.isEmpty else { return ordens }
+        return ordens.filter { $0.numero.localizedCaseInsensitiveContains(termoDeBusca) }
+    }
+
+    private var temMais: Bool { carregada && ordens.count < total }
+
+    private var statusDoFiltro: StatusDaOs? {
+        if case let .status(escolhido) = filtro { escolhido } else { nil }
     }
 
     var body: some View {
-        List(visiveis) { ordem in
-            NavigationLink(value: ordem) {
-                LinhaDeOrdemView(ordem: ordem, mostraStatus: true)
+        List {
+            ForEach(visiveis) { ordem in
+                NavigationLink(value: ordem) {
+                    LinhaDeOrdemView(ordem: ordem, mostraStatus: true)
+                }
+            }
+            if temMais {
+                Button {
+                    Task { await carregarMais() }
+                } label: {
+                    HStack {
+                        Text("Carregar mais (\(ordens.count) de \(total))")
+                        if carregandoMais {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(carregandoMais)
             }
         }
         .overlay { estadoVazio }
@@ -44,7 +68,7 @@ struct OrdensDeServicoView: View {
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
                     Picker("Status", selection: $filtro) {
-                        Text(Filtro.emAndamento.rotulo).tag(Filtro.emAndamento)
+                        Text(Filtro.pendentes.rotulo).tag(Filtro.pendentes)
                         ForEach(StatusDaOs.allCases) { status in
                             Text(status.rotulo).tag(Filtro.status(status))
                         }
@@ -77,16 +101,35 @@ struct OrdensDeServicoView: View {
     }
 
     private func carregar() async {
-        let status: StatusDaOs? = if case let .status(escolhido) = filtro { escolhido } else { nil }
         do {
-            ordens = try await ClienteApi(sessao: sessao).listarOrdensDeServico(status: status)
+            let primeira = try await ClienteApi(sessao: sessao).listarOrdensDeServico(status: statusDoFiltro, pagina: 1)
+            ordens = primeira.itens
+            ultimaPagina = primeira.pagina
+            total = primeira.total
             erro = nil
         } catch {
             if !Task.isCancelled {
                 ordens = []
+                total = 0
                 self.erro = error.localizedDescription
             }
         }
         if !Task.isCancelled { carregada = true }
+    }
+
+    private func carregarMais() async {
+        carregandoMais = true
+        defer { carregandoMais = false }
+        do {
+            let proxima = try await ClienteApi(sessao: sessao)
+                .listarOrdensDeServico(status: statusDoFiltro, pagina: ultimaPagina + 1)
+            let conhecidas = Set(ordens.map(\.id))
+            ordens.append(contentsOf: proxima.itens.filter { !conhecidas.contains($0.id) })
+            ultimaPagina = proxima.pagina
+            total = proxima.total
+            erro = nil
+        } catch {
+            self.erro = error.localizedDescription
+        }
     }
 }

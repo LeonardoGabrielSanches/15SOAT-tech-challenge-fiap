@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardPlus, ExternalLink } from "lucide-react";
+import { ClipboardPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -22,7 +22,7 @@ type Props = {
 export function FormularioDeAbertura({ clienteId, veiculoId, servicos, enderecoDeVolta }: Props) {
   const router = useRouter();
   const [selecionados, setSelecionados] = useState<string[]>([]);
-  const { fracasso, falha, dadosInvalidos, enviar, pendente } = useAcaoDeFormulario(
+  const { falha, dadosInvalidos, enviar, pendente } = useAcaoDeFormulario(
     (dados) => abrirOs(clienteId, veiculoId, dados),
     (os) => router.push(`${enderecoDaOs(os.id)}?aberta=1`),
   );
@@ -64,19 +64,7 @@ export function FormularioDeAbertura({ clienteId, veiculoId, servicos, enderecoD
           : `${selecionados.length === 1 ? "1 Serviço escolhido" : `${selecionados.length} Serviços escolhidos`}, total pelo catálogo ${formatarDinheiro(total)}.`}
       </p>
 
-      {falha && (
-        <div className="flex flex-col gap-2">
-          <AvisoDeFalha falha={falha} />
-          {fracasso?.osEmAndamento && (
-            <Button asChild variant="outline" size="sm" className="self-start">
-              <Link href={enderecoDaOs(fracasso.osEmAndamento.id)}>
-                <ExternalLink />
-                Ver a OS {fracasso.osEmAndamento.numero}
-              </Link>
-            </Button>
-          )}
-        </div>
-      )}
+      {falha && <AvisoDeFalha falha={falha} />}
 
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={pendente}>
