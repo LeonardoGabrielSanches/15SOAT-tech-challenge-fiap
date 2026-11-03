@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { apiPublica } from "@/lib/api/cliente";
 import { resultadoDaApi, type Falha, type Resultado } from "@/lib/api/resultado";
 import { lerTexto } from "@/lib/dados-do-formulario";
+import type { components } from "@/lib/api/openapi";
+
+type DecisaoDoOrcamentoRequest = components["schemas"]["DecisaoDoOrcamentoRequest"];
 
 export type EstadoDoToken = { erro?: string } | undefined;
 
@@ -48,10 +51,17 @@ export async function irParaAprovacao(_estado: EstadoDoToken, formData: FormData
   redirect(`/portal/aprovacao/${encodeURIComponent(token)}`);
 }
 
-export async function aprovarOrcamento(token: string): Promise<EstadoDaDecisao> {
-  const resultado = await resultadoDaApi(
-    apiPublica().POST("/api/publico/orcamentos/{token}/aprovar", { params: { path: { token } } }),
+function decidirOrcamento(token: string, corpo: DecisaoDoOrcamentoRequest) {
+  return resultadoDaApi(
+    apiPublica().POST("/api/publico/orcamentos/{token}/decisao", {
+      params: { path: { token } },
+      body: corpo,
+    }),
   );
+}
+
+export async function aprovarOrcamento(token: string): Promise<EstadoDaDecisao> {
+  const resultado = await decidirOrcamento(token, { decisao: "Aprovar" });
   if (!resultado.ok) {
     return estadoDaFalha(resultado);
   }
@@ -64,12 +74,7 @@ export async function recusarOrcamento(
   formData: FormData,
 ): Promise<EstadoDaDecisao> {
   const motivo = lerTexto(formData, "motivo");
-  const resultado = await resultadoDaApi(
-    apiPublica().POST("/api/publico/orcamentos/{token}/recusar", {
-      params: { path: { token } },
-      body: { motivo: motivo || null },
-    }),
-  );
+  const resultado = await decidirOrcamento(token, { decisao: "Recusar", motivo: motivo || null });
   if (!resultado.ok) {
     return estadoDaFalha(resultado);
   }

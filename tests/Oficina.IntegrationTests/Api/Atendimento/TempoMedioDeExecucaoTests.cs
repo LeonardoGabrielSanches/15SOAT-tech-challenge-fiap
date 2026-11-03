@@ -98,7 +98,7 @@ public class TempoMedioDeExecucaoTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NoContent, (await mecanico.PostAsync($"{Rota}/{os.Id}/diagnostico/iniciar", null)).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await mecanico.PostAsync($"{Rota}/{os.Id}/diagnostico/concluir", null)).StatusCode);
         var token = _tokens[^1];
-        Assert.Equal(HttpStatusCode.NoContent, (await _factory.CreateClient().PostAsync($"{RotaPublica}/{token}/aprovar", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await _factory.CreateClient().PostAsJsonAsync($"{RotaPublica}/{token}/decisao", new { decisao = "Aprovar" })).StatusCode);
         return os.Id;
     }
 

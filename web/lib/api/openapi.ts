@@ -1294,7 +1294,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/publico/orcamentos/{token}/aprovar": {
+    "/api/publico/orcamentos/{token}/decisao": {
         parameters: {
             query?: never;
             header?: never;
@@ -1312,53 +1312,54 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/publico/orcamentos/{token}/recusar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    token: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
+            requestBody: {
                 content: {
-                    "application/json": null | components["schemas"]["RecusarOrcamentoRequest"];
+                    "application/json": components["schemas"]["DecisaoDoOrcamentoRequest"];
                 };
             };
             responses: {
-                /** @description OK */
-                200: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
                 };
             };
         };
@@ -1431,6 +1432,12 @@ export interface components {
             /** Format: double */
             preco: number | string;
         };
+        /** @enum {unknown} */
+        DecisaoDoOrcamento: "Aprovar" | "Recusar";
+        DecisaoDoOrcamentoRequest: {
+            decisao: components["schemas"]["DecisaoDoOrcamento"];
+            motivo?: null | string;
+        };
         EntradaDeMercadoriaRequisicao: {
             /** Format: double */
             quantidade: number | string;
@@ -1445,8 +1452,13 @@ export interface components {
             /** Format: uuid */
             servicoId: string;
         };
-        RecusarOrcamentoRequest: {
-            motivo: null | string;
+        ProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number | string;
+            detail?: null | string;
+            instance?: null | string;
         };
         /** @enum {unknown} */
         TipoPecaInsumo: "Peca" | "Insumo";
