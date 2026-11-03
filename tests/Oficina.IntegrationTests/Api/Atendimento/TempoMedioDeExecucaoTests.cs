@@ -9,7 +9,6 @@ using Oficina.Application.Atendimento.Clientes;
 using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Atendimento.Veiculos;
 using Oficina.Application.Catalogo;
-using Oficina.Application.Common;
 using Oficina.IntegrationTests.Support;
 
 namespace Oficina.IntegrationTests.Api.Atendimento;
@@ -23,22 +22,14 @@ public class TempoMedioDeExecucaoTests : IAsyncLifetime
     private readonly PostgresFixture _postgres;
     private readonly ApiFactory _origem;
     private readonly WebApplicationFactory<Program> _factory;
-    private readonly List<string> _tokens = [];
     private DateTimeOffset _agora = new(2026, 10, 1, 8, 0, 0, TimeSpan.Zero);
 
     public TempoMedioDeExecucaoTests(PostgresFixture postgres)
     {
         _postgres = postgres;
         _origem = new ApiFactory(postgres);
-        var notificador = new Mock<INotificador>();
-        notificador
-            .Setup(n => n.EnviarOrcamento(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, decimal, string, CancellationToken>((_, _, _, k, _) => _tokens.Add(k))
-            .Returns(Task.CompletedTask);
         _factory = _origem.WithWebHostBuilder(b => b.ConfigureServices(s =>
         {
-            s.RemoveAll<INotificador>();
-            s.AddSingleton(notificador.Object);
             var relogio = new Mock<TimeProvider>();
             relogio.Setup(r => r.GetUtcNow()).Returns(() => _agora);
             s.RemoveAll<TimeProvider>();
@@ -97,7 +88,7 @@ public class TempoMedioDeExecucaoTests : IAsyncLifetime
         var mecanico = Como("mecanico");
         Assert.Equal(HttpStatusCode.NoContent, (await mecanico.PostAsync($"{Rota}/{os.Id}/diagnostico/iniciar", null)).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await mecanico.PostAsync($"{Rota}/{os.Id}/diagnostico/concluir", null)).StatusCode);
-        var token = _tokens[^1];
+        var token = _origem.UltimoTokenNotificado();
         Assert.Equal(HttpStatusCode.NoContent, (await _factory.CreateClient().PostAsJsonAsync($"{RotaPublica}/{token}/decisao", new { decisao = "Aprovar" })).StatusCode);
         return os.Id;
     }

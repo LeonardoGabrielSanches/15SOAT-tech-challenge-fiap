@@ -1,15 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using Oficina.Application.Atendimento.Clientes;
 using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Atendimento.Veiculos;
 using Oficina.Application.Catalogo;
-using Oficina.Application.Common;
+using Oficina.Domain.Atendimento.Entities.Enums;
 using Oficina.IntegrationTests.Support;
 
 namespace Oficina.IntegrationTests.Api.Atendimento;
@@ -19,32 +16,16 @@ public class ConclusaoDoDiagnosticoTests : IAsyncLifetime
 {
     private const string Rota = "/api/administrativo/ordens-de-servico";
 
-    private readonly ApiFactory _origem;
-    private readonly Mock<INotificador> _notificador = new();
-    private readonly WebApplicationFactory<Program> _factory;
-    private readonly List<(string Email, string Numero, decimal Total, string Token)> _enviados = [];
+    private readonly ApiFactory _factory;
 
     public ConclusaoDoDiagnosticoTests(PostgresFixture postgres)
     {
-        _origem = new ApiFactory(postgres);
-        _notificador
-            .Setup(n => n.EnviarOrcamento(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, decimal, string, CancellationToken>((e, n, t, k, _) => _enviados.Add((e, n, t, k)))
-            .Returns(Task.CompletedTask);
-        _factory = _origem.WithWebHostBuilder(b => b.ConfigureServices(s =>
-        {
-            s.RemoveAll<INotificador>();
-            s.AddSingleton(_notificador.Object);
-        }));
+        _factory = new ApiFactory(postgres);
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public async Task DisposeAsync()
-    {
-        await _factory.DisposeAsync();
-        await _origem.DisposeAsync();
-    }
+    public async Task DisposeAsync() => await _factory.DisposeAsync();
 
     private HttpClient Como(string papel)
     {
@@ -110,9 +91,11 @@ public class ConclusaoDoDiagnosticoTests : IAsyncLifetime
         var conclusao = await Como("mecanico").PostAsync($"{Rota}/{osId}/diagnostico/concluir", null);
 
         Assert.Equal(HttpStatusCode.NoContent, conclusao.StatusCode);
-        var envio = Assert.Single(_enviados);
-        Assert.Equal((email, numero, 200m), (envio.Email, envio.Numero, envio.Total));
+        var envio = Assert.Single(_factory.OrcamentosNotificados());
+        Assert.Equal(200m, envio.Total);
         Assert.False(string.IsNullOrWhiteSpace(envio.Token));
+        _factory.Notificador.Verify(n => n.NotificarMudancaDeStatus(
+            email, numero, StatusOs.EmDiagnostico, StatusOs.AguardandoAprovacao, It.IsAny<DateTimeOffset>(), envio, It.IsAny<CancellationToken>()), Times.Once);
         var detalhe = (await Como("atendente").GetFromJsonAsync<OrdemDeServicoDetalheDto>($"{Rota}/{osId}"))!;
         Assert.Equal("AguardandoAprovacao", detalhe.Status);
         var versao = Assert.Single(detalhe.VersoesDoOrcamento);
@@ -133,6 +116,6 @@ public class ConclusaoDoDiagnosticoTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Forbidden, (await Como("atendente").PostAsync($"{Rota}/{osId}/diagnostico/concluir", null)).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await Como("mecanico").PostAsync($"{Rota}/{osId}/diagnostico/concluir", null)).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Como("mecanico").PostAsync($"{Rota}/{osId}/diagnostico/concluir", null)).StatusCode);
-        Assert.Single(_enviados);
+        Assert.Single(_factory.OrcamentosNotificados());
     }
 }

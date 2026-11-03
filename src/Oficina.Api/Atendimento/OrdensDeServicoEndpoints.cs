@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Oficina.Api.Autenticacao;
 using Oficina.Application.Atendimento.Diagnostico;
 using Oficina.Application.Atendimento.Execucao;
-using Oficina.Application.Atendimento.Orcamento;
+using Oficina.Application.Atendimento.Notificacao;
 using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Entities.Enums;
@@ -11,7 +11,11 @@ using Oficina.Domain.Common;
 
 namespace Oficina.Api.Atendimento;
 
-public sealed record AbrirOsRequest(Guid ClienteId, Guid VeiculoId, IReadOnlyCollection<Guid>? ServicoIds);
+public sealed record AbrirOsRequest(
+    Guid ClienteId,
+    Guid VeiculoId,
+    IReadOnlyCollection<Guid>? ServicoIds,
+    IReadOnlyCollection<PecaInsumoNaAbertura>? PecasInsumos = null);
 
 public sealed record IncluirServicoNaOsRequest(Guid ServicoId);
 
@@ -38,7 +42,7 @@ public static class OrdensDeServicoEndpoints
         services.AddScoped<RegistrarEntrega>();
         services.AddScoped<CancelarOs>();
         services.AddScoped<ConsultarTempoMedioDeExecucao>();
-        services.AddScoped<IManipuladorDeEvento<DiagnosticoConcluido>, EnviarOrcamentoAoConcluirDiagnostico>();
+        services.AddScoped<IManipuladorDeEvento<StatusDaOsAlterado>, NotificarClienteDaMudancaDeStatus>();
         return services;
     }
 
@@ -49,7 +53,7 @@ public static class OrdensDeServicoEndpoints
         ordens.MapPost("/", async (AbrirOsRequest requisicao, AbrirOs caso, ClaimsPrincipal usuario, CancellationToken ct) =>
             {
                 var os = await caso.Executar(
-                    new AbrirOsComando(requisicao.ClienteId, requisicao.VeiculoId, requisicao.ServicoIds ?? [], Autor(usuario)),
+                    new AbrirOsComando(requisicao.ClienteId, requisicao.VeiculoId, requisicao.ServicoIds ?? [], Autor(usuario), requisicao.PecasInsumos),
                     ct);
                 return Results.Created($"/api/administrativo/ordens-de-servico/{os.Id}", os);
             })

@@ -1,6 +1,15 @@
+using Oficina.Domain.Atendimento.Entities.Enums;
+
 namespace Oficina.Application.Common;
 
 public interface INotificador
 {
-    Task EnviarOrcamento(string email, string numeroOs, decimal total, string token, CancellationToken cancellationToken);
+    Task NotificarMudancaDeStatus(
+        string email,
+        string numeroOs,
+        StatusOs? origem,
+        StatusOs destino,
+        DateTimeOffset momento,
+        OrcamentoDaNotificacao? orcamento,
+        CancellationToken cancellationToken);
 }
