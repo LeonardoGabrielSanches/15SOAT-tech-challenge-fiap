@@ -79,7 +79,7 @@ Erros de domínio retornam ProblemDetails: `404` para recurso inexistente ou con
 
 ## Fase 2
 
-A Fase 2 ([`refactor-code.md`](refactor-code.md)) pede duas coisas: refatorar o código da Fase 1 com Clean Code, Clean Architecture, SOLID, KISS, DRY e testes automatizados, e criar ou alterar cinco APIs da OS. Esta seção liga cada requisito ao endpoint e ao caso de uso que o atendem e registra as interpretações escolhidas. Os termos seguem o [glossário](GLOSSARY.md): a "situação" do requisito é o Status da OS, e "reprovar" é Recusar.
+O enunciado da Fase 2 pede duas coisas: refatorar o código da Fase 1 com Clean Code, Clean Architecture, SOLID, KISS, DRY e testes automatizados, e criar ou alterar cinco APIs da OS. Esta seção liga cada requisito ao endpoint e ao caso de uso que o atendem e registra as interpretações escolhidas. Os termos seguem o [glossário](GLOSSARY.md): a "situação" do requisito é o Status da OS, e "reprovar" é Recusar.
 
 ### Requisitos, endpoints e casos de uso
 
