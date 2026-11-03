@@ -1,6 +1,6 @@
 # Oficina — Sistema Integrado de Atendimento e Execução de Serviços
 
-MVP do back-end de uma oficina mecânica de médio porte, desenvolvido para o Tech Challenge da Fase 1 (SOAT — Software Architecture, FIAP).
+MVP do back-end de uma oficina mecânica de médio porte, desenvolvido para o Tech Challenge da Fase 1 (SOAT — Software Architecture, FIAP) e refatorado na Fase 2. A seção [Fase 2](#fase-2) liga cada requisito da refatoração ao endpoint e ao caso de uso que o atendem.
 
 ## Objetivo
 
@@ -76,6 +76,58 @@ Monólito em camadas, com o domínio no centro. As dependências sempre apontam 
 A `OrdemDeServico` é o único agregado do fluxo e é gravada na mesma transação que o saldo da `PecaInsumo`. Baixa, estorno e Histórico de status são executados de forma síncrona pelo caso de uso; os eventos de domínio são despachados após o commit e `StatusDaOsAlterado` tem handler (Notificação de status por e-mail).
 
 Erros de domínio retornam ProblemDetails: `404` para recurso inexistente ou consulta pública sem correspondência, `409` para conflito de estado ou concorrência, `422` para dados inválidos (CPF, placa, quantidade, saldo insuficiente).
+
+## Fase 2
+
+A Fase 2 ([`refactor-code.md`](refactor-code.md)) pede duas coisas: refatorar o código da Fase 1 com Clean Code, Clean Architecture, SOLID, KISS, DRY e testes automatizados, e criar ou alterar cinco APIs da OS. Esta seção liga cada requisito ao endpoint e ao caso de uso que o atendem e registra as interpretações escolhidas. Os termos seguem o [glossário](GLOSSARY.md): a "situação" do requisito é o Status da OS, e "reprovar" é Recusar.
+
+### Requisitos, endpoints e casos de uso
+
+Os casos de uso ficam em `src/Oficina.Application`, um por arquivo, com o nome da classe. Os testes citados ficam em `tests/Oficina.IntegrationTests/Api/Atendimento`.
+
+| Requisito | Endpoint | Caso de uso | Como verificar |
+|---|---|---|---|
+| Abertura de OS com cliente, veículo, serviços e peças | `POST /api/administrativo/ordens-de-servico` com `clienteId`, `veiculoId`, `servicoIds` e, opcionalmente, `pecasInsumos` (`[{ "pecaInsumoId", "quantidade" }]`) | `AbrirOs` | Responde `201` com o `id` e o `numero` (Número da OS). As peças/insumos recebem Baixa na mesma transação da OS, e o saldo cai em `GET /api/pecas-insumos/{id}/saldo`. Peça/insumo repetida, Inativa, sem saldo ou com fração em Peça é recusada sem criar OS nem baixar saldo. Testes: `AberturaComPecasInsumosTests`. |
+| Consulta de status | `POST /api/publico/ordens-de-servico/consulta` (`numero` + `documento`) | `ConsultarOsPublica` | Devolve o Status da OS, o Histórico de status e o orçamento vigente. Os funcionários usam `GET /api/administrativo/ordens-de-servico/{id}` (`DetalharOs`). Testes: `ConsultaPublicaDaOsTests`. |
+| Aprovação de orçamento por notificação externa | `POST /api/publico/orcamentos/{token}/decisao` com `{ "decisao": "Aprovar", "motivo": null }` ou `{ "decisao": "Recusar", "motivo": "..." }` | `AprovarOrcamento` ou `RecusarOrcamento`, conforme a `decisao` | `204` em caso de sucesso, `400` para `decisao` ausente ou inválida, `404` para token desconhecido e `409` para token usado, versão superada ou OS fora de Aguardando aprovação. O `motivo` é ignorado em Aprovar. Testes: `DecisaoDoOrcamentoTests`. |
+| Listagem ordenada por status, das mais antigas para as mais novas, sem Finalizadas e Entregues | `GET /api/administrativo/ordens-de-servico?status=&pagina=&tamanho=` | `ListarOs`, sobre a consulta `IConsultaDeOrdensDeServico` | Responde o envelope `{ itens, pagina, tamanho, total }`. Sem `status`, traz só Em execução, Aprovada, Aguardando aprovação, Em diagnóstico e Recebida, nessa ordem, e as mais antigas primeiro dentro de cada status. Com `status`, traz exatamente aquele status, inclusive Finalizada, Entregue e Cancelada. `pagina` tem padrão 1 e mínimo 1; `tamanho` tem padrão 20 e vai de 1 a 100; fora disso, `422`. Testes: `ListagemDeOsTests`. |
+| Atualização de status da OS por e-mail | toda mudança de Status da OS, inclusive a abertura | `NotificarClienteDaMudancaDeStatus`, manipulador do evento `StatusDaOsAlterado` | Com o docker-compose de pé, mude o status de uma OS e abra o Mailpit em <http://localhost:8025>. O passo a passo e a configuração de um SMTP real estão em [E-mails de Notificação de status](#e-mails-de-notificação-de-status). Testes: `NotificacaoDeStatusTests`. |
+
+### O que mudou na refatoração
+
+- **Camadas.** Continuam os quatro projetos da [ADR 0005](docs/adr/0005-camadas-com-dominio-independente.md), sem projetos novos e sem renomear para ports/adapters. Em termos de Clean Architecture, o `Domain` é o círculo das entidades, a `Application` é o dos casos de uso, e a `Infrastructure` e a `Api` são os adaptadores e frameworks. As dependências apontam para o `Domain`.
+- **Um caso de uso por arquivo.** Os arquivos que reuniam vários casos de uso (`CasosDeUsoDeOrdemDeServico.cs`, `CasosDeUsoDeAprovacao.cs` e outros) viraram uma classe por arquivo, com o comando de entrada no mesmo arquivo. Os DTOs compartilhados ganharam arquivos próprios. As pastas agrupam por capacidade: `Atendimento/OrdensDeServico`, `Diagnostico`, `Orcamento`, `Execucao`, `Notificacao`, `Clientes`, `Veiculos`, além de `Catalogo` e `Estoque`.
+- **Regras de status no domínio.** `RegrasDoStatusOs` responde, num único lugar, se um status é OS em andamento (`EstaEmAndamento`), se aparece na listagem padrão (`ApareceNaListagemPadrao`) e qual a prioridade na listagem (`PrioridadeNaListagem`). O repositório, a consulta e os casos de uso usam essas respostas em vez de repetir listas de status.
+- **Repositório dividido entre escrita e consultas.** `IOrdemDeServicoRepository` (Domain) tem só o que os casos de uso de escrita usam: obter a OS por id, por Número da OS e por Token de aprovação, saber se o Veículo tem OS em andamento e adicionar. `IConsultaDeOrdensDeServico` (Application) faz as leituras: a listagem, projetada direto para o resumo, com filtro, ordenação e paginação no banco, sem carregar o agregado; a Fila de execução; e os tempos de execução do tempo médio. As duas são implementadas com EF Core (`OrdemDeServicoRepository` e `ConsultaDeOrdensDeServico`).
+- **Duplicações removidas.**
+  - As validações da abertura (ao menos um Serviço, Serviço repetido, Cliente e Veículo ativos, Cliente como Proprietário atual) existem só no agregado, em `OrdemDeServico.GarantirAberturaPermitida`.
+  - A inclusão de peças/insumos na abertura usa a mesma regra da inclusão no diagnóstico (Baixa e soma de itens).
+  - A carga das peças/insumos de uma OS, usada por `ConcluirDiagnostico`, `CancelarOs` e `DetalharOs`, ficou num único trecho (`PecasInsumosDaOs`).
+  - O autor "Cliente" do Histórico de status e da consulta pública virou uma constante (`AutorDoHistorico.Cliente`).
+- **Mantido por KISS.** O despachante de eventos baseado em reflection continua como está, os casos de uso não ganharam interfaces e o e-mail não tem tabela de saída (outbox).
+
+### Análise SOLID
+
+- **S (responsabilidade única).** O antigo "caso de uso de aprovação" fazia duas operações, Aprovar e Recusar, e por isso tinha dois motivos para mudar: a aprovação leva a OS para a Fila de execução, e a recusa registra um motivo e devolve a OS ao diagnóstico. Não estava de acordo com o S. Hoje são duas classes, `AprovarOrcamento` e `RecusarOrcamento`, cada uma no seu arquivo. O endpoint único de decisão só escolhe qual delas chamar. O mesmo vale para os demais casos de uso. No e-mail, `MensagemDeMudancaDeStatus` monta o texto e `NotificadorPorEmail` só envia.
+- **O (aberto/fechado).** Um status novo muda o enum e `RegrasDoStatusOs`, sem caçar listas no repositório, na consulta e nos casos de uso. Um novo consumidor de evento entra como mais um `IManipuladorDeEvento<T>` registrado, sem mexer no agregado nem no despachante. Outro canal de notificação é outra implementação de `INotificador`.
+- **L (substituição de Liskov).** Não há hierarquias com comportamento sobrescrito: `RaizDeAgregado` só guarda os eventos de domínio. As implementações das interfaces são substituíveis sem mudar o caso de uso. Os testes comprovam isso ao trocar `INotificador` e os repositórios por mocks do Moq.
+- **I (segregação de interfaces).** O repositório da OS foi dividido entre escrita e consultas, e quem altera a OS não enxerga a paginação. O `INotificador` tem um único método, `NotificarMudancaDeStatus`. O antigo método de envio de orçamento deixou de existir.
+- **D (inversão de dependência).** A `Application` depende de abstrações: os repositórios, no `Domain`, e `INotificador`, `IUnidadeDeTrabalho` e `IConsultaDeOrdensDeServico`, na própria `Application`. A `Infrastructure` as implementa, e a `Api` compõe tudo na injeção de dependência. A `Api` depende das classes concretas dos casos de uso de propósito: o caso de uso é a política, não um detalhe, e uma interface para cada um não teria uma segunda implementação (KISS).
+
+### Interpretações dos requisitos
+
+- **IDs de Cliente e Veículo na abertura.** O requisito pede "os dados do cliente, veículo, serviços e peças". A abertura recebe `clienteId` e `veiculoId`, e não os dados completos, porque Cliente e Veículo têm cadastros próprios, com regras de unicidade (CPF/CNPJ, placa). Cadastrá-los dentro da abertura daria ao caso de uso dois motivos para mudar. As peças/insumos entram com Baixa imediata ([ADR 0002](docs/adr/0002-baixa-de-estoque-na-inclusao.md)), e uma falha não deixa OS nem Baixa gravadas.
+- **8 status em vez de 6.** A "situação" do requisito é o Status da OS. Os seis status do enunciado estão todos presentes ("Diagnóstico" é Em diagnóstico e "Execução" é Em execução), mais Aprovada e Cancelada, pelos motivos descritos em [Status da OS](#status-da-os). Na listagem, Aprovada entra entre Em execução e Aguardando aprovação, porque é trabalho pronto para começar.
+- **Finalizada visível só com filtro explícito.** A exclusão é lógica: nada é apagado, a listagem padrão só filtra. Além de Finalizada e Entregue, ela esconde Cancelada, que também não exige mais trabalho. O Atendente lista as Finalizadas com `status=Finalizada` para registrar a entrega, e qualquer status pode ser filtrado.
+- **Endpoint único de decisão.** O requisito fala em um "endpoint para receber notificações externas de aprovação ou recusa". Seguimos a leitura literal: um único `POST /api/publico/orcamentos/{token}/decisao`, e as rotas `/aprovar` e `/recusar` deixaram de existir. A equipe preferia as duas rotas, mas optou pela aderência ao texto. O Token de aprovação continua sendo a única credencial: o Número da OS e o documento não autorizam decidir.
+- **E-mail de melhor esforço.** "Atualização de status via e-mail" foi lida como a Notificação de status ao Cliente a cada mudança, enviada por SMTP com MailKit. Não há mudança de status por e-mail recebido: a única entrada externa é a Decisão do orçamento, cujo link vai no e-mail de Aguardando aprovação. O envio acontece depois do commit ([ADR 0006](docs/adr/0006-politicas-sincronas-e-eventos-de-dominio.md)) e é de melhor esforço ([ADR 0010](docs/adr/0010-notificacao-de-status-por-email-de-melhor-esforco.md)): se o SMTP falhar, a falha vai para o log e a mudança de status responde com sucesso.
+
+### Estratégia de testes
+
+- **Integração, na API HTTP.** É a base principal: `ApiFactory`, autenticação de teste e PostgreSQL real via Testcontainers. Cobre a listagem (filtro padrão, ordem, paginação, `total` e desempate estável entre páginas), a abertura com peças/insumos, o endpoint de decisão e a Notificação de status. O `ApiFactory` registra um `Mock<INotificador>`, que verifica destinatário, origem, destino e orçamento, e que uma falha do notificador não altera a resposta. Os testes não usam Mailpit nem outro container além do PostgreSQL.
+- **Unitários.** Cobrem o agregado da OS (`StatusDaOsAlterado` em toda transição, inclusive abertura e cancelamento; peças/insumos na abertura; `RegrasDoStatusOs`) e os casos de uso com Moq (`AbrirOs`, `NotificarClienteDaMudancaDeStatus`, decisão do orçamento, cancelamento, diagnóstico), sem repositórios em memória.
+- **Fora dos testes automatizados.** O envio SMTP do `NotificadorPorEmail`, por decisão explícita (a composição da mensagem é testada em `MensagemDeMudancaDeStatusTests`), e as interfaces web e iOS.
+- **Gate de cobertura.** O CI (`.github/workflows/ci.yml`) roda `scripts/cobertura.sh` e falha abaixo de 80% de linhas em Domain + Application. Os números da última execução estão em [Testes e cobertura](#testes-e-cobertura).
 
 ## Tecnologias
 
@@ -263,7 +315,7 @@ Com isso é possível abrir uma OS imediatamente.
 | `GET/POST/PUT/DELETE /api/administrativo/servicos` | leitura: qualquer papel; escrita: Gerente |
 | `POST/GET/PUT/DELETE /api/pecas-insumos`, `POST .../{id}/entradas`, `GET .../{id}/saldo` | escrita: Gerente; leitura: Mecânico |
 | `POST /api/administrativo/ordens-de-servico` (abrir) | Atendente |
-| `GET /api/administrativo/ordens-de-servico` (listar com filtro `status`) | Atendente ou Mecânico |
+| `GET /api/administrativo/ordens-de-servico` (listagem paginada: `status`, `pagina`, `tamanho`) | Atendente ou Mecânico |
 | `GET /api/administrativo/ordens-de-servico/{id}` (detalhe) | Atendente ou Mecânico |
 | `POST/DELETE .../ordens-de-servico/{id}/servicos` | Atendente ou Mecânico |
 | `POST .../{id}/diagnostico/iniciar`, `.../diagnostico/concluir` | Mecânico |
@@ -274,7 +326,7 @@ Com isso é possível abrir uma OS imediatamente.
 | `POST /api/publico/ordens-de-servico/consulta` (`numero` + `documento`) | público |
 | `POST /api/publico/orcamentos/{token}/decisao` (Decisão do orçamento: `decisao` = `Aprovar` ou `Recusar`, `motivo` opcional) | público (token) |
 
-O Gerente é aceito em todos os endpoints administrativos. A listagem de OS oculta Entregue e Cancelada por padrão e ordena por prioridade (Em execução, Aprovada, Aguardando aprovação, Em diagnóstico, Recebida, Finalizada), da mais antiga para a mais nova dentro do status.
+O Gerente é aceito em todos os endpoints administrativos. A listagem de OS oculta Finalizada, Entregue e Cancelada por padrão, ordena por prioridade (Em execução, Aprovada, Aguardando aprovação, Em diagnóstico, Recebida), da mais antiga para a mais nova dentro do status, e responde `{ itens, pagina, tamanho, total }` (veja [Fase 2](#fase-2)).
 
 ## Testes e cobertura
 
@@ -285,7 +337,7 @@ dotnet test Oficina.sln
 Os testes de integração sobem um PostgreSQL real via Testcontainers (Docker em execução) e usam um handler de autenticação de teste: o Keycloak não é necessário.
 
 - **Unitários** (`tests/Oficina.UnitTests`): casos de uso com repositórios e notificador como mocks Moq, objetos de valor e regras do domínio.
-- **Integração** (`tests/Oficina.IntegrationTests`): API HTTP com PostgreSQL real e migrations aplicadas, cobrindo o ciclo completo da OS, recusa, cancelamento com estorno, falta de saldo, OS em andamento duplicada, token reutilizado, consulta pública, 401/403 e inativação.
+- **Integração** (`tests/Oficina.IntegrationTests`): API HTTP com PostgreSQL real e migrations aplicadas, cobrindo o ciclo completo da OS, abertura com peças/insumos, listagem paginada, Decisão do orçamento, Notificação de status (com o notificador como mock), recusa, cancelamento com estorno, falta de saldo, OS em andamento duplicada, token reutilizado, consulta pública, 401/403 e inativação.
 
 Cobertura (coverlet + ReportGenerator) com gate de 80% em Domain + Application:
 
@@ -293,7 +345,7 @@ Cobertura (coverlet + ReportGenerator) com gate de 80% em Domain + Application:
 bash scripts/cobertura.sh
 ```
 
-O script roda a suíte, gera o relatório em `coverage/` (abra `coverage/index.html`) e falha se a cobertura de linhas ficar abaixo de 80% (ajustável por `LIMITE_COBERTURA`). Na última execução (commit `648183e`, 272 testes unitários e 93 de integração, todos aprovados): **98,6% de linhas em Domain + Application** (Domain 97,5%, Application 99,6%). Infrastructure e Api são cobertas pelos testes de integração, sem meta percentual.
+O script roda a suíte, gera o relatório em `coverage/` (abra `coverage/index.html`) e falha se a cobertura de linhas ficar abaixo de 80% (ajustável por `LIMITE_COBERTURA`). Na última execução (commit `5a84a86`, 333 testes unitários e 139 de integração, todos aprovados): **98,8% de linhas em Domain + Application** (Domain 97,9%, Application 99,6%). Infrastructure e Api são cobertas pelos testes de integração, sem meta percentual.
 
 ## Integração contínua e segurança
 
