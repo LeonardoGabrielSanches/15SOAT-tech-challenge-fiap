@@ -11,7 +11,11 @@ using Oficina.Domain.Common;
 
 namespace Oficina.Api.Atendimento;
 
-public sealed record AbrirOsRequest(Guid ClienteId, Guid VeiculoId, IReadOnlyCollection<Guid>? ServicoIds);
+public sealed record AbrirOsRequest(
+    Guid ClienteId,
+    Guid VeiculoId,
+    IReadOnlyCollection<Guid>? ServicoIds,
+    IReadOnlyCollection<PecaInsumoNaAbertura>? PecasInsumos = null);
 
 public sealed record IncluirServicoNaOsRequest(Guid ServicoId);
 
@@ -49,7 +53,7 @@ public static class OrdensDeServicoEndpoints
         ordens.MapPost("/", async (AbrirOsRequest requisicao, AbrirOs caso, ClaimsPrincipal usuario, CancellationToken ct) =>
             {
                 var os = await caso.Executar(
-                    new AbrirOsComando(requisicao.ClienteId, requisicao.VeiculoId, requisicao.ServicoIds ?? [], Autor(usuario)),
+                    new AbrirOsComando(requisicao.ClienteId, requisicao.VeiculoId, requisicao.ServicoIds ?? [], Autor(usuario), requisicao.PecasInsumos),
                     ct);
                 return Results.Created($"/api/administrativo/ordens-de-servico/{os.Id}", os);
             })

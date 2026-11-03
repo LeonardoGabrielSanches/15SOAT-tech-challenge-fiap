@@ -1379,6 +1379,7 @@ export interface components {
             /** Format: uuid */
             veiculoId: string;
             servicoIds: null | string[];
+            pecasInsumos?: null | components["schemas"]["PecaInsumoNaAbertura"][];
         };
         AtualizarClienteRequest: {
             nome: null | string;
@@ -1451,6 +1452,12 @@ export interface components {
         IncluirServicoNaOsRequest: {
             /** Format: uuid */
             servicoId: string;
+        };
+        PecaInsumoNaAbertura: {
+            /** Format: uuid */
+            pecaInsumoId: string;
+            /** Format: double */
+            quantidade: number | string;
         };
         ProblemDetails: {
             type?: null | string;

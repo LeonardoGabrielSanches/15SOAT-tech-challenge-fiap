@@ -64,7 +64,7 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 | Preço | `Dinheiro` (BRL, objeto de valor) | `CatalogoEstoque/Entities/ValueObjects/Dinheiro.cs` |
 | Peça/insumo | `PecaInsumo` (raiz de agregado, inclui o saldo); `PecaInsumo.Criar`, `Atualizar`, `Inativar` | `Oficina.Domain/Estoque/PecaInsumo.cs` |
 | Peça / Insumo | `TipoPecaInsumo.Peca` (quantidade inteira) / `TipoPecaInsumo.Insumo` (fracionária); `Quantidade.Criar(valor, tipo)` valida | `Estoque/TipoPecaInsumo.cs`, `Estoque/Quantidade.cs` |
-| Baixa | `PecaInsumo.Baixar`, disparada por `OrdemDeServico.IncluirPecaInsumo` (caso de uso `IncluirPecaInsumoNaOs`); evento `ItemIncluido` | `Estoque/PecaInsumo.cs` |
+| Baixa | `PecaInsumo.Baixar`, disparada por `OrdemDeServico.IncluirPecaInsumo` (caso de uso `IncluirPecaInsumoNaOs`) ou pelas `PecaInsumoSolicitada` de `OrdemDeServico.Abrir` (caso de uso `AbrirOs`, na mesma transação que reserva o Número da OS); evento `ItemIncluido` | `Estoque/PecaInsumo.cs` |
 | Estorno | `PecaInsumo.Estornar`, por `OrdemDeServico.RemoverPecaInsumo` (total ou parcial) e por `Cancelar` | `Estoque/PecaInsumo.cs` |
 | Entrada de mercadoria | `PecaInsumo.RegistrarEntrada`; caso de uso `RegistrarEntradaDeMercadoria` | `Estoque/PecaInsumo.cs`, `Application/Estoque/RegistrarEntradaDeMercadoria.cs` |
 

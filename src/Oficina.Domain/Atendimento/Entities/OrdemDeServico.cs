@@ -102,9 +102,10 @@ public sealed class OrdemDeServico : RaizDeAgregado
         Veiculo veiculo,
         IReadOnlyCollection<Servico> servicos,
         string autor,
-        DateTimeOffset agora)
+        DateTimeOffset agora,
+        IReadOnlyCollection<PecaInsumoSolicitada>? pecasInsumos = null)
     {
-        GarantirAberturaPermitida(cliente, veiculo, servicos);
+        GarantirAberturaPermitida(cliente, veiculo, servicos, pecasInsumos);
 
         var os = new OrdemDeServico
         {
@@ -117,10 +118,19 @@ public sealed class OrdemDeServico : RaizDeAgregado
         os._servicos.AddRange(servicos.Select(s => new ServicoDaOs(s.Id)));
         os.MudarStatus(StatusOs.Recebida, autor, agora);
         os.Registrar(new OsAberta(os.Id, numero.Valor, cliente.Id, veiculo.Id, agora));
+        foreach (var solicitada in pecasInsumos ?? [])
+        {
+            os.AdicionarPecaInsumo(solicitada.Peca, solicitada.Quantidade, agora);
+        }
+
         return os;
     }
 
-    public static void GarantirAberturaPermitida(Cliente cliente, Veiculo veiculo, IReadOnlyCollection<Servico> servicos)
+    public static void GarantirAberturaPermitida(
+        Cliente cliente,
+        Veiculo veiculo,
+        IReadOnlyCollection<Servico> servicos,
+        IReadOnlyCollection<PecaInsumoSolicitada>? pecasInsumos = null)
     {
         cliente.GarantirAtivo();
         veiculo.GarantirAtivo();
@@ -143,6 +153,11 @@ public sealed class OrdemDeServico : RaizDeAgregado
         foreach (var servico in servicos)
         {
             servico.GarantirAtivo();
+        }
+
+        if (pecasInsumos is not null && pecasInsumos.Select(p => p.Peca.Id).Distinct().Count() != pecasInsumos.Count)
+        {
+            throw new DadosInvalidosException("Peca/insumo repetida na OS.");
         }
     }
 
@@ -188,7 +203,11 @@ public sealed class OrdemDeServico : RaizDeAgregado
     public void IncluirPecaInsumo(PecaInsumo peca, Quantidade quantidade, DateTimeOffset agora)
     {
         GarantirEmDiagnostico();
+        AdicionarPecaInsumo(peca, quantidade, agora);
+    }
 
+    private void AdicionarPecaInsumo(PecaInsumo peca, Quantidade quantidade, DateTimeOffset agora)
+    {
         peca.Baixar(quantidade);
 
         var existente = _itensDePecaInsumo.FirstOrDefault(i => i.PecaInsumoId == peca.Id);
