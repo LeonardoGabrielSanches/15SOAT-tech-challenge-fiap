@@ -10,7 +10,8 @@ Substituir anotações manuais e planilhas por um sistema que conduz a Ordem de 
 
 - O **Atendente** identifica o Cliente por CPF/CNPJ, cadastra o Veículo e abre a OS já com ao menos um Serviço.
 - O **Mecânico** inicia o diagnóstico, ajusta Serviços e Peças/insumos (a inclusão dá baixa imediata no estoque) e conclui o diagnóstico.
-- Ao concluir o diagnóstico, o sistema gera uma **Versão do orçamento** com preços congelados e a envia ao Cliente com um **Token de aprovação** de uso único. O envio é simulado: o e-mail, o Número da OS, o total e o token são registrados em log.
+- Ao concluir o diagnóstico, o sistema gera uma **Versão do orçamento** com preços congelados e a envia ao Cliente com um **Token de aprovação** de uso único.
+- A cada mudança de Status da OS, inclusive a abertura, o Cliente recebe uma **Notificação de status** por e-mail (SMTP via MailKit, de melhor esforço). O e-mail de Aguardando aprovação traz os itens, o total e o link para a consulta pública.
 - O **Cliente** não tem conta: consulta a OS pelo Número da OS + CPF/CNPJ e aprova ou recusa o orçamento com o token.
 - O **Mecânico** executa e finaliza; o **Atendente** registra a entrega.
 - O **Gerente** mantém serviços, peças/insumos e estoque, acompanha o tempo médio de execução e pode executar qualquer ação administrativa.
@@ -45,7 +46,7 @@ O requisito "tempo médio de execução dos serviços" é lido como o tempo dos 
 
 - Reparos adicionais durante a execução (não há transição de Em execução para Aguardando aprovação).
 - Pagamento e qualquer condição financeira para a entrega.
-- Envio real de notificações (e-mail/SMS/aplicativo) e notificação de OS Finalizada.
+- Notificações por SMS ou aplicativo, e reenvio de e-mails que falharam (o envio é de melhor esforço, ADR 0010).
 - Extrato de movimentações de estoque, alerta de estoque mínimo e ajuste de inventário.
 - Descontos no orçamento.
 - Login ou conta de Cliente.
@@ -61,7 +62,7 @@ Monólito em camadas, com o domínio no centro. As dependências sempre apontam 
 |---|---|---|
 | Domain | `src/Oficina.Domain` | Entidades, objetos de valor, eventos de domínio e interfaces de repositório. Não referencia nenhum outro projeto nem pacote de infraestrutura. |
 | Application | `src/Oficina.Application` | Casos de uso, que orquestram agregados e definem a transação (um único `SaveChanges` por caso de uso), e as interfaces de serviços técnicos (notificador, unidade de trabalho). |
-| Infrastructure | `src/Oficina.Infrastructure` | EF Core/Npgsql, repositórios, migrations, gerador do Número da OS e notificador simulado. |
+| Infrastructure | `src/Oficina.Infrastructure` | EF Core/Npgsql, repositórios, migrations, gerador do Número da OS e notificador por e-mail (MailKit). |
 | Api | `src/Oficina.Api` | Endpoints REST (Minimal API), autenticação JWT via Keycloak, OpenAPI/Swagger e tratamento de erros (ProblemDetails). |
 
 ### Bounded contexts
@@ -72,7 +73,7 @@ Monólito em camadas, com o domínio no centro. As dependências sempre apontam 
 | Catálogo e Estoque | Supporting | Serviço, Peça/insumo (com saldo), Entrada de mercadoria, Baixa e Estorno |
 | Identidade e Acesso | Generic | Keycloak (externo ao código): usuários e papéis |
 
-A `OrdemDeServico` é o único agregado do fluxo e é gravada na mesma transação que o saldo da `PecaInsumo`. Baixa, estorno e Histórico de status são executados de forma síncrona pelo caso de uso; os eventos de domínio são despachados após o commit e hoje só `DiagnosticoConcluido` tem handler (envio do orçamento pelo notificador).
+A `OrdemDeServico` é o único agregado do fluxo e é gravada na mesma transação que o saldo da `PecaInsumo`. Baixa, estorno e Histórico de status são executados de forma síncrona pelo caso de uso; os eventos de domínio são despachados após o commit e `StatusDaOsAlterado` tem handler (Notificação de status por e-mail).
 
 Erros de domínio retornam ProblemDetails: `404` para recurso inexistente ou consulta pública sem correspondência, `409` para conflito de estado ou concorrência, `422` para dados inválidos (CPF, placa, quantidade, saldo insuficiente).
 
@@ -103,7 +104,7 @@ O domínio é fortemente relacional (Cliente → Veículo → OS → itens → S
 docker compose up --build
 ```
 
-Sobe PostgreSQL (porta 5432), Keycloak (porta 8080, com o realm `oficina` importado automaticamente), a API (porta **8081**) e a interface web (porta **3000**). A API só inicia depois que os dois ficam saudáveis (o Keycloak leva cerca de um minuto na primeira vez). Ao iniciar, a API aplica as migrations e carrega dados de demonstração de forma idempotente.
+Sobe PostgreSQL (porta 5432), Keycloak (porta 8080, com o realm `oficina` importado automaticamente), Mailpit (SMTP na porta 1025 e interface web na porta **8025**), a API (porta **8081**) e a interface web (porta **3000**). A API só inicia depois que os dois ficam saudáveis (o Keycloak leva cerca de um minuto na primeira vez). Ao iniciar, a API aplica as migrations e carrega dados de demonstração de forma idempotente.
 
 Verificação rápida:
 
@@ -118,11 +119,32 @@ Para derrubar o ambiente (e apagar o volume do banco): `docker compose down -v`.
 Suba só as dependências e rode a API (porta 5233, com a carga de demonstração ligada pelo `appsettings.Development.json`):
 
 ```bash
-docker compose up -d postgres keycloak
+docker compose up -d postgres keycloak mailpit
 dotnet run --project src/Oficina.Api
 ```
 
 Neste modo o botão Authorize do Swagger não funciona (o redirecionamento OAuth do realm só está cadastrado para as portas 8081 e 5000); obtenha o token pela linha de comando, como descrito abaixo.
+
+### E-mails de Notificação de status
+
+No docker-compose, a API entrega os e-mails ao **Mailpit**, que os captura sem enviar nada para fora. Abra <http://localhost:8025> para ver cada Notificação de status em texto puro: o assunto segue o formato `<Número da OS>: <status legível>` (ex.: `OS-2026-00001: Em execução`) e, em Aguardando aprovação, o corpo lista os itens e o total e traz o link `http://localhost:3000/portal/consulta?numero=<Número da OS>&token=<Token de aprovação>`. O CPF/CNPJ nunca vai no link: o Cliente o informa na consulta. Rodando a API fora do Docker, o padrão do `appsettings.json` (`localhost:1025`) aponta para o mesmo Mailpit.
+
+O envio é de melhor esforço (ADR 0010): se o SMTP falhar ou passar do timeout, a falha vai para o log da API e a mudança de status responde com sucesso.
+
+Para usar um SMTP real (Brevo, Gmail com senha de app etc.), troque a configuração da seção `Email` por variáveis de ambiente:
+
+| Variável | Padrão | Uso |
+|---|---|---|
+| `Email__Host` | `localhost` (`mailpit` no compose) | servidor SMTP |
+| `Email__Porta` | `1025` | porta SMTP (ex.: 587 com STARTTLS, 465 com SSL) |
+| `Email__Usuario` | vazio | login SMTP; vazio desliga a autenticação |
+| `Email__Senha` | (sem padrão) | senha SMTP; só por variável de ambiente (Secret no Kubernetes), nunca versionada |
+| `Email__Remetente` | `Oficina <nao-responda@oficina.local>` | endereço do remetente |
+| `Email__Tls` | `None` | `None`, `StartTls`, `SslOnConnect`, `StartTlsWhenAvailable` ou `Auto` |
+| `Email__TimeoutEmSegundos` | `5` | limite de conexão e envio |
+| `Email__UrlDoPortal` | `http://localhost:3000` | base do link da consulta pública |
+
+Exemplo com o Brevo: `Email__Host=smtp-relay.brevo.com`, `Email__Porta=587`, `Email__Tls=StartTls`, `Email__Usuario=<login SMTP>`, `Email__Senha=<chave SMTP>` e `Email__Remetente=<remetente verificado>`.
 
 ## Interface web
 
@@ -138,13 +160,7 @@ O Cliente não tem conta nem login. As páginas do portal são públicas e chama
 - <http://localhost:3000/portal/aprovacao>: o Cliente cola o Token de aprovação e é levado a `/portal/aprovacao/{token}`.
 - `http://localhost:3000/portal/aprovacao/{token}`: aprova ou recusa (com motivo opcional) a Versão do orçamento daquele token.
 
-O envio do orçamento é simulado: ao concluir o diagnóstico, a API só registra em log o e-mail, o Número da OS, o total e o Token de aprovação. Numa demonstração, leia o token no log da API:
-
-```bash
-docker compose logs api | grep "Orcamento enviado"
-```
-
-A linha tem o formato `Orcamento enviado para <e-mail>: OS <Número da OS>, total <total>, token <token>`; cada conclusão do diagnóstico gera um token novo, então use o da linha mais recente da OS. Use o token em `/portal/aprovacao`, ou abra direto `http://localhost:3000/portal/aprovacao/<token>`.
+Ao concluir o diagnóstico, a OS passa a Aguardando aprovação e o Cliente recebe o e-mail com o orçamento. Numa demonstração, abra o e-mail mais recente da OS no Mailpit (<http://localhost:8025>) e siga o link `/portal/consulta?numero=...&token=...`: o portal já preenche o Número da OS, pede o CPF/CNPJ e mostra Aprovar e Recusar abaixo do orçamento. Cada conclusão do diagnóstico gera um token novo, então use o link do e-mail mais recente. O token também pode ser colado em `/portal/aprovacao`.
 
 ### Executando a interface fora do Docker
 
@@ -295,7 +311,7 @@ O relatório final consolidado está em [`docs/seguranca/relatorio-vulnerabilida
 ├── src/
 │   ├── Oficina.Domain/          entidades, objetos de valor, eventos e interfaces (por contexto)
 │   ├── Oficina.Application/     casos de uso, notificador, unidade de trabalho, carga de demonstração
-│   ├── Oficina.Infrastructure/  EF Core, repositórios, migrations, notificador simulado
+│   ├── Oficina.Infrastructure/  EF Core, repositórios, migrations, notificador por e-mail (MailKit)
 │   └── Oficina.Api/             endpoints, autenticação Keycloak, OpenAPI, tratamento de erros
 ├── tests/
 │   ├── Oficina.UnitTests/       testes unitários (Moq)
@@ -309,7 +325,7 @@ O relatório final consolidado está em [`docs/seguranca/relatorio-vulnerabilida
 ├── scripts/cobertura.sh         testes + gate de cobertura
 ├── .github/workflows/           ci.yml e vulnerabilidades.yml
 ├── Dockerfile                   build multi-stage da API
-├── docker-compose.yml           PostgreSQL + Keycloak + API + interface web
+├── docker-compose.yml           PostgreSQL + Keycloak + Mailpit + API + interface web
 ├── GLOSSARY.md                  glossário do domínio
 └── Oficina.sln
 ```
