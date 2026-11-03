@@ -27,6 +27,7 @@ public class OrdensDeServicoTests
     private readonly Mock<IPecaInsumoRepository> _pecas = new();
     private readonly Mock<IGeradorNumeroOs> _gerador = new();
     private readonly Mock<IUnidadeDeTrabalho> _unidade = new();
+    private readonly Mock<IAsyncDisposable> _transacao = new();
     private readonly TimeProvider _relogio = RelogioFixo.Em(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.Zero));
 
     private readonly Cliente _cliente;
@@ -39,6 +40,7 @@ public class OrdensDeServicoTests
         _clientes.Setup(r => r.ObterPorId(_cliente.Id, It.IsAny<CancellationToken>())).ReturnsAsync(_cliente);
         _veiculos.Setup(r => r.ObterPorId(_veiculo.Id, It.IsAny<CancellationToken>())).ReturnsAsync(_veiculo);
         _gerador.Setup(g => g.Proximo(2026, It.IsAny<CancellationToken>())).ReturnsAsync(NumeroOs.Criar(2026, 7));
+        _unidade.Setup(u => u.IniciarTransacao(It.IsAny<CancellationToken>())).ReturnsAsync(_transacao.Object);
     }
 
     private static Cliente NovoCliente(string cpf = "529.982.247-25") =>
@@ -70,7 +72,7 @@ public class OrdensDeServicoTests
 
     private Task<OrdemDeServicoResumoDto> AbrirComPecas(Servico servico, params PecaInsumoNaAbertura[] pecasInsumos) =>
         Abertura().Executar(
-            new AbrirOsComando(_cliente.Id, _veiculo.Id, [servico.Id], "atendente-1", pecasInsumos),
+            new AbrirOsComando(_cliente.Id, _veiculo.Id, [servico.Id], pecasInsumos, "atendente-1"),
             CancellationToken.None);
 
     private void VerificarQueNadaFoiGravado()
@@ -81,12 +83,12 @@ public class OrdensDeServicoTests
 
     private Task<OrdemDeServicoResumoDto> Abrir(Guid? clienteId = null, Guid? veiculoId = null, params Guid[] servicoIds) =>
         Abertura().Executar(
-            new AbrirOsComando(clienteId ?? _cliente.Id, veiculoId ?? _veiculo.Id, servicoIds, "atendente-1"),
+            new AbrirOsComando(clienteId ?? _cliente.Id, veiculoId ?? _veiculo.Id, servicoIds, [], "atendente-1"),
             CancellationToken.None);
 
     private OrdemDeServico OsRecebida(params Servico[] servicos)
     {
-        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, servicos, "atendente-1", _relogio.GetUtcNow());
+        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, servicos, [], "atendente-1", _relogio.GetUtcNow());
         _ordens.Setup(r => r.ObterPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
         return os;
     }
@@ -124,9 +126,10 @@ public class OrdensDeServicoTests
         OrdemDeServico? adicionada = null;
         _ordens.Setup(r => r.Adicionar(It.IsAny<OrdemDeServico>())).Callback<OrdemDeServico>(o => adicionada = o);
         var ordem = new List<string>();
-        _unidade.Setup(u => u.IniciarTransacao(It.IsAny<CancellationToken>())).Callback(() => ordem.Add("transacao")).Returns(Task.CompletedTask);
+        _unidade.Setup(u => u.IniciarTransacao(It.IsAny<CancellationToken>())).Callback(() => ordem.Add("transacao")).ReturnsAsync(_transacao.Object);
         _gerador.Setup(g => g.Proximo(2026, It.IsAny<CancellationToken>())).Callback(() => ordem.Add("numero")).ReturnsAsync(NumeroOs.Criar(2026, 7));
         _unidade.Setup(u => u.Confirmar(It.IsAny<CancellationToken>())).Callback(() => ordem.Add("confirmar")).Returns(Task.CompletedTask);
+        _transacao.Setup(t => t.DisposeAsync()).Callback(() => ordem.Add("descartar")).Returns(ValueTask.CompletedTask);
 
         var dto = await AbrirComPecas(servico, new PecaInsumoNaAbertura(filtro.Id, 2m), new PecaInsumoNaAbertura(oleo.Id, 1.5m));
 
@@ -134,7 +137,7 @@ public class OrdensDeServicoTests
         Assert.NotNull(adicionada);
         Assert.Equal([(filtro.Id, 2m), (oleo.Id, 1.5m)], adicionada.ItensDePecaInsumo.Select(i => (i.PecaInsumoId, i.Quantidade)));
         Assert.Equal((8m, 3.5m), (filtro.Saldo, oleo.Saldo));
-        Assert.Equal(["transacao", "numero", "confirmar"], ordem);
+        Assert.Equal(["transacao", "numero", "confirmar", "descartar"], ordem);
     }
 
     [Fact]
@@ -149,7 +152,7 @@ public class OrdensDeServicoTests
     }
 
     [Fact]
-    public async Task Abrir_com_peca_repetida_e_rejeitado_sem_reservar_numero()
+    public async Task Abrir_com_peca_repetida_e_rejeitado_sem_gravar_nem_dar_baixa()
     {
         var servico = ServicoExistente();
         var filtro = PecaExistente();
@@ -158,7 +161,7 @@ public class OrdensDeServicoTests
             AbrirComPecas(servico, new PecaInsumoNaAbertura(filtro.Id, 1m), new PecaInsumoNaAbertura(filtro.Id, 1m)));
 
         VerificarQueNadaFoiGravado();
-        _gerador.Verify(g => g.Proximo(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _transacao.Verify(t => t.DisposeAsync(), Times.Once);
         Assert.Equal(10m, filtro.Saldo);
     }
 
@@ -228,6 +231,7 @@ public class OrdensDeServicoTests
 
         await Assert.ThrowsAsync<ConflitoDeEstadoException>(() => Abrir(servicoIds: servico.Id));
 
+        _gerador.Verify(g => g.Proximo(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -259,7 +263,7 @@ public class OrdensDeServicoTests
     }
 
     [Fact]
-    public async Task Abrir_rejeitada_pelo_agregado_nao_consome_numero_da_os()
+    public async Task Abrir_rejeitada_pelo_agregado_nao_grava_a_os_e_desfaz_a_transacao()
     {
         var servico = ServicoExistente();
 
@@ -267,8 +271,19 @@ public class OrdensDeServicoTests
         _cliente.Inativar();
         await Assert.ThrowsAsync<ConflitoDeEstadoException>(() => Abrir(servicoIds: servico.Id));
 
-        _gerador.Verify(g => g.Proximo(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
-        _ordens.Verify(r => r.ExisteEmAndamentoDoVeiculo(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        VerificarQueNadaFoiGravado();
+        _transacao.Verify(t => t.DisposeAsync(), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task Abrir_com_falha_ao_confirmar_desfaz_a_transacao()
+    {
+        var servico = ServicoExistente();
+        _unidade.Setup(u => u.Confirmar(It.IsAny<CancellationToken>())).ThrowsAsync(new ConflitoDeEstadoException("Conflito ao gravar."));
+
+        await Assert.ThrowsAsync<ConflitoDeEstadoException>(() => Abrir(servicoIds: servico.Id));
+
+        _transacao.Verify(t => t.DisposeAsync(), Times.Once);
     }
 
     [Fact]

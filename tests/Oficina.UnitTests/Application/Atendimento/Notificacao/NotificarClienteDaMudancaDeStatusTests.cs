@@ -32,7 +32,7 @@ public class NotificarClienteDaMudancaDeStatusTests
         _cliente = Cliente.Cadastrar("Maria Silva", Documento.Criar("529.982.247-25"), Email.Criar("maria@oficina.com"), null);
         _clientes.Setup(r => r.ObterPorId(_cliente.Id, It.IsAny<CancellationToken>())).ReturnsAsync(_cliente);
         var veiculo = Veiculo.Cadastrar(Placa.Criar("ABC1D23"), "Fiat", "Uno", AnoFabricacao.Criar(2015, RelogioFixo.Em(Agora)), _cliente);
-        _os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, veiculo, [Servico.Cadastrar("Troca de oleo", null, Dinheiro.De(100m))], "atendente-1", Agora);
+        _os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, veiculo, [Servico.Cadastrar("Troca de oleo", null, Dinheiro.De(100m))], [], "atendente-1", Agora);
         _ordens.Setup(r => r.ObterPorId(_os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(_os);
         _logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
     }
@@ -54,7 +54,7 @@ public class NotificarClienteDaMudancaDeStatusTests
         await Manipulador().Manipular(Evento(origem, destino), CancellationToken.None);
 
         _notificador.Verify(n => n.NotificarMudancaDeStatus(
-            "maria@oficina.com", "OS-2026-00001", origem, destino, Agora, null, It.IsAny<CancellationToken>()), Times.Once);
+            new NotificacaoDeStatus("maria@oficina.com", "OS-2026-00001", origem, destino, Agora, null), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -66,7 +66,8 @@ public class NotificarClienteDaMudancaDeStatusTests
         await Manipulador().Manipular(Evento(StatusOs.EmExecucao, StatusOs.Finalizada), CancellationToken.None);
 
         _notificador.Verify(n => n.NotificarMudancaDeStatus(
-            "maria.nova@oficina.com", "OS-2026-00001", StatusOs.EmExecucao, StatusOs.Finalizada, Agora, null, It.IsAny<CancellationToken>()), Times.Once);
+            new NotificacaoDeStatus("maria.nova@oficina.com", "OS-2026-00001", StatusOs.EmExecucao, StatusOs.Finalizada, Agora, null),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -77,17 +78,15 @@ public class NotificarClienteDaMudancaDeStatusTests
         var servico = Servico.Cadastrar("Troca de oleo", null, Dinheiro.De(100m));
         var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 2), _cliente,
             Veiculo.Cadastrar(Placa.Criar("XYZ1A23"), "Fiat", "Uno", AnoFabricacao.Criar(2015, RelogioFixo.Em(Agora)), _cliente),
-            [servico], "atendente-1", Agora);
+            [servico], [], "atendente-1", Agora);
         os.IniciarDiagnostico("mecanico-1", Agora);
         os.IncluirPecaInsumo(filtro, Quantidade.Criar(3m, TipoPecaInsumo.Peca), Agora);
         os.ConcluirDiagnostico([servico], [filtro], "mecanico-1", Agora);
         _ordens.Setup(r => r.ObterPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
         OrcamentoDaNotificacao? enviado = null;
         _notificador
-            .Setup(n => n.NotificarMudancaDeStatus(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<StatusOs?>(), It.IsAny<StatusOs>(),
-                It.IsAny<DateTimeOffset>(), It.IsAny<OrcamentoDaNotificacao?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, StatusOs?, StatusOs, DateTimeOffset, OrcamentoDaNotificacao?, CancellationToken>(
-                (_, _, _, _, _, orcamento, _) => enviado = orcamento)
+            .Setup(n => n.NotificarMudancaDeStatus(It.IsAny<NotificacaoDeStatus>(), It.IsAny<CancellationToken>()))
+            .Callback<NotificacaoDeStatus, CancellationToken>((notificacao, _) => enviado = notificacao.Orcamento)
             .Returns(Task.CompletedTask);
 
         await Manipulador().Manipular(
@@ -108,8 +107,7 @@ public class NotificarClienteDaMudancaDeStatusTests
     public async Task Falha_do_notificador_e_registrada_em_log_sem_propagar()
     {
         _notificador
-            .Setup(n => n.NotificarMudancaDeStatus(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<StatusOs?>(), It.IsAny<StatusOs>(),
-                It.IsAny<DateTimeOffset>(), It.IsAny<OrcamentoDaNotificacao?>(), It.IsAny<CancellationToken>()))
+            .Setup(n => n.NotificarMudancaDeStatus(It.IsAny<NotificacaoDeStatus>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("SMTP fora do ar"));
 
         await Manipulador().Manipular(Evento(StatusOs.Aprovada, StatusOs.EmExecucao), CancellationToken.None);

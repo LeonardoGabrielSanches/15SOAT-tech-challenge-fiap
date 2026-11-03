@@ -35,7 +35,7 @@ public class CancelarOsTests
 
     private OrdemDeServico Os(StatusOs status = StatusOs.Recebida)
     {
-        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], "atendente-1", _relogio.GetUtcNow());
+        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], [], "atendente-1", _relogio.GetUtcNow());
         typeof(OrdemDeServico).GetProperty(nameof(OrdemDeServico.Status))!.SetValue(os, status);
         _ordens.Setup(r => r.ObterPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
         return os;

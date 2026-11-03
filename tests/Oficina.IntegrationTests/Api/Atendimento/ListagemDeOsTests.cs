@@ -219,6 +219,16 @@ public class ListagemDeOsTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
     }
 
+    [Theory]
+    [InlineData("?pagina=abc")]
+    [InlineData("?tamanho=1.5")]
+    public async Task Rejeita_pagina_ou_tamanho_nao_numerico_no_binding(string consulta)
+    {
+        var resposta = await Como("atendente").GetAsync($"{Rota}{consulta}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+    }
+
     [Fact]
     public async Task Aceita_os_limites_de_pagina_e_tamanho()
     {

@@ -39,7 +39,7 @@ public class DiagnosticoTests
 
     private OrdemDeServico Os(StatusOs status = StatusOs.Recebida)
     {
-        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], "atendente-1", _relogio.GetUtcNow());
+        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], [], "atendente-1", _relogio.GetUtcNow());
         typeof(OrdemDeServico).GetProperty(nameof(OrdemDeServico.Status))!.SetValue(os, status);
         _ordens.Setup(r => r.ObterPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
         return os;
@@ -231,6 +231,21 @@ public class DiagnosticoTests
 
         Assert.Equal(10m, peca.Saldo);
         Assert.Empty(os.ItensDePecaInsumo);
+    }
+
+    [Fact]
+    public async Task Remover_fracao_de_peca_ou_quantidade_nao_positiva_e_rejeitado_sem_estorno()
+    {
+        var os = Os(StatusOs.EmDiagnostico);
+        var peca = Peca(saldo: 10m);
+        await Incluir(os, peca, 4m);
+
+        await Assert.ThrowsAsync<DadosInvalidosException>(() => Remover(os, peca, 1.5m));
+        await Assert.ThrowsAsync<DadosInvalidosException>(() => Remover(os, peca, 0m));
+
+        Assert.Equal(6m, peca.Saldo);
+        Assert.Equal(4m, Assert.Single(os.ItensDePecaInsumo).Quantidade);
+        _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Exactly(1));
     }
 
     [Fact]

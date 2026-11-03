@@ -101,9 +101,9 @@ public sealed class OrdemDeServico : RaizDeAgregado
         Cliente cliente,
         Veiculo veiculo,
         IReadOnlyCollection<Servico> servicos,
+        IReadOnlyCollection<InclusaoDePecaInsumo> pecasInsumos,
         string autor,
-        DateTimeOffset agora,
-        IReadOnlyCollection<PecaInsumoSolicitada>? pecasInsumos = null)
+        DateTimeOffset agora)
     {
         GarantirAberturaPermitida(cliente, veiculo, servicos, pecasInsumos);
 
@@ -118,19 +118,19 @@ public sealed class OrdemDeServico : RaizDeAgregado
         os._servicos.AddRange(servicos.Select(s => new ServicoDaOs(s.Id)));
         os.MudarStatus(StatusOs.Recebida, autor, agora);
         os.Registrar(new OsAberta(os.Id, numero.Valor, cliente.Id, veiculo.Id, agora));
-        foreach (var solicitada in pecasInsumos ?? [])
+        foreach (var inclusao in pecasInsumos)
         {
-            os.AdicionarPecaInsumo(solicitada.Peca, solicitada.Quantidade, agora);
+            os.AdicionarPecaInsumo(inclusao.Peca, inclusao.Quantidade, agora);
         }
 
         return os;
     }
 
-    public static void GarantirAberturaPermitida(
+    private static void GarantirAberturaPermitida(
         Cliente cliente,
         Veiculo veiculo,
         IReadOnlyCollection<Servico> servicos,
-        IReadOnlyCollection<PecaInsumoSolicitada>? pecasInsumos = null)
+        IReadOnlyCollection<InclusaoDePecaInsumo> pecasInsumos)
     {
         cliente.GarantirAtivo();
         veiculo.GarantirAtivo();
@@ -155,7 +155,7 @@ public sealed class OrdemDeServico : RaizDeAgregado
             servico.GarantirAtivo();
         }
 
-        if (pecasInsumos is not null && pecasInsumos.Select(p => p.Peca.Id).Distinct().Count() != pecasInsumos.Count)
+        if (pecasInsumos.Select(p => p.Peca.Id).Distinct().Count() != pecasInsumos.Count)
         {
             throw new DadosInvalidosException("Peca/insumo repetida na OS.");
         }
@@ -223,28 +223,28 @@ public sealed class OrdemDeServico : RaizDeAgregado
         Registrar(new ItemIncluido(Id, peca.Id, quantidade.Valor, agora));
     }
 
-    public void RemoverPecaInsumo(PecaInsumo peca, decimal? quantidade)
+    public void RemoverPecaInsumo(PecaInsumo peca, Quantidade? quantidade)
     {
         GarantirEmDiagnostico();
 
         var existente = _itensDePecaInsumo.FirstOrDefault(i => i.PecaInsumoId == peca.Id)
             ?? throw new RecursoNaoEncontradoException("A Peca/insumo nao esta na OS.");
 
-        var removida = quantidade ?? existente.Quantidade;
-        if (removida > existente.Quantidade)
+        var removida = quantidade ?? Quantidade.Criar(existente.Quantidade, peca.Tipo);
+        if (removida.Valor > existente.Quantidade)
         {
             throw new DadosInvalidosException("A quantidade a remover excede a quantidade incluida na OS.");
         }
 
-        peca.Estornar(Quantidade.Criar(removida, peca.Tipo));
+        peca.Estornar(removida);
 
-        if (removida == existente.Quantidade)
+        if (removida.Valor == existente.Quantidade)
         {
             _itensDePecaInsumo.Remove(existente);
         }
         else
         {
-            existente.Quantidade -= removida;
+            existente.Quantidade -= removida.Valor;
         }
     }
 

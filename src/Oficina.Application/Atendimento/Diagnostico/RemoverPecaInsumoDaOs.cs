@@ -16,12 +16,9 @@ public sealed class RemoverPecaInsumoDaOs(
         var os = await BuscaDeOrdemDeServico.ObterOuFalhar(ordens, osId, cancellationToken);
         var peca = await PecasInsumosDaOs.ObterOuFalhar(pecas, pecaInsumoId, cancellationToken);
 
-        if (quantidade is not null)
-        {
-            Quantidade.Criar(quantidade.Value, peca.Tipo);
-        }
+        Quantidade? removida = quantidade is null ? null : Quantidade.Criar(quantidade.Value, peca.Tipo);
 
-        os.RemoverPecaInsumo(peca, quantidade);
+        os.RemoverPecaInsumo(peca, removida);
 
         await unidadeDeTrabalho.Confirmar(cancellationToken);
     }

@@ -20,10 +20,16 @@ public sealed class ApiFactory(PostgresFixture postgres) : WebApplicationFactory
 
     public Mock<INotificador> Notificador { get; } = new();
 
-    public IReadOnlyList<OrcamentoDaNotificacao> OrcamentosNotificados() =>
+    public IReadOnlyList<NotificacaoDeStatus> NotificacoesEnviadas() =>
         Notificador.Invocations
             .Where(i => i.Method.Name == nameof(INotificador.NotificarMudancaDeStatus))
-            .SelectMany(i => i.Arguments.OfType<OrcamentoDaNotificacao>())
+            .SelectMany(i => i.Arguments.OfType<NotificacaoDeStatus>())
+            .ToList();
+
+    public IReadOnlyList<OrcamentoDaNotificacao> OrcamentosNotificados() =>
+        NotificacoesEnviadas()
+            .Select(n => n.Orcamento)
+            .OfType<OrcamentoDaNotificacao>()
             .ToList();
 
     public string UltimoTokenNotificado() => OrcamentosNotificados()[^1].Token;

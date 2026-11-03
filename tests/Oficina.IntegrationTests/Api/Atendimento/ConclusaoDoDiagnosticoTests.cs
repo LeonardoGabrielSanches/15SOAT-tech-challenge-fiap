@@ -94,8 +94,9 @@ public class ConclusaoDoDiagnosticoTests : IAsyncLifetime
         var envio = Assert.Single(_factory.OrcamentosNotificados());
         Assert.Equal(200m, envio.Total);
         Assert.False(string.IsNullOrWhiteSpace(envio.Token));
-        _factory.Notificador.Verify(n => n.NotificarMudancaDeStatus(
-            email, numero, StatusOs.EmDiagnostico, StatusOs.AguardandoAprovacao, It.IsAny<DateTimeOffset>(), envio, It.IsAny<CancellationToken>()), Times.Once);
+        var notificacao = Assert.Single(_factory.NotificacoesEnviadas(), n => n.Orcamento is not null);
+        Assert.Equal((email, numero, StatusOs.EmDiagnostico, StatusOs.AguardandoAprovacao, envio),
+            (notificacao.Email, notificacao.NumeroOs, notificacao.Origem, notificacao.Destino, notificacao.Orcamento));
         var detalhe = (await Como("atendente").GetFromJsonAsync<OrdemDeServicoDetalheDto>($"{Rota}/{osId}"))!;
         Assert.Equal("AguardandoAprovacao", detalhe.Status);
         var versao = Assert.Single(detalhe.VersoesDoOrcamento);

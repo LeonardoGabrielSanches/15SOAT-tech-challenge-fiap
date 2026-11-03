@@ -3,7 +3,7 @@ import { apiPublica } from "@/lib/api/cliente";
 import { resultadoDaApi, type Falha } from "@/lib/api/resultado";
 import { lerTexto } from "@/lib/dados-do-formulario";
 import type { components } from "@/lib/api/openapi";
-import type { DecisaoDoOrcamento, FalhaDaDecisao } from "./decisao-do-cliente";
+import { ehDecisaoDoOrcamento, type DecisaoDoOrcamento, type FalhaDaDecisao } from "./decisao-do-cliente";
 
 type DecisaoDoOrcamentoRequest = components["schemas"]["DecisaoDoOrcamentoRequest"];
 
@@ -38,13 +38,10 @@ function falhaDaDecisao(falha: Falha): Falha {
 
 function lerPedidoDeDecisao(formData: FormData): DecisaoDoOrcamentoRequest | undefined {
   const decisao = lerTexto(formData, "decisao");
-  if (decisao === "Aprovar") {
-    return { decisao };
+  if (!ehDecisaoDoOrcamento(decisao)) {
+    return undefined;
   }
-  if (decisao === "Recusar") {
-    return { decisao, motivo: lerTexto(formData, "motivo") || null };
-  }
-  return undefined;
+  return decisao === "Recusar" ? { decisao, motivo: lerTexto(formData, "motivo") || null } : { decisao };
 }
 
 export async function decidirOrcamento(token: string, formData: FormData): Promise<DesfechoDaDecisao> {

@@ -25,7 +25,7 @@ public class ConsultarOsPublicaTests
     public ConsultarOsPublicaTests()
     {
         var veiculo = Veiculo.Cadastrar(Placa.Criar("ABC1D23"), "Fiat", "Uno", AnoFabricacao.Criar(2015, _relogio), _cliente);
-        _os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 7), _cliente, veiculo, [_servicoInicial], "joao.atendente", _relogio.GetUtcNow());
+        _os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 7), _cliente, veiculo, [_servicoInicial], [], "joao.atendente", _relogio.GetUtcNow());
         _ordens.Setup(r => r.ObterPorNumero("OS-2026-00007", It.IsAny<CancellationToken>())).ReturnsAsync(_os);
         _clientes.Setup(r => r.ObterPorId(_cliente.Id, It.IsAny<CancellationToken>())).ReturnsAsync(_cliente);
     }

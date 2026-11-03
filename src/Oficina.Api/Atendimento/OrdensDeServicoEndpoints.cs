@@ -15,7 +15,9 @@ public sealed record AbrirOsRequest(
     Guid ClienteId,
     Guid VeiculoId,
     IReadOnlyCollection<Guid>? ServicoIds,
-    IReadOnlyCollection<PecaInsumoNaAbertura>? PecasInsumos = null);
+    IReadOnlyCollection<PecaInsumoNaAberturaRequest>? PecasInsumos = null);
+
+public sealed record PecaInsumoNaAberturaRequest(Guid PecaInsumoId, decimal Quantidade);
 
 public sealed record IncluirServicoNaOsRequest(Guid ServicoId);
 
@@ -52,8 +54,11 @@ public static class OrdensDeServicoEndpoints
 
         ordens.MapPost("/", async (AbrirOsRequest requisicao, AbrirOs caso, ClaimsPrincipal usuario, CancellationToken ct) =>
             {
+                var pecasInsumos = (requisicao.PecasInsumos ?? [])
+                    .Select(p => new PecaInsumoNaAbertura(p.PecaInsumoId, p.Quantidade))
+                    .ToList();
                 var os = await caso.Executar(
-                    new AbrirOsComando(requisicao.ClienteId, requisicao.VeiculoId, requisicao.ServicoIds ?? [], Autor(usuario), requisicao.PecasInsumos),
+                    new AbrirOsComando(requisicao.ClienteId, requisicao.VeiculoId, requisicao.ServicoIds ?? [], pecasInsumos, Autor(usuario)),
                     ct);
                 return Results.Created($"/api/administrativo/ordens-de-servico/{os.Id}", os);
             })

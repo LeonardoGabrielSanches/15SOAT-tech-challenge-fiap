@@ -30,7 +30,7 @@ public class DecisaoDoOrcamentoTests
 
     private OrdemDeServico OsAguardandoAprovacao()
     {
-        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], "atendente-1", _relogio.GetUtcNow());
+        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], [], "atendente-1", _relogio.GetUtcNow());
         os.IniciarDiagnostico("mecanico-1", _relogio.GetUtcNow());
         Concluir(os);
         return os;

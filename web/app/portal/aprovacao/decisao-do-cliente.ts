@@ -26,8 +26,12 @@ export const confirmacoes = {
   },
 } satisfies Record<DecisaoConfirmada, unknown>;
 
+export function ehDecisaoDoOrcamento(valor: unknown): valor is DecisaoDoOrcamento {
+  return typeof valor === "string" && Object.hasOwn(confirmacaoDa, valor);
+}
+
 export function ehDecisaoConfirmada(valor: unknown): valor is DecisaoConfirmada {
-  return valor === "aprovado" || valor === "recusado";
+  return typeof valor === "string" && Object.hasOwn(confirmacoes, valor);
 }
 
 export function impedeNovaDecisao(falha: Falha): boolean {

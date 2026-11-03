@@ -75,16 +75,15 @@ public class NotificacaoDeStatusTests : IAsyncLifetime
             (await _factory.CreateClient().PostAsJsonAsync($"{RotaPublica}/{token}/decisao", new { decisao = "Aprovar" })).StatusCode);
 
     private void VerificarNotificacao(string email, string numero, StatusOs? origem, StatusOs destino) =>
-        _factory.Notificador.Verify(n => n.NotificarMudancaDeStatus(
-            email, numero, origem, destino, It.IsAny<DateTimeOffset>(), It.IsAny<OrcamentoDaNotificacao?>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Single(_factory.NotificacoesEnviadas(), n => (n.Email, n.NumeroOs, n.Origem, n.Destino) == (email, numero, origem, destino));
 
     [Fact]
     public async Task Abertura_notifica_o_cliente_da_os_com_origem_vazia()
     {
         var (os, cliente, _) = await AbrirOs();
 
-        _factory.Notificador.Verify(n => n.NotificarMudancaDeStatus(
-            cliente.Email, os.Numero, null, StatusOs.Recebida, It.IsAny<DateTimeOffset>(), null, It.IsAny<CancellationToken>()), Times.Once);
+        var notificacao = Assert.Single(_factory.NotificacoesEnviadas());
+        Assert.Equal((cliente.Email, os.Numero, null, StatusOs.Recebida, null), (notificacao.Email, notificacao.NumeroOs, notificacao.Origem, notificacao.Destino, notificacao.Orcamento));
     }
 
     [Fact]
@@ -132,11 +131,9 @@ public class NotificacaoDeStatusTests : IAsyncLifetime
         Assert.Equal(150m, orcamento.Total);
         var item = Assert.Single(orcamento.Itens);
         Assert.Equal((1m, 150m, 150m), (item.Quantidade, item.PrecoUnitario, item.Subtotal));
-        _factory.Notificador.Verify(n => n.NotificarMudancaDeStatus(
-            cliente.Email, os.Numero, StatusOs.EmDiagnostico, StatusOs.AguardandoAprovacao, It.IsAny<DateTimeOffset>(), orcamento, It.IsAny<CancellationToken>()), Times.Once);
-        _factory.Notificador.Verify(n => n.NotificarMudancaDeStatus(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<StatusOs?>(), It.IsNotIn(StatusOs.AguardandoAprovacao), It.IsAny<DateTimeOffset>(),
-            It.IsNotNull<OrcamentoDaNotificacao>(), It.IsAny<CancellationToken>()), Times.Never);
+        var comOrcamento = Assert.Single(_factory.NotificacoesEnviadas(), n => n.Orcamento is not null);
+        Assert.Equal((cliente.Email, os.Numero, StatusOs.EmDiagnostico, StatusOs.AguardandoAprovacao, orcamento),
+            (comOrcamento.Email, comOrcamento.NumeroOs, comOrcamento.Origem, comOrcamento.Destino, comOrcamento.Orcamento));
         await AprovarOrcamento(orcamento.Token);
     }
 
@@ -158,8 +155,7 @@ public class NotificacaoDeStatusTests : IAsyncLifetime
     {
         var (os, _, _) = await AbrirOs();
         _factory.Notificador
-            .Setup(n => n.NotificarMudancaDeStatus(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<StatusOs?>(), It.IsAny<StatusOs>(),
-                It.IsAny<DateTimeOffset>(), It.IsAny<OrcamentoDaNotificacao?>(), It.IsAny<CancellationToken>()))
+            .Setup(n => n.NotificarMudancaDeStatus(It.IsAny<NotificacaoDeStatus>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("SMTP fora do ar"));
 
         var resposta = await Como("mecanico").PostAsync($"{Rota}/{os.Id}/diagnostico/iniciar", null);

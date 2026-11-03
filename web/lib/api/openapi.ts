@@ -1381,7 +1381,7 @@ export interface components {
             /** Format: uuid */
             veiculoId: string;
             servicoIds: null | string[];
-            pecasInsumos?: null | components["schemas"]["PecaInsumoNaAbertura"][];
+            pecasInsumos?: null | components["schemas"]["PecaInsumoNaAberturaRequest"][];
         };
         AtualizarClienteRequest: {
             nome: null | string;
@@ -1455,7 +1455,7 @@ export interface components {
             /** Format: uuid */
             servicoId: string;
         };
-        PecaInsumoNaAbertura: {
+        PecaInsumoNaAberturaRequest: {
             /** Format: uuid */
             pecaInsumoId: string;
             /** Format: double */

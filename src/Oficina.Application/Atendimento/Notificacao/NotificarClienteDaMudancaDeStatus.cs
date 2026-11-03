@@ -26,12 +26,7 @@ public sealed partial class NotificarClienteDaMudancaDeStatus(
                 : null;
 
             await notificador.NotificarMudancaDeStatus(
-                cliente.Email.Endereco,
-                evento.Numero,
-                evento.Origem,
-                evento.Destino,
-                evento.OcorridoEm,
-                orcamento,
+                new NotificacaoDeStatus(cliente.Email.Endereco, evento.Numero, evento.Origem, evento.Destino, evento.OcorridoEm, orcamento),
                 cancellationToken);
         }
         catch (Exception falha) when (falha is not OperationCanceledException)

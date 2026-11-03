@@ -13,30 +13,25 @@ public sealed record MensagemDeMudancaDeStatus(string Assunto, string Corpo)
         NumberGroupSeparator = "."
     };
 
-    public static MensagemDeMudancaDeStatus Compor(
-        string numeroOs,
-        StatusOs? origem,
-        StatusOs destino,
-        OrcamentoDaNotificacao? orcamento,
-        string urlDoPortal)
+    public static MensagemDeMudancaDeStatus Compor(NotificacaoDeStatus notificacao, string urlDoPortal)
     {
         var corpo = new StringBuilder()
             .AppendLine("Olá,")
             .AppendLine()
-            .AppendLine(Situacao(numeroOs, origem, destino));
+            .AppendLine(MudancaDeStatus(notificacao));
 
-        if (orcamento is not null)
+        if (notificacao.Orcamento is not null)
         {
-            AcrescentarOrcamento(corpo, numeroOs, orcamento, urlDoPortal);
+            AcrescentarOrcamento(corpo, notificacao.NumeroOs, notificacao.Orcamento, urlDoPortal);
         }
 
         corpo.AppendLine().AppendLine("Oficina");
-        return new MensagemDeMudancaDeStatus($"{numeroOs}: {Rotulo(destino)}", corpo.ToString());
+        return new MensagemDeMudancaDeStatus($"{notificacao.NumeroOs}: {Rotulo(notificacao.Destino)}", corpo.ToString());
     }
 
-    private static string Situacao(string numeroOs, StatusOs? origem, StatusOs destino) => origem is null
-        ? $"A OS {numeroOs} foi aberta e está {Rotulo(destino)}."
-        : $"O status da OS {numeroOs} mudou de {Rotulo(origem.Value)} para {Rotulo(destino)}.";
+    private static string MudancaDeStatus(NotificacaoDeStatus notificacao) => notificacao.Origem is null
+        ? $"A OS {notificacao.NumeroOs} foi aberta e está {Rotulo(notificacao.Destino)}."
+        : $"O status da OS {notificacao.NumeroOs} mudou de {Rotulo(notificacao.Origem.Value)} para {Rotulo(notificacao.Destino)}.";
 
     private static void AcrescentarOrcamento(StringBuilder corpo, string numeroOs, OrcamentoDaNotificacao orcamento, string urlDoPortal)
     {

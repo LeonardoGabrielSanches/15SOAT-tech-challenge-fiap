@@ -33,7 +33,7 @@ public class ExecucaoTests
 
     private OrdemDeServico OsAprovada(DateTimeOffset? abertaEm = null)
     {
-        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], "atendente-1", abertaEm ?? Agora);
+        var os = OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], [], "atendente-1", abertaEm ?? Agora);
         os.IniciarDiagnostico("mecanico-1", Agora);
         os.ConcluirDiagnostico([_servico], [], "mecanico-1", Agora);
         os.AprovarOrcamento(os.VersaoVigente!.Token, "Cliente", Agora);

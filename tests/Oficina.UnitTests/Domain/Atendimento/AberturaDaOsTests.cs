@@ -31,11 +31,11 @@ public class AberturaDaOsTests
         return item;
     }
 
-    private static PecaInsumoSolicitada Solicitada(PecaInsumo peca, decimal quantidade) =>
+    private static InclusaoDePecaInsumo Inclusao(PecaInsumo peca, decimal quantidade) =>
         new(peca, Quantidade.Criar(quantidade, peca.Tipo));
 
-    private OrdemDeServico Abrir(params PecaInsumoSolicitada[] pecasInsumos) =>
-        OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], "atendente-1", _relogio.GetUtcNow(), pecasInsumos);
+    private OrdemDeServico Abrir(params InclusaoDePecaInsumo[] pecasInsumos) =>
+        OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], pecasInsumos, "atendente-1", _relogio.GetUtcNow());
 
     [Fact]
     public void Abrir_com_pecas_e_insumos_da_baixa_e_inclui_os_itens_na_os_recebida()
@@ -43,7 +43,7 @@ public class AberturaDaOsTests
         var filtro = Peca("Filtro");
         var oleo = Peca("Oleo", TipoPecaInsumo.Insumo, 20m);
 
-        var os = Abrir(Solicitada(filtro, 1m), Solicitada(oleo, 3.5m));
+        var os = Abrir(Inclusao(filtro, 1m), Inclusao(oleo, 3.5m));
 
         Assert.Equal(StatusOs.Recebida, os.Status);
         Assert.Equal([(filtro.Id, 1m), (oleo.Id, 3.5m)], os.ItensDePecaInsumo.Select(i => (i.PecaInsumoId, i.Quantidade)));
@@ -56,7 +56,7 @@ public class AberturaDaOsTests
     {
         var filtro = Peca("Filtro");
 
-        Assert.Throws<DadosInvalidosException>(() => Abrir(Solicitada(filtro, 1m), Solicitada(filtro, 2m)));
+        Assert.Throws<DadosInvalidosException>(() => Abrir(Inclusao(filtro, 1m), Inclusao(filtro, 2m)));
 
         Assert.Equal(10m, filtro.Saldo);
     }
@@ -66,7 +66,7 @@ public class AberturaDaOsTests
     {
         var filtro = Peca("Filtro", saldo: 1m);
 
-        Assert.Throws<DadosInvalidosException>(() => Abrir(Solicitada(filtro, 2m)));
+        Assert.Throws<DadosInvalidosException>(() => Abrir(Inclusao(filtro, 2m)));
     }
 
     [Fact]
@@ -75,14 +75,14 @@ public class AberturaDaOsTests
         var filtro = Peca("Filtro");
         filtro.Inativar();
 
-        Assert.Throws<ConflitoDeEstadoException>(() => Abrir(Solicitada(filtro, 1m)));
+        Assert.Throws<ConflitoDeEstadoException>(() => Abrir(Inclusao(filtro, 1m)));
     }
 
     [Fact]
     public void Depois_da_abertura_incluir_e_remover_peca_continuam_restritos_a_em_diagnostico()
     {
         var filtro = Peca("Filtro");
-        var os = Abrir(Solicitada(filtro, 1m));
+        var os = Abrir(Inclusao(filtro, 1m));
 
         Assert.Throws<ConflitoDeEstadoException>(() => os.IncluirPecaInsumo(filtro, Quantidade.Criar(1m, filtro.Tipo), _relogio.GetUtcNow()));
         Assert.Throws<ConflitoDeEstadoException>(() => os.RemoverPecaInsumo(filtro, null));

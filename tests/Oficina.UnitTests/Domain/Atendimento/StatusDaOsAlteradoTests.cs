@@ -23,7 +23,7 @@ public class StatusDaOsAlteradoTests
     }
 
     private OrdemDeServico Abrir() =>
-        OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], "atendente-1", Agora);
+        OrdemDeServico.Abrir(NumeroOs.Criar(2026, 1), _cliente, _veiculo, [_servico], [], "atendente-1", Agora);
 
     [Fact]
     public void Abertura_registra_a_mudanca_de_status_com_origem_vazia()

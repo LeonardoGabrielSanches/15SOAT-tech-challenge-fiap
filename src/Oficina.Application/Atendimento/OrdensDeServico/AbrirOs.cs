@@ -17,8 +17,8 @@ public sealed record AbrirOsComando(
     Guid ClienteId,
     Guid VeiculoId,
     IReadOnlyCollection<Guid> ServicoIds,
-    string Autor,
-    IReadOnlyCollection<PecaInsumoNaAbertura>? PecasInsumos = null);
+    IReadOnlyCollection<PecaInsumoNaAbertura> PecasInsumos,
+    string Autor);
 
 public sealed class AbrirOs(
     IOrdemDeServicoRepository ordens,
@@ -34,10 +34,8 @@ public sealed class AbrirOs(
     {
         var cliente = await BuscaDeCliente.ObterOuFalhar(clientes, comando.ClienteId, cancellationToken);
         var veiculo = await BuscaDeVeiculo.ObterOuFalhar(veiculos, comando.VeiculoId, cancellationToken);
-        var servicosSolicitados = await ServicosSolicitados(comando.ServicoIds, cancellationToken);
-        var pecasSolicitadas = await PecasInsumosSolicitadas(comando.PecasInsumos ?? [], cancellationToken);
-
-        OrdemDeServico.GarantirAberturaPermitida(cliente, veiculo, servicosSolicitados, pecasSolicitadas);
+        var servicosDaOs = await ObterServicos(comando.ServicoIds, cancellationToken);
+        var inclusoes = await ObterInclusoesDePecasInsumos(comando.PecasInsumos, cancellationToken);
 
         if (await ordens.ExisteEmAndamentoDoVeiculo(veiculo.Id, cancellationToken))
         {
@@ -45,16 +43,16 @@ public sealed class AbrirOs(
         }
 
         var agora = relogio.GetUtcNow();
-        await unidadeDeTrabalho.IniciarTransacao(cancellationToken);
+        await using var transacao = await unidadeDeTrabalho.IniciarTransacao(cancellationToken);
         var numero = await gerador.Proximo(agora.Year, cancellationToken);
-        var os = OrdemDeServico.Abrir(numero, cliente, veiculo, servicosSolicitados, comando.Autor, agora, pecasSolicitadas);
+        var os = OrdemDeServico.Abrir(numero, cliente, veiculo, servicosDaOs, inclusoes, comando.Autor, agora);
 
         ordens.Adicionar(os);
         await unidadeDeTrabalho.Confirmar(cancellationToken);
         return OrdemDeServicoResumoDto.De(os);
     }
 
-    private async Task<IReadOnlyList<Servico>> ServicosSolicitados(IReadOnlyCollection<Guid> servicoIds, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<Servico>> ObterServicos(IReadOnlyCollection<Guid> servicoIds, CancellationToken cancellationToken)
     {
         var encontrados = (await servicos.ObterPorIds(servicoIds.Distinct().ToList(), cancellationToken)).ToDictionary(s => s.Id);
 
@@ -65,17 +63,17 @@ public sealed class AbrirOs(
             .ToList();
     }
 
-    private async Task<IReadOnlyList<PecaInsumoSolicitada>> PecasInsumosSolicitadas(
-        IReadOnlyCollection<PecaInsumoNaAbertura> solicitadas,
+    private async Task<IReadOnlyList<InclusaoDePecaInsumo>> ObterInclusoesDePecasInsumos(
+        IReadOnlyCollection<PecaInsumoNaAbertura> pecasInsumos,
         CancellationToken cancellationToken)
     {
-        var resultado = new List<PecaInsumoSolicitada>();
-        foreach (var solicitada in solicitadas)
+        var inclusoes = new List<InclusaoDePecaInsumo>();
+        foreach (var pecaInsumo in pecasInsumos)
         {
-            var peca = await PecasInsumosDaOs.ObterOuFalhar(pecas, solicitada.PecaInsumoId, cancellationToken);
-            resultado.Add(new PecaInsumoSolicitada(peca, Quantidade.Criar(solicitada.Quantidade, peca.Tipo)));
+            var peca = await PecasInsumosDaOs.ObterOuFalhar(pecas, pecaInsumo.PecaInsumoId, cancellationToken);
+            inclusoes.Add(new InclusaoDePecaInsumo(peca, Quantidade.Criar(pecaInsumo.Quantidade, peca.Tipo)));
         }
 
-        return resultado;
+        return inclusoes;
     }
 }

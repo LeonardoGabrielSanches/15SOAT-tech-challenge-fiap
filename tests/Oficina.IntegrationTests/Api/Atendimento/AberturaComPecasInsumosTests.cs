@@ -172,4 +172,17 @@ public class AberturaComPecasInsumosTests(PostgresFixture postgres) : IAsyncLife
         Assert.Equal((10m, 5m), (await Saldo(filtro), await Saldo(oleo)));
         Assert.Empty((await Detalhe(os.Id))!.PecasInsumos);
     }
+
+    [Fact]
+    public async Task Openapi_documenta_as_pecas_e_insumos_opcionais_da_abertura_com_id_e_quantidade()
+    {
+        var documento = await _factory.CreateClient().GetFromJsonAsync<JsonElement>("/openapi/v1.json");
+        var esquemas = documento.GetProperty("components").GetProperty("schemas");
+
+        var abertura = esquemas.GetProperty("AbrirOsRequest");
+        Assert.DoesNotContain("pecasInsumos", abertura.GetProperty("required").EnumerateArray().Select(r => r.GetString()));
+        var referencia = abertura.GetProperty("properties").GetProperty("pecasInsumos").GetProperty("items").GetProperty("$ref").GetString();
+        var item = esquemas.GetProperty(referencia!.Split('/')[^1]);
+        Assert.Equal(["pecaInsumoId", "quantidade"], item.GetProperty("properties").EnumerateObject().Select(p => p.Name));
+    }
 }
