@@ -33,7 +33,7 @@ public sealed class OrdemDeServicoConfiguration : IEntityTypeConfiguration<Ordem
         builder.HasIndex(o => o.VeiculoId)
             .IsUnique()
             .HasDatabaseName("ux_ordens_de_servico_veiculo_em_andamento")
-            .HasFilter($"status NOT IN ('{nameof(StatusOs.Entregue)}', '{nameof(StatusOs.Cancelada)}')");
+            .HasFilter($"status NOT IN ({StatusForaDeAndamentoEmSql()})");
         builder.HasOne<Cliente>().WithMany().HasForeignKey(o => o.ClienteId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Veiculo>().WithMany().HasForeignKey(o => o.VeiculoId).OnDelete(DeleteBehavior.Restrict);
 
@@ -105,4 +105,7 @@ public sealed class OrdemDeServicoConfiguration : IEntityTypeConfiguration<Ordem
 
         builder.Ignore(o => o.EventosDeDominio);
     }
+
+    private static string StatusForaDeAndamentoEmSql() =>
+        string.Join(", ", Enum.GetValues<StatusOs>().Where(s => !s.EstaEmAndamento()).Select(s => $"'{s}'"));
 }

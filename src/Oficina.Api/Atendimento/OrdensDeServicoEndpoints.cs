@@ -59,8 +59,13 @@ public static class OrdensDeServicoEndpoints
             })
             .RequireAuthorization(Politicas.Atendente);
 
-        ordens.MapGet("/", async (string? status, ListarOs caso, CancellationToken ct) =>
-                Results.Ok(await caso.Executar(InterpretarStatus(status), ct)))
+        ordens.MapGet("/", async (
+                    ListarOs caso,
+                    CancellationToken ct,
+                    string? status,
+                    int pagina = ListarOs.PaginaPadrao,
+                    int tamanho = ListarOs.TamanhoPadrao) =>
+                Results.Ok(await caso.Executar(InterpretarStatus(status), pagina, tamanho, ct)))
             .RequireAuthorization(Politicas.AtendenteOuMecanico);
 
         ordens.MapGet("/{id:guid}", async (Guid id, DetalharOs caso, CancellationToken ct) =>

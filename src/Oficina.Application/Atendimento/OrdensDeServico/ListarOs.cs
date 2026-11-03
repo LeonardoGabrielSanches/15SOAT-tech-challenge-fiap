@@ -1,28 +1,26 @@
 using Oficina.Domain.Atendimento.Entities.Enums;
-using Oficina.Domain.Atendimento.Interfaces;
+using Oficina.Domain.Common;
 
 namespace Oficina.Application.Atendimento.OrdensDeServico;
 
-public sealed class ListarOs(IOrdemDeServicoRepository ordens)
+public sealed class ListarOs(IConsultaDeOrdensDeServico consulta)
 {
-    private static readonly StatusOs[] OrdemDePrioridade =
-    [
-        StatusOs.EmExecucao,
-        StatusOs.Aprovada,
-        StatusOs.AguardandoAprovacao,
-        StatusOs.EmDiagnostico,
-        StatusOs.Recebida,
-        StatusOs.Finalizada
-    ];
+    public const int PaginaPadrao = 1;
+    public const int TamanhoPadrao = 20;
+    public const int TamanhoMaximo = 100;
 
-    public async Task<IReadOnlyList<OrdemDeServicoResumoDto>> Executar(StatusOs? status, CancellationToken cancellationToken)
+    public Task<PaginaDeOrdensDeServicoDto> Executar(StatusOs? status, int pagina, int tamanho, CancellationToken cancellationToken)
     {
-        var encontradas = await ordens.Listar(status, cancellationToken);
+        if (pagina < 1)
+        {
+            throw new DadosInvalidosException("A pagina deve ser no minimo 1.");
+        }
 
-        return encontradas
-            .OrderBy(o => Array.IndexOf(OrdemDePrioridade, o.Status) is var i and >= 0 ? i : OrdemDePrioridade.Length)
-            .ThenBy(o => o.AbertaEm)
-            .Select(OrdemDeServicoResumoDto.De)
-            .ToList();
+        if (tamanho is < 1 or > TamanhoMaximo)
+        {
+            throw new DadosInvalidosException($"O tamanho da pagina deve ser de 1 a {TamanhoMaximo}.");
+        }
+
+        return consulta.Listar(status, pagina, tamanho, cancellationToken);
     }
 }

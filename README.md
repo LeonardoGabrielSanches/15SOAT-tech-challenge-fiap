@@ -170,7 +170,7 @@ Variáveis de ambiente da interface (definidas no `docker-compose.yml` e em `web
 
 ## App iOS
 
-O app iOS (`ios/`, SwiftUI) é feito para o **Mecânico** (e para o Gerente, que pode tudo), que trabalha ao lado do Veículo e não no computador do balcão. Ele tem duas abas: **Fila de execução** (OS Aprovadas) e **Ordens de serviço** (OS em andamento, com filtro por Status e busca pelo Número da OS, como `OS-2026-00001`). Ambas levam à página da OS, onde o Mecânico faz o diagnóstico (Serviços e Peças/insumos, conclusão) e a execução (início e finalização). O Atendente que entrar vê uma tela dizendo que o app é do Mecânico e que deve usar a interface web.
+O app iOS (`ios/`, SwiftUI) é feito para o **Mecânico** (e para o Gerente, que pode tudo), que trabalha ao lado do Veículo e não no computador do balcão. Ele tem duas abas: **Fila de execução** (OS Aprovadas) e **Ordens de serviço** (OS que ainda exigem trabalho, sem Finalizadas, Entregues e Canceladas, carregadas por página, com filtro por Status e busca pelo Número da OS, como `OS-2026-00001`). Ambas levam à página da OS, onde o Mecânico faz o diagnóstico (Serviços e Peças/insumos, conclusão) e a execução (início e finalização). O Atendente que entrar vê uma tela dizendo que o app é do Mecânico e que deve usar a interface web.
 
 O app chama a API diretamente, com o token no Keychain ([ADR 0009](docs/adr/0009-app-ios-chama-a-api-com-token-no-keychain.md)): o login usa authorization code + PKCE na página do Keycloak, pelo client público `oficina-ios` (redirect `oficina://autenticacao`), e o app renova o token sozinho e encerra a sessão no Keycloak ao sair.
 

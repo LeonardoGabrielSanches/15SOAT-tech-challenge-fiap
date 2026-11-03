@@ -1,7 +1,7 @@
 using Moq;
 using Oficina.Application.Atendimento.Execucao;
+using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Domain.Atendimento.Entities.ValueObjects;
-using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
@@ -10,7 +10,7 @@ namespace Oficina.UnitTests.Application.Atendimento.Execucao;
 
 public class ConsultarTempoMedioDeExecucaoTests
 {
-    private readonly Mock<IOrdemDeServicoRepository> _ordens = new();
+    private readonly Mock<IConsultaDeOrdensDeServico> _consulta = new();
     private readonly Mock<IServicoRepository> _servicos = new();
     private readonly List<Servico> _catalogo = [];
 
@@ -20,7 +20,7 @@ public class ConsultarTempoMedioDeExecucaoTests
             .ReturnsAsync((IReadOnlyCollection<Guid> ids, CancellationToken _) => _catalogo.Where(s => ids.Contains(s.Id)).ToList());
     }
 
-    private ConsultarTempoMedioDeExecucao Caso() => new(_ordens.Object, _servicos.Object);
+    private ConsultarTempoMedioDeExecucao Caso() => new(_consulta.Object, _servicos.Object);
 
     private Servico NoCatalogo(string nome)
     {
@@ -30,7 +30,7 @@ public class ConsultarTempoMedioDeExecucaoTests
     }
 
     private void OsExecutadas(params TempoDeExecucaoDaOs[] tempos) =>
-        _ordens.Setup(r => r.ObterTemposDeExecucao(It.IsAny<CancellationToken>())).ReturnsAsync(tempos);
+        _consulta.Setup(r => r.ObterTemposDeExecucao(It.IsAny<CancellationToken>())).ReturnsAsync(tempos);
 
     private static TempoDeExecucaoDaOs Os(TimeSpan tempo, params Servico[] servicos) =>
         new(CombinacaoDeServicos.De(servicos.Select(s => s.Id)), tempo);

@@ -1,5 +1,6 @@
 using Moq;
 using Oficina.Application.Atendimento.Execucao;
+using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Entities;
 using Oficina.Domain.Atendimento.Entities.Enums;
@@ -133,17 +134,15 @@ public class ExecucaoTests
     }
 
     [Fact]
-    public async Task Fila_lista_aprovadas_da_mais_antiga_para_a_mais_nova()
+    public async Task Fila_consulta_as_os_aprovadas()
     {
-        var nova = OsAprovada(Agora.AddHours(-1));
-        var antiga = OsAprovada(Agora.AddDays(-2));
-        var media = OsAprovada(Agora.AddDays(-1));
-        _ordens.Setup(r => r.Listar(StatusOs.Aprovada, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([nova, antiga, media]);
+        var aprovada = OrdemDeServicoResumoDto.De(OsAprovada());
+        var consulta = new Mock<IConsultaDeOrdensDeServico>();
+        consulta.Setup(c => c.ListarPorStatus(StatusOs.Aprovada, It.IsAny<CancellationToken>())).ReturnsAsync([aprovada]);
 
-        var fila = await new ListarFilaDeExecucao(_ordens.Object).Executar(CancellationToken.None);
+        var fila = await new ListarFilaDeExecucao(consulta.Object).Executar(CancellationToken.None);
 
-        Assert.Equal([antiga.Id, media.Id, nova.Id], fila.Select(o => o.Id));
+        Assert.Equal([aprovada], fila);
     }
 
     [Fact]

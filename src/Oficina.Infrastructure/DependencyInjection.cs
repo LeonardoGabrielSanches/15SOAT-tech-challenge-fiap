@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Common;
 using Oficina.Domain.Atendimento.Interfaces;
 using Oficina.Infrastructure.Notificacao;
@@ -23,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IClienteRepository, ClienteRepository>();
         services.AddScoped<IVeiculoRepository, VeiculoRepository>();
         services.AddScoped<IOrdemDeServicoRepository, OrdemDeServicoRepository>();
+        services.AddScoped<IConsultaDeOrdensDeServico, ConsultaDeOrdensDeServico>();
         services.AddScoped<IGeradorNumeroOs, GeradorNumeroOs>();
         services.Configure<OpcoesDoEmail>(configuration.GetSection(OpcoesDoEmail.Secao));
         services.AddSingleton<INotificador, NotificadorPorEmail>();

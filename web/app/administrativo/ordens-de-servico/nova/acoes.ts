@@ -6,16 +6,7 @@ import type { OrdemDeServicoResumoDto } from "@/lib/api/dtos";
 import { dadosInvalidos, resultadoDaApi, type Falha } from "@/lib/api/resultado";
 import { exigirTela } from "@/lib/autenticacao/sessao";
 
-export type ResultadoDaAbertura =
-  | { ok: true; dados: OrdemDeServicoResumoDto }
-  | { ok: false; falha: Falha; osEmAndamento?: OrdemDeServicoResumoDto };
-
-type Api = Awaited<ReturnType<typeof apiAdministrativa>>;
-
-async function osEmAndamentoDoVeiculo(api: Api, veiculoId: string): Promise<OrdemDeServicoResumoDto | undefined> {
-  const resultado = await resultadoDaApi<OrdemDeServicoResumoDto[]>(api.GET("/api/administrativo/ordens-de-servico"));
-  return resultado.ok ? resultado.dados.find((os) => os.veiculoId === veiculoId) : undefined;
-}
+export type ResultadoDaAbertura = { ok: true; dados: OrdemDeServicoResumoDto } | { ok: false; falha: Falha };
 
 export async function abrirOs(clienteId: string, veiculoId: string, dados: FormData): Promise<ResultadoDaAbertura> {
   await exigirTela("clientes");
@@ -37,17 +28,13 @@ export async function abrirOs(clienteId: string, veiculoId: string, dados: FormD
   if (falha.status !== 409 || falha.mensagem.toLowerCase().includes("inativo")) {
     return resultado;
   }
-  const osEmAndamento = await osEmAndamentoDoVeiculo(api, veiculoId);
-  if (!osEmAndamento) {
-    return resultado;
-  }
   return {
     ok: false,
     falha: {
       status: 409,
       titulo: "Veículo com OS em andamento",
-      mensagem: `Este Veículo já tem a OS ${osEmAndamento.numero} em andamento. Uma nova OS só pode ser aberta depois que ela for entregue ou cancelada.`,
+      mensagem:
+        "Este Veículo já tem uma OS em andamento. Uma nova OS só pode ser aberta depois que ela for entregue ou cancelada.",
     },
-    osEmAndamento,
   };
 }
