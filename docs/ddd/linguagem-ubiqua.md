@@ -53,6 +53,7 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 | Versão do orçamento | `VersaoDoOrcamento` (itens `ItemDaVersao` com preços congelados, total, situação `SituacaoDaVersao`); gerada em `OrdemDeServico.ConcluirDiagnostico` | `Entities/VersaoDoOrcamento.cs` |
 | Token de aprovação | `VersaoDoOrcamento.Token` (32 bytes aleatórios, uso único, sem expiração por tempo); validado em `OrdemDeServico.AprovarOrcamento` e `RecusarOrcamento` | `Entities/OrdemDeServico.cs` |
 | Aprovar / recusar orçamento | casos de uso `AprovarOrcamento` e `RecusarOrcamento`; eventos `OrcamentoAprovado` e `OrcamentoRecusado`; motivo em `MotivoDaUltimaRecusa` | `Application/Atendimento/Orcamento/AprovarOrcamento.cs`, `RecusarOrcamento.cs` |
+| Decisão do orçamento | endpoint `POST /api/publico/orcamentos/{token}/decisao` com `DecisaoDoOrcamentoRequest` (`DecisaoDoOrcamento`: `Aprovar` ou `Recusar`, `motivo` opcional); chama `AprovarOrcamento` ou `RecusarOrcamento` | `Oficina.Api/Atendimento/DecisaoDoOrcamentoEndpoints.cs` |
 | Envio do orçamento | handler `EnviarOrcamentoAoConcluirDiagnostico` do evento `DiagnosticoConcluido`, via `INotificador` (implementação simulada `NotificadorSimulado`) | `Application/Common/INotificador.cs`, `Oficina.Infrastructure/NotificadorSimulado.cs` |
 
 ### Catálogo e estoque
