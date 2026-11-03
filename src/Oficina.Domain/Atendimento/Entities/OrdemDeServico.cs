@@ -112,11 +112,10 @@ public sealed class OrdemDeServico : RaizDeAgregado
             Numero = numero,
             ClienteId = cliente.Id,
             VeiculoId = veiculo.Id,
-            Status = StatusOs.Recebida,
             AbertaEm = agora
         };
         os._servicos.AddRange(servicos.Select(s => new ServicoDaOs(s.Id)));
-        os._historico.Add(new EntradaDoHistoricoDeStatus(null, StatusOs.Recebida, agora, autor));
+        os.MudarStatus(StatusOs.Recebida, autor, agora);
         os.Registrar(new OsAberta(os.Id, numero.Valor, cliente.Id, veiculo.Id, agora));
         return os;
     }
@@ -376,8 +375,10 @@ public sealed class OrdemDeServico : RaizDeAgregado
 
     private void MudarStatus(StatusOs destino, string autor, DateTimeOffset agora)
     {
-        _historico.Add(new EntradaDoHistoricoDeStatus(Status, destino, agora, autor));
+        StatusOs? origem = _historico.Count == 0 ? null : Status;
+        _historico.Add(new EntradaDoHistoricoDeStatus(origem, destino, agora, autor));
         Status = destino;
+        Registrar(new StatusDaOsAlterado(Id, Numero.Valor, ClienteId, origem, destino, agora));
     }
 
     private void GarantirEmDiagnostico()

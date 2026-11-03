@@ -54,7 +54,7 @@ Derivada do [`GLOSSARY.md`](../../GLOSSARY.md), que é a fonte dos termos e das 
 | Token de aprovação | `VersaoDoOrcamento.Token` (32 bytes aleatórios, uso único, sem expiração por tempo); validado em `OrdemDeServico.AprovarOrcamento` e `RecusarOrcamento` | `Entities/OrdemDeServico.cs` |
 | Aprovar / recusar orçamento | casos de uso `AprovarOrcamento` e `RecusarOrcamento`; eventos `OrcamentoAprovado` e `OrcamentoRecusado`; motivo em `MotivoDaUltimaRecusa` | `Application/Atendimento/Orcamento/AprovarOrcamento.cs`, `RecusarOrcamento.cs` |
 | Decisão do orçamento | endpoint `POST /api/publico/orcamentos/{token}/decisao` com `DecisaoDoOrcamentoRequest` (`DecisaoDoOrcamento`: `Aprovar` ou `Recusar`, `motivo` opcional); chama `AprovarOrcamento` ou `RecusarOrcamento` | `Oficina.Api/Atendimento/DecisaoDoOrcamentoEndpoints.cs` |
-| Envio do orçamento | handler `EnviarOrcamentoAoConcluirDiagnostico` do evento `DiagnosticoConcluido`, via `INotificador` (implementação simulada `NotificadorSimulado`) | `Application/Common/INotificador.cs`, `Oficina.Infrastructure/NotificadorSimulado.cs` |
+| Notificação de status | evento `StatusDaOsAlterado`, registrado em `OrdemDeServico.MudarStatus` (inclusive na abertura, com origem vazia); manipulador `NotificarClienteDaMudancaDeStatus` (após o commit, melhor esforço) chama `INotificador.NotificarMudancaDeStatus`, com `OrcamentoDaNotificacao` (itens, total e Token de aprovação) só quando o destino é Aguardando aprovação; implementação simulada `NotificadorSimulado` | `Events/StatusDaOsAlterado.cs`, `Application/Atendimento/Notificacao/NotificarClienteDaMudancaDeStatus.cs`, `Application/Common/INotificador.cs`, `Oficina.Infrastructure/NotificadorSimulado.cs` |
 
 ### Catálogo e estoque
 

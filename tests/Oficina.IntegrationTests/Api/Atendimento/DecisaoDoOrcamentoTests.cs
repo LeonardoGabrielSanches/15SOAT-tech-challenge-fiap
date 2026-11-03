@@ -1,10 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Moq;
 using Oficina.Application.Atendimento.Clientes;
 using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Atendimento.Veiculos;
@@ -22,32 +19,16 @@ public class DecisaoDoOrcamentoTests : IAsyncLifetime
     private const string Rota = "/api/administrativo/ordens-de-servico";
     private const string RotaPublica = "/api/publico/orcamentos";
 
-    private readonly ApiFactory _origem;
-    private readonly WebApplicationFactory<Program> _factory;
-    private readonly List<string> _tokens = [];
+    private readonly ApiFactory _factory;
 
     public DecisaoDoOrcamentoTests(PostgresFixture postgres)
     {
-        _origem = new ApiFactory(postgres);
-        var notificador = new Mock<INotificador>();
-        notificador
-            .Setup(n => n.EnviarOrcamento(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, decimal, string, CancellationToken>((_, _, _, k, _) => _tokens.Add(k))
-            .Returns(Task.CompletedTask);
-        _factory = _origem.WithWebHostBuilder(b => b.ConfigureServices(s =>
-        {
-            s.RemoveAll<INotificador>();
-            s.AddSingleton(notificador.Object);
-        }));
+        _factory = new ApiFactory(postgres);
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public async Task DisposeAsync()
-    {
-        await _factory.DisposeAsync();
-        await _origem.DisposeAsync();
-    }
+    public async Task DisposeAsync() => await _factory.DisposeAsync();
 
     private HttpClient Como(string papel)
     {
@@ -100,10 +81,10 @@ public class DecisaoDoOrcamentoTests : IAsyncLifetime
 
     private async Task<string> Concluir(Guid osId)
     {
-        var antes = _tokens.Count;
+        var antes = _factory.OrcamentosNotificados().Count;
         Assert.Equal(HttpStatusCode.NoContent, (await Como("mecanico").PostAsync($"{Rota}/{osId}/diagnostico/concluir", null)).StatusCode);
-        Assert.Equal(antes + 1, _tokens.Count);
-        return _tokens[^1];
+        Assert.Equal(antes + 1, _factory.OrcamentosNotificados().Count);
+        return _factory.UltimoTokenNotificado();
     }
 
     private async Task<decimal> Saldo(Guid pecaId)
