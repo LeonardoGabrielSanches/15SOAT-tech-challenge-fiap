@@ -1,15 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Moq;
 using Oficina.Application.Atendimento.Clientes;
 using Oficina.Application.Atendimento.OrdensDeServico;
 using Oficina.Application.Atendimento.Veiculos;
 using Oficina.Application.Catalogo;
-using Oficina.Application.Common;
 using Oficina.IntegrationTests.Support;
 
 namespace Oficina.IntegrationTests.Api.Atendimento;
@@ -20,32 +16,16 @@ public class ExecucaoEEntregaTests : IAsyncLifetime
     private const string Rota = "/api/administrativo/ordens-de-servico";
     private const string RotaPublica = "/api/publico/orcamentos";
 
-    private readonly ApiFactory _origem;
-    private readonly WebApplicationFactory<Program> _factory;
-    private readonly List<string> _tokens = [];
+    private readonly ApiFactory _factory;
 
     public ExecucaoEEntregaTests(PostgresFixture postgres)
     {
-        _origem = new ApiFactory(postgres);
-        var notificador = new Mock<INotificador>();
-        notificador
-            .Setup(n => n.EnviarOrcamento(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, decimal, string, CancellationToken>((_, _, _, k, _) => _tokens.Add(k))
-            .Returns(Task.CompletedTask);
-        _factory = _origem.WithWebHostBuilder(b => b.ConfigureServices(s =>
-        {
-            s.RemoveAll<INotificador>();
-            s.AddSingleton(notificador.Object);
-        }));
+        _factory = new ApiFactory(postgres);
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public async Task DisposeAsync()
-    {
-        await _factory.DisposeAsync();
-        await _origem.DisposeAsync();
-    }
+    public async Task DisposeAsync() => await _factory.DisposeAsync();
 
     private HttpClient Como(string papel)
     {
@@ -88,8 +68,8 @@ public class ExecucaoEEntregaTests : IAsyncLifetime
         var mecanico = Como("mecanico");
         Assert.Equal(HttpStatusCode.NoContent, (await mecanico.PostAsync($"{Rota}/{os.Id}/diagnostico/iniciar", null)).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await mecanico.PostAsync($"{Rota}/{os.Id}/diagnostico/concluir", null)).StatusCode);
-        var token = _tokens[^1];
-        Assert.Equal(HttpStatusCode.NoContent, (await _factory.CreateClient().PostAsync($"{RotaPublica}/{token}/aprovar", null)).StatusCode);
+        var token = _factory.UltimoTokenNotificado();
+        Assert.Equal(HttpStatusCode.NoContent, (await _factory.CreateClient().PostAsJsonAsync($"{RotaPublica}/{token}/decisao", new { decisao = "Aprovar" })).StatusCode);
         return (os.Id, cpf, os.Numero);
     }
 

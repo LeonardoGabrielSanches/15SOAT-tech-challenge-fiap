@@ -6,6 +6,9 @@ namespace Oficina.Infrastructure.Persistencia;
 
 public sealed class UnidadeDeTrabalho(DbContext contexto, IDespachanteDeEventos despachante) : IUnidadeDeTrabalho
 {
+    public async Task IniciarTransacao(CancellationToken cancellationToken) =>
+        await contexto.Database.BeginTransactionAsync(cancellationToken);
+
     public async Task Confirmar(CancellationToken cancellationToken)
     {
         var agregados = contexto.ChangeTracker
@@ -24,11 +27,24 @@ public sealed class UnidadeDeTrabalho(DbContext contexto, IDespachanteDeEventos 
             throw new ConflitoDeEstadoException("O registro foi alterado por outra operação. Tente novamente.");
         }
 
+        await ConfirmarTransacaoAberta(cancellationToken);
+
         foreach (var agregado in agregados)
         {
             agregado.LimparEventos();
         }
 
         await despachante.Despachar(eventos, cancellationToken);
+    }
+
+    private async Task ConfirmarTransacaoAberta(CancellationToken cancellationToken)
+    {
+        if (contexto.Database.CurrentTransaction is not { } transacao)
+        {
+            return;
+        }
+
+        await transacao.CommitAsync(cancellationToken);
+        await transacao.DisposeAsync();
     }
 }

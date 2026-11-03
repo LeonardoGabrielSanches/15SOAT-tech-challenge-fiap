@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { aprovarOrcamento, recusarOrcamento } from "../acoes";
+import { decidirOrcamentoPeloToken } from "../acoes";
 import { DecisaoDoOrcamento } from "./decisao-do-orcamento";
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default async function DecidirOrcamento({ params }: PageProps<"/portal/ap
           </Link>{" "}
           pelo Número da OS e o seu CPF/CNPJ.
         </p>
-        <DecisaoDoOrcamento aprovar={aprovarOrcamento.bind(null, token)} recusar={recusarOrcamento.bind(null, token)} />
+        <DecisaoDoOrcamento decidir={decidirOrcamentoPeloToken.bind(null, token)} />
       </CardContent>
     </Card>
   );

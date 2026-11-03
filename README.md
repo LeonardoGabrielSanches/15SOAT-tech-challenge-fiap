@@ -256,7 +256,7 @@ Com isso é possível abrir uma OS imediatamente.
 | `POST .../{id}/entrega`, `POST .../{id}/cancelar` | Atendente |
 | `GET .../ordens-de-servico/tempo-medio-de-execucao` (média geral e por Combinação de serviços) | Gerente |
 | `POST /api/publico/ordens-de-servico/consulta` (`numero` + `documento`) | público |
-| `POST /api/publico/orcamentos/{token}/aprovar`, `.../recusar` | público (token) |
+| `POST /api/publico/orcamentos/{token}/decisao` (Decisão do orçamento: `decisao` = `Aprovar` ou `Recusar`, `motivo` opcional) | público (token) |
 
 O Gerente é aceito em todos os endpoints administrativos. A listagem de OS oculta Entregue e Cancelada por padrão e ordena por prioridade (Em execução, Aprovada, Aguardando aprovação, Em diagnóstico, Recebida, Finalizada), da mais antiga para a mais nova dentro do status.
 

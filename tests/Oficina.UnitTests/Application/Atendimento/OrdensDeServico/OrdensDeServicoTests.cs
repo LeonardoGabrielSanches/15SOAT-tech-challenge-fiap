@@ -10,6 +10,8 @@ using Oficina.Domain.CatalogoEstoque.Entities;
 using Oficina.Domain.CatalogoEstoque.Entities.ValueObjects;
 using Oficina.Domain.CatalogoEstoque.Interfaces;
 using Oficina.Domain.Common;
+using Oficina.Domain.Estoque.Entities;
+using Oficina.Domain.Estoque.Entities.Enums;
 using Oficina.Domain.Estoque.Entities.ValueObjects;
 using Oficina.Domain.Estoque.Interfaces;
 using Oficina.UnitTests.Domain.Atendimento;
@@ -56,7 +58,26 @@ public class OrdensDeServicoTests
     }
 
     private AbrirOs Abertura() =>
-        new(_ordens.Object, _clientes.Object, _veiculos.Object, _servicos.Object, _gerador.Object, _unidade.Object, _relogio);
+        new(_ordens.Object, _clientes.Object, _veiculos.Object, _servicos.Object, _pecas.Object, _gerador.Object, _unidade.Object, _relogio);
+
+    private PecaInsumo PecaExistente(TipoPecaInsumo tipo = TipoPecaInsumo.Peca, decimal saldo = 10m)
+    {
+        var item = PecaInsumo.Criar($"Item {Guid.NewGuid():N}", tipo, "un", Dinheiro.De(25m));
+        item.RegistrarEntrada(Quantidade.Criar(saldo, tipo));
+        _pecas.Setup(r => r.Obter(item.Id, It.IsAny<CancellationToken>())).ReturnsAsync(item);
+        return item;
+    }
+
+    private Task<OrdemDeServicoResumoDto> AbrirComPecas(Servico servico, params PecaInsumoNaAbertura[] pecasInsumos) =>
+        Abertura().Executar(
+            new AbrirOsComando(_cliente.Id, _veiculo.Id, [servico.Id], "atendente-1", pecasInsumos),
+            CancellationToken.None);
+
+    private void VerificarQueNadaFoiGravado()
+    {
+        _ordens.Verify(r => r.Adicionar(It.IsAny<OrdemDeServico>()), Times.Never);
+        _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Never);
+    }
 
     private Task<OrdemDeServicoResumoDto> Abrir(Guid? clienteId = null, Guid? veiculoId = null, params Guid[] servicoIds) =>
         Abertura().Executar(
@@ -92,6 +113,81 @@ public class OrdensDeServicoTests
         Assert.Equal(_relogio.GetUtcNow(), entrada.Momento);
         Assert.Contains(adicionada.EventosDeDominio, e => e is OsAberta a && a.Numero == "OS-2026-00007");
         _unidade.Verify(u => u.Confirmar(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Abrir_com_pecas_e_insumos_baixa_o_saldo_e_reserva_o_numero_dentro_da_transacao()
+    {
+        var servico = ServicoExistente();
+        var filtro = PecaExistente();
+        var oleo = PecaExistente(TipoPecaInsumo.Insumo, 5m);
+        OrdemDeServico? adicionada = null;
+        _ordens.Setup(r => r.Adicionar(It.IsAny<OrdemDeServico>())).Callback<OrdemDeServico>(o => adicionada = o);
+        var ordem = new List<string>();
+        _unidade.Setup(u => u.IniciarTransacao(It.IsAny<CancellationToken>())).Callback(() => ordem.Add("transacao")).Returns(Task.CompletedTask);
+        _gerador.Setup(g => g.Proximo(2026, It.IsAny<CancellationToken>())).Callback(() => ordem.Add("numero")).ReturnsAsync(NumeroOs.Criar(2026, 7));
+        _unidade.Setup(u => u.Confirmar(It.IsAny<CancellationToken>())).Callback(() => ordem.Add("confirmar")).Returns(Task.CompletedTask);
+
+        var dto = await AbrirComPecas(servico, new PecaInsumoNaAbertura(filtro.Id, 2m), new PecaInsumoNaAbertura(oleo.Id, 1.5m));
+
+        Assert.Equal("OS-2026-00007", dto.Numero);
+        Assert.NotNull(adicionada);
+        Assert.Equal([(filtro.Id, 2m), (oleo.Id, 1.5m)], adicionada.ItensDePecaInsumo.Select(i => (i.PecaInsumoId, i.Quantidade)));
+        Assert.Equal((8m, 3.5m), (filtro.Saldo, oleo.Saldo));
+        Assert.Equal(["transacao", "numero", "confirmar"], ordem);
+    }
+
+    [Fact]
+    public async Task Abrir_com_peca_inexistente_e_rejeitado_sem_gravar_nada()
+    {
+        var servico = ServicoExistente();
+
+        await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() => AbrirComPecas(servico, new PecaInsumoNaAbertura(Guid.NewGuid(), 1m)));
+
+        VerificarQueNadaFoiGravado();
+        _gerador.Verify(g => g.Proximo(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Abrir_com_peca_repetida_e_rejeitado_sem_reservar_numero()
+    {
+        var servico = ServicoExistente();
+        var filtro = PecaExistente();
+
+        await Assert.ThrowsAsync<DadosInvalidosException>(() =>
+            AbrirComPecas(servico, new PecaInsumoNaAbertura(filtro.Id, 1m), new PecaInsumoNaAbertura(filtro.Id, 1m)));
+
+        VerificarQueNadaFoiGravado();
+        _gerador.Verify(g => g.Proximo(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Equal(10m, filtro.Saldo);
+    }
+
+    [Fact]
+    public async Task Abrir_com_fracao_de_peca_e_rejeitado_e_fracao_de_insumo_e_aceita()
+    {
+        var servico = ServicoExistente();
+        var filtro = PecaExistente();
+        var oleo = PecaExistente(TipoPecaInsumo.Insumo);
+
+        await Assert.ThrowsAsync<DadosInvalidosException>(() => AbrirComPecas(servico, new PecaInsumoNaAbertura(filtro.Id, 1.5m)));
+        VerificarQueNadaFoiGravado();
+
+        await AbrirComPecas(servico, new PecaInsumoNaAbertura(oleo.Id, 0.25m));
+        Assert.Equal(9.75m, oleo.Saldo);
+    }
+
+    [Fact]
+    public async Task Abrir_com_peca_sem_saldo_ou_inativa_e_rejeitado_sem_confirmar()
+    {
+        var servico = ServicoExistente();
+        var semSaldo = PecaExistente(saldo: 1m);
+        var inativa = PecaExistente();
+        inativa.Inativar();
+
+        await Assert.ThrowsAsync<DadosInvalidosException>(() => AbrirComPecas(servico, new PecaInsumoNaAbertura(semSaldo.Id, 2m)));
+        await Assert.ThrowsAsync<ConflitoDeEstadoException>(() => AbrirComPecas(servico, new PecaInsumoNaAbertura(inativa.Id, 1m)));
+
+        VerificarQueNadaFoiGravado();
     }
 
     [Fact]
