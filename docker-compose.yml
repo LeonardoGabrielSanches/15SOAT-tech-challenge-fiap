@@ -25,6 +25,10 @@ services:
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
+      URL_PUBLICA_API: http://localhost:8081
+      URL_SWAGGER_ALTERNATIVA: http://localhost:5000
+      URL_PUBLICA_WEB: http://localhost:3000
+      CLIENT_SECRET_WEB: oficina-web-secret-somente-dev
     ports:
       - "8080:8080"
     volumes:
