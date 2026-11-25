@@ -129,6 +129,10 @@ Os casos de uso ficam em `src/Oficina.Application`, um por arquivo, com o nome d
 - **Fora dos testes automatizados.** O envio SMTP do `NotificadorPorEmail`, por decisão explícita (a composição da mensagem é testada em `MensagemDeMudancaDeStatusTests`), e as interfaces web e iOS.
 - **Gate de cobertura.** O CI (`.github/workflows/ci.yml`) roda `scripts/cobertura.sh` e falha abaixo de 80% de linhas em Domain + Application. Os números da última execução estão em [Testes e cobertura](#testes-e-cobertura).
 
+### Infraestrutura na AWS
+
+O ambiente sobe num cluster EKS provisionado por Terraform e implantado pelo GitHub Actions a cada push na `main`, com RDS PostgreSQL, Keycloak, interface web, Mailpit, HPA e teste de carga k6. Um cron destrói tudo toda madrugada para poupar créditos. Recursos, passo a passo do bootstrap, custo e roteiro do vídeo estão em [`infra/README.md`](infra/README.md); as decisões, no [ADR 0011](docs/adr/0011-infraestrutura-na-aws-com-eks-sob-demanda.md).
+
 ## Tecnologias
 
 - C# / .NET 10, ASP.NET Core Minimal API, OpenAPI nativo + Swagger UI
