@@ -42,11 +42,27 @@ services:
       - "8025:8025"
       - "1025:1025"
 
+  migrator:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "./efbundle --connection \"$$ConnectionStrings__Oficina\" && dotnet Oficina.Api.dll carregar-demonstracao"]
+    environment:
+      ConnectionStrings__Oficina: Host=postgres;Port=5432;Database=oficina;Username=oficina;Password=oficina
+      Keycloak__Authority: http://keycloak:8080/realms/oficina
+      Keycloak__Audience: oficina-api
+      Keycloak__ClienteSwagger: oficina-swagger
+      DOTNET_BUNDLE_EXTRACT_BASE_DIR: /tmp
+    restart: "no"
+
   api:
     build: .
     depends_on:
       postgres:
         condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
       keycloak:
         condition: service_healthy
       mailpit:
@@ -57,7 +73,6 @@ services:
       Keycloak__UrlPublica: http://localhost:8080/realms/oficina
       Keycloak__Audience: oficina-api
       Keycloak__ClienteSwagger: oficina-swagger
-      Demonstracao__Carregar: "true"
       Email__Host: mailpit
       Email__Porta: "1025"
       Email__Tls: None

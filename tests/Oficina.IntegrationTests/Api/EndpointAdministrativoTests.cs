@@ -80,6 +80,42 @@ public class EndpointAdministrativoTests(PostgresFixture postgres) : IAsyncLifet
     }
 
     [Fact]
+    public async Task Saude_responde_503_com_o_banco_inacessivel()
+    {
+        await using var fabrica = ApiFactory.ComBancoInacessivel(postgres);
+
+        var resposta = await fabrica.CreateClient().GetAsync("/saude");
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Saude_viva_responde_200_com_o_banco_disponivel()
+    {
+        var resposta = await _factory.CreateClient().GetAsync("/saude/viva");
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Saude_viva_responde_200_com_o_banco_inacessivel()
+    {
+        await using var fabrica = ApiFactory.ComBancoInacessivel(postgres);
+
+        var resposta = await fabrica.CreateClient().GetAsync("/saude/viva");
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Saude_viva_fica_fora_do_openapi()
+    {
+        var documento = await _factory.CreateClient().GetStringAsync("/openapi/v1.json");
+
+        Assert.DoesNotContain("/saude", documento);
+    }
+
+    [Fact]
     public void Servicos_transversais_estao_registrados()
     {
         using var escopo = _factory.Services.CreateScope();
