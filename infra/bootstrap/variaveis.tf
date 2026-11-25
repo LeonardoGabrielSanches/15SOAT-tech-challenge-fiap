@@ -15,7 +15,7 @@ variable "repositorio_github" {
 
 variable "branches_permitidas" {
   type    = list(string)
-  default = ["main", "integration/infra-fase-2"]
+  default = ["main"]
 }
 
 variable "repositorios_ecr" {

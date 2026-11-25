@@ -87,6 +87,10 @@ Rode da sua máquina. Nada disso roda no CI.
 
 5. Opcional, para e-mail real em vez do Mailpit: cadastre os Secrets `SMTP_HOST`, `SMTP_PORTA`, `SMTP_USUARIO`, `SMTP_SENHA` e `SMTP_TLS` (`gh secret set`). Se `SMTP_HOST` estiver preenchido, o pipeline injeta essas opções na API; sem ele, a API usa o Mailpit do cluster.
 
+### Trust da role do CI
+
+A trust da role `oficina-ci` aceita apenas a branch `main` (`branches_permitidas` em `bootstrap/variaveis.tf`), e o `cd.yml` só dispara na `main`. A branch `integration/infra-fase-2`, usada para provar o pipeline antes do merge, foi retirada dos dois. **Depois do merge, rode `terraform apply` em `infra/bootstrap` para a AWS refletir a trust sem a branch de integração**; até isso ser feito, a role ainda aceita a branch antiga.
+
 ## Como o pipeline aplica tudo
 
 `cd.yml` roda a cada push na `main`:
