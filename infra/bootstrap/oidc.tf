@@ -23,7 +23,7 @@ data "aws_iam_policy_document" "confianca_ci" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [for branch in var.branches_permitidas : "repo:${var.repositorio_github}:ref:refs/heads/${branch}"]
+      values   = [for branch in var.branches_permitidas : "${var.prefixo_sub_oidc}:ref:refs/heads/${branch}"]
     }
   }
 }
