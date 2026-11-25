@@ -1,0 +1,145 @@
+name: CD
+
+on:
+  push:
+    branches: [main, integration/infra-fase-2]
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  NOME_CLUSTER: oficina
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build
+        run: dotnet build Oficina.sln --configuration Release
+      - name: Testes e gate de cobertura (Domain + Application >= 80%)
+        run: bash scripts/cobertura.sh
+
+  implantar:
+    needs: build-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: ambiente
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      TF_VAR_arn_usuario_desenvolvedor: ${{ vars.ARN_USUARIO_DESENVOLVEDOR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar na AWS por OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login no ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build e push da imagem da API
+        env:
+          IMAGEM: ${{ steps.ecr.outputs.registry }}/oficina-api
+        run: |
+          docker build -t "$IMAGEM:$GITHUB_SHA" .
+          docker push "$IMAGEM:$GITHUB_SHA"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.x
+          terraform_wrapper: false
+
+      - name: Terraform apply da stack ambiente
+        working-directory: infra/ambiente
+        run: |
+          terraform init -input=false
+          terraform apply -input=false -auto-approve
+
+      - name: Configurar kubectl
+        run: aws eks update-kubeconfig --name "$NOME_CLUSTER" --region "$AWS_REGION"
+
+      - name: Gerar arquivos de ambiente a partir dos outputs
+        working-directory: infra/ambiente
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORTA: ${{ secrets.SMTP_PORTA }}
+          SMTP_USUARIO: ${{ secrets.SMTP_USUARIO }}
+          SMTP_SENHA: ${{ secrets.SMTP_SENHA }}
+          SMTP_TLS: ${{ secrets.SMTP_TLS }}
+        run: |
+          dns=$(terraform output -raw dns_load_balancer)
+          endpoint=$(terraform output -raw endpoint_rds)
+          usuario=$(terraform output -raw usuario_rds)
+          senha=$(terraform output -raw senha_rds)
+          echo "::add-mask::$senha"
+          host="${endpoint%:*}"
+
+          {
+            echo "Keycloak__UrlPublica=http://$dns/auth/realms/oficina"
+            echo "Email__UrlDoPortal=http://$dns"
+          } > ../k8s/ambiente.env
+
+          echo "ConnectionStrings__Oficina=Host=$host;Port=5432;Database=oficina;Username=$usuario;Password=$senha;SSL Mode=Require;Trust Server Certificate=true" > ../k8s/segredos.env
+          if [ -n "$SMTP_HOST" ]; then
+            echo "::add-mask::$SMTP_SENHA"
+            {
+              echo "Email__Host=$SMTP_HOST"
+              echo "Email__Porta=$SMTP_PORTA"
+              echo "Email__Usuario=$SMTP_USUARIO"
+              echo "Email__Senha=$SMTP_SENHA"
+              echo "Email__Tls=$SMTP_TLS"
+            } >> ../k8s/segredos.env
+          fi
+
+          echo "DNS_LB=$dns" >> "$GITHUB_ENV"
+
+      - name: Job de migration e carga de demonstracao
+        working-directory: infra/k8s
+        env:
+          IMAGEM: ${{ steps.ecr.outputs.registry }}/oficina-api
+        run: |
+          curto="${GITHUB_SHA::7}"
+          kubectl apply -f namespace.yaml
+          cd migracao
+          kustomize edit set image "oficina-api=$IMAGEM:$GITHUB_SHA"
+          kustomize edit set namesuffix -- "-$curto"
+          kubectl kustomize --load-restrictor LoadRestrictionsNone . | kubectl apply -f -
+          if ! kubectl -n oficina wait --for=condition=complete "job/migracao-$curto" --timeout=900s; then
+            kubectl -n oficina logs "job/migracao-$curto" --tail=100 || true
+            kubectl -n oficina describe "job/migracao-$curto" || true
+            exit 1
+          fi
+
+      - name: Aplicar manifestos e aguardar rollout
+        working-directory: infra/k8s
+        env:
+          IMAGEM: ${{ steps.ecr.outputs.registry }}/oficina-api
+        run: |
+          kustomize edit set image "oficina-api=$IMAGEM:$GITHUB_SHA"
+          kubectl kustomize . | kubectl apply -f -
+          kubectl -n oficina rollout status deployment/api --timeout=600s
+
+      - name: Smoke test GET /saude
+        run: |
+          for tentativa in $(seq 1 60); do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://$DNS_LB/saude" || true)
+            echo "tentativa $tentativa: HTTP $codigo"
+            if [ "$codigo" = "200" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "A API nao respondeu 200 em /saude pelo endereco publico." >&2
+          exit 1
