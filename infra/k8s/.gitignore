@@ -1,2 +1,3 @@
 ambiente.env
 segredos.env
+segredos-keycloak.env

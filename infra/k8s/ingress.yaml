@@ -35,3 +35,10 @@ spec:
                 name: api
                 port:
                   name: http
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  name: http

@@ -89,7 +89,22 @@ jobs:
           {
             echo "Keycloak__UrlPublica=http://$dns/auth/realms/oficina"
             echo "Email__UrlDoPortal=http://$dns"
+            echo "KC_HOSTNAME=http://$dns/auth"
+            echo "KC_DB_URL_HOST=$host"
+            echo "URL_PUBLICA_API=http://$dns"
+            echo "URL_PUBLICA_WEB=http://$dns"
           } > ../k8s/ambiente.env
+
+          senha_admin_keycloak=$(terraform output -raw senha_admin_keycloak)
+          client_secret_web=$(terraform output -raw client_secret_web)
+          echo "::add-mask::$senha_admin_keycloak"
+          echo "::add-mask::$client_secret_web"
+          {
+            echo "KC_BOOTSTRAP_ADMIN_PASSWORD=$senha_admin_keycloak"
+            echo "KC_DB_USERNAME=$usuario"
+            echo "KC_DB_PASSWORD=$senha"
+            echo "CLIENT_SECRET_WEB=$client_secret_web"
+          } > ../k8s/segredos-keycloak.env
 
           echo "ConnectionStrings__Oficina=Host=$host;Port=5432;Database=oficina;Username=$usuario;Password=$senha;SSL Mode=Require;Trust Server Certificate=true" > ../k8s/segredos.env
           if [ -n "$SMTP_HOST" ]; then
@@ -128,7 +143,8 @@ jobs:
           IMAGEM: ${{ steps.ecr.outputs.registry }}/oficina-api
         run: |
           kustomize edit set image "oficina-api=$IMAGEM:$GITHUB_SHA"
-          kubectl kustomize . | kubectl apply -f -
+          kubectl kustomize --load-restrictor LoadRestrictionsNone . | kubectl apply -f -
+          kubectl -n oficina rollout status deployment/keycloak --timeout=600s
           kubectl -n oficina rollout status deployment/api --timeout=600s
 
       - name: Smoke test GET /saude

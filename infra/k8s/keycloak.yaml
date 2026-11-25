@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      initContainers:
+        - name: criar-banco
+          image: postgres:17-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              existe=$(psql -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'keycloak'")
+              if [ "$existe" != "1" ]; then
+                psql -d postgres -c "CREATE DATABASE keycloak"
+              fi
+          env:
+            - name: PGHOST
+              valueFrom:
+                configMapKeyRef:
+                  name: keycloak
+                  key: KC_DB_URL_HOST
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak
+                  key: KC_DB_USERNAME
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak
+                  key: KC_DB_PASSWORD
+            - name: PGSSLMODE
+              value: require
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:26.2
+          args:
+            - start
+            - --import-realm
+          envFrom:
+            - configMapRef:
+                name: keycloak
+            - secretRef:
+                name: keycloak
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: gerenciamento
+              containerPort: 9000
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              cpu: "1"
+              memory: 1280Mi
+          volumeMounts:
+            - name: realm
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+          startupProbe:
+            httpGet:
+              path: /health/started
+              port: gerenciamento
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: gerenciamento
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: gerenciamento
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: realm
+          configMap:
+            name: keycloak-realm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  type: ClusterIP
+  selector:
+    app: keycloak
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
