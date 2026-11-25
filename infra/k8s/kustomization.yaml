@@ -6,6 +6,7 @@ resources:
   - api.yaml
   - keycloak.yaml
   - web.yaml
+  - mailpit.yaml
   - ingress.yaml
 configMapGenerator:
   - name: keycloak
@@ -54,6 +55,11 @@ secretGenerator:
   - name: web
     envs:
       - segredos-web.env
+  - name: mailpit-auth
+    envs:
+      - segredos-mailpit.env
+    options:
+      disableNameSuffixHash: true
 images:
   - name: oficina-api
     newName: oficina-api

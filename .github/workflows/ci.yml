@@ -50,6 +50,7 @@ jobs:
           cp infra/k8s/segredos.env.example infra/k8s/segredos.env
           cp infra/k8s/segredos-keycloak.env.example infra/k8s/segredos-keycloak.env
           cp infra/k8s/segredos-web.env.example infra/k8s/segredos-web.env
+          cp infra/k8s/segredos-mailpit.env.example infra/k8s/segredos-mailpit.env
           for diretorio in infra/k8s infra/k8s/migracao; do
             saida="$RUNNER_TEMP/$(basename "$diretorio").yaml"
             kubectl kustomize --load-restrictor LoadRestrictionsNone "$diretorio" > "$saida"

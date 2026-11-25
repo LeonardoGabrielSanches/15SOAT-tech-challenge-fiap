@@ -122,15 +122,21 @@ jobs:
             echo "AUTH_SECRET=$auth_secret"
           } > ../k8s/segredos-web.env
 
+          senha_mailpit=$(terraform output -raw senha_mailpit)
+          echo "::add-mask::$senha_mailpit"
+          hash_mailpit=$(openssl passwd -apr1 "$senha_mailpit")
+          echo "::add-mask::$hash_mailpit"
+          echo "users=oficina:$hash_mailpit" > ../k8s/segredos-mailpit.env
+
           echo "ConnectionStrings__Oficina=Host=$host;Port=5432;Database=oficina;Username=$usuario;Password=$senha;SSL Mode=Require;Trust Server Certificate=true" > ../k8s/segredos.env
           if [ -n "$SMTP_HOST" ]; then
             echo "::add-mask::$SMTP_SENHA"
             {
               echo "Email__Host=$SMTP_HOST"
-              echo "Email__Porta=$SMTP_PORTA"
+              echo "Email__Porta=${SMTP_PORTA:-587}"
               echo "Email__Usuario=$SMTP_USUARIO"
               echo "Email__Senha=$SMTP_SENHA"
-              echo "Email__Tls=$SMTP_TLS"
+              echo "Email__Tls=${SMTP_TLS:-StartTls}"
             } >> ../k8s/segredos.env
           fi
 
