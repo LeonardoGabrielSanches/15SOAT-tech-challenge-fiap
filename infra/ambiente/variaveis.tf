@@ -19,5 +19,5 @@ variable "nome_role_ci" {
 
 variable "versao_kubernetes" {
   type    = string
-  default = "1.34"
+  default = "1.37"
 }

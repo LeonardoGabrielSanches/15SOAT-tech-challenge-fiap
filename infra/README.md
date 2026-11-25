@@ -32,7 +32,7 @@ State em chave própria no mesmo bucket. O root só compõe os módulos.
 | Módulo | Recursos AWS |
 |---|---|
 | `rede` | VPC, Internet Gateway, 2 subnets públicas (nodes), 2 subnets privadas (só RDS), tabelas de rota e associações. Sem NAT Gateway |
-| `eks` | Cluster EKS 1.34 e sua role IAM, managed node group x86 `c7i-flex.large` (mín. 2, desejado 2, máx. 3) e sua role IAM, add-ons gerenciados (incluindo metrics-server, usado pelo HPA), access entries para o usuário do desenvolvedor e para a role do CI |
+| `eks` | Cluster EKS 1.37 e sua role IAM, managed node group x86 `c7i-flex.large` (mín. 2, desejado 2, máx. 3) e sua role IAM, add-ons gerenciados (incluindo metrics-server, usado pelo HPA), access entries para o usuário do desenvolvedor e para a role do CI |
 | `banco` | RDS PostgreSQL 17 `db.t4g.micro`, single-AZ, 20 GB, sem acesso público, subnet group e security group que aceita 5432 só dos nodes. Senha mestre gerada. Sem snapshot final nem proteção contra deleção |
 | `ingress` | Traefik via `helm_release` com Service `LoadBalancer`: um único load balancer da AWS |
 | `segredos` | Senhas geradas por `random_password`: admin do Keycloak, client secret da web, `AUTH_SECRET` e basic auth do Mailpit (não cria recurso na AWS; só existem no state) |
