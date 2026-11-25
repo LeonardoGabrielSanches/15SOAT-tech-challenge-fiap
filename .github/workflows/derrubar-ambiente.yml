@@ -1,0 +1,42 @@
+name: Derrubar ambiente
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: ambiente
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_VAR_arn_usuario_desenvolvedor: arn:aws:iam::000000000000:user/derrubar
+
+jobs:
+  derrubar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Inicializar
+        working-directory: infra/ambiente
+        run: terraform init -input=false
+
+      - name: Destruir
+        working-directory: infra/ambiente
+        run: terraform destroy -auto-approve -input=false
