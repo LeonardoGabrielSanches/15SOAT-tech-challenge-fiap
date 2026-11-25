@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Oficina.Api.Atendimento;
 using Oficina.Api.Autenticacao;
 using Oficina.Api.Erros;
@@ -33,14 +32,11 @@ builder.Services.AddOpenApi(o => o.AddDocumentTransformer(new TransformadorDeSeg
 
 var app = builder.Build();
 
-await using (var escopo = app.Services.CreateAsyncScope())
+if (args.Contains("carregar-demonstracao"))
 {
-    await escopo.ServiceProvider.GetRequiredService<OficinaDbContext>().Database.MigrateAsync();
-
-    if (app.Configuration.GetValue<bool>("Demonstracao:Carregar"))
-    {
-        await escopo.ServiceProvider.GetRequiredService<CargaDeDemonstracao>().Executar(CancellationToken.None);
-    }
+    await using var escopo = app.Services.CreateAsyncScope();
+    await escopo.ServiceProvider.GetRequiredService<CargaDeDemonstracao>().Executar(CancellationToken.None);
+    return;
 }
 
 app.UseExceptionHandler();
@@ -60,6 +56,10 @@ app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
 app.MapGet("/saude", async (OficinaDbContext contexto, CancellationToken ct) =>
         await contexto.Database.CanConnectAsync(ct) ? Results.Ok() : Results.StatusCode(503))
+    .AllowAnonymous()
+    .ExcludeFromDescription();
+
+app.MapGet("/saude/viva", () => Results.Ok())
     .AllowAnonymous()
     .ExcludeFromDescription();
 
