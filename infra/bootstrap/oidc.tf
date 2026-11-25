@@ -120,6 +120,12 @@ data "aws_iam_policy_document" "permissoes_ci" {
   }
 
   statement {
+    sid       = "LeituraDePapeisVinculadosAServicos"
+    actions   = ["iam:GetRole"]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.atual.account_id}:role/aws-service-role/*"]
+  }
+
+  statement {
     sid       = "PapeisVinculadosAServicos"
     actions   = ["iam:CreateServiceLinkedRole"]
     resources = ["*"]
