@@ -42,3 +42,17 @@ spec:
                 name: keycloak
                 port:
                   name: http
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http

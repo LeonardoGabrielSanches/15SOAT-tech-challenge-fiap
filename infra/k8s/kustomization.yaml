@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - api.yaml
   - keycloak.yaml
+  - web.yaml
   - ingress.yaml
 configMapGenerator:
   - name: keycloak
@@ -36,6 +37,13 @@ configMapGenerator:
       - Email__Tls=None
     envs:
       - ambiente.env
+  - name: web
+    literals:
+      - API_URL=http://api
+      - KEYCLOAK_URL_INTERNA=http://keycloak:8080/auth/realms/oficina
+      - KEYCLOAK_CLIENT_ID=oficina-web
+    envs:
+      - ambiente.env
 secretGenerator:
   - name: keycloak
     envs:
@@ -43,6 +51,11 @@ secretGenerator:
   - name: api
     envs:
       - segredos.env
+  - name: web
+    envs:
+      - segredos-web.env
 images:
   - name: oficina-api
     newName: oficina-api
+  - name: oficina-web
+    newName: oficina-web
