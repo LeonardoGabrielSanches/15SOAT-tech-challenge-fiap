@@ -34,3 +34,7 @@ output "senha_mailpit" {
   value     = module.segredos.senha_mailpit
   sensitive = true
 }
+
+output "usuario_rds" {
+  value = module.banco.usuario
+}
