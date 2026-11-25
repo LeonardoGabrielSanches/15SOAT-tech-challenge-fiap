@@ -1,0 +1,67 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: oficina
+resources:
+  - namespace.yaml
+  - api.yaml
+  - keycloak.yaml
+  - web.yaml
+  - mailpit.yaml
+  - ingress.yaml
+configMapGenerator:
+  - name: keycloak
+    literals:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_DB=postgres
+      - KC_DB_URL_DATABASE=keycloak
+      - KC_DB_URL_PROPERTIES=?sslmode=require
+      - KC_HTTP_ENABLED=true
+      - KC_HTTP_RELATIVE_PATH=/auth
+      - KC_HTTP_MANAGEMENT_RELATIVE_PATH=/
+      - KC_PROXY_HEADERS=xforwarded
+      - KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true
+      - KC_HEALTH_ENABLED=true
+      - URL_SWAGGER_ALTERNATIVA=http://localhost:5000
+    envs:
+      - ambiente.env
+  - name: keycloak-realm
+    files:
+      - oficina-realm.json=../../keycloak/oficina-realm.json
+  - name: api
+    literals:
+      - Keycloak__Authority=http://keycloak:8080/auth/realms/oficina
+      - Keycloak__Audience=oficina-api
+      - Keycloak__ClienteSwagger=oficina-swagger
+      - Keycloak__ExigirHttps=false
+      - Email__Host=mailpit
+      - Email__Porta=1025
+      - Email__Tls=None
+    envs:
+      - ambiente.env
+  - name: web
+    literals:
+      - API_URL=http://api
+      - KEYCLOAK_URL_INTERNA=http://keycloak:8080/auth/realms/oficina
+      - KEYCLOAK_CLIENT_ID=oficina-web
+    envs:
+      - ambiente.env
+secretGenerator:
+  - name: keycloak
+    envs:
+      - segredos-keycloak.env
+  - name: api
+    envs:
+      - segredos.env
+  - name: web
+    envs:
+      - segredos-web.env
+  - name: mailpit-auth
+    envs:
+      - segredos-mailpit.env
+    options:
+      disableNameSuffixHash: true
+images:
+  - name: oficina-api
+    newName: oficina-api
+  - name: oficina-web
+    newName: oficina-web

@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migracao
+  labels:
+    app: migracao
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: migracao
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migracao
+          image: oficina-api
+          command:
+            - /bin/sh
+            - -c
+            - ./efbundle --connection "$ConnectionStrings__Oficina" && dotnet Oficina.Api.dll carregar-demonstracao
+          env:
+            - name: DOTNET_BUNDLE_EXTRACT_BASE_DIR
+              value: /tmp
+          envFrom:
+            - configMapRef:
+                name: api
+            - secretRef:
+                name: api
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

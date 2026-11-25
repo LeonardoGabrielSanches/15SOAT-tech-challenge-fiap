@@ -1,0 +1,46 @@
+name: Teste de carga
+
+on:
+  workflow_dispatch:
+    inputs:
+      duracao_minutos:
+        description: Minutos no patamar de pico
+        default: "4"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_VAR_arn_usuario_desenvolvedor: arn:aws:iam::000000000000:user/carga
+
+jobs:
+  carga:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.x
+          terraform_wrapper: false
+
+      - name: Obter DNS do load balancer
+        working-directory: infra/ambiente
+        run: |
+          terraform init -input=false
+          echo "DNS_LB=$(terraform output -raw dns_load_balancer)" >> "$GITHUB_ENV"
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Rodar k6
+        env:
+          DURACAO_MINUTOS: ${{ inputs.duracao_minutos }}
+        run: k6 run -e BASE_URL="http://$DNS_LB" -e DURACAO_MINUTOS="$DURACAO_MINUTOS" infra/carga/carga.js

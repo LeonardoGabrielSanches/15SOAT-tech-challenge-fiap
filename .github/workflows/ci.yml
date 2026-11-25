@@ -22,3 +22,40 @@ jobs:
         with:
           name: cobertura
           path: coverage
+
+  infraestrutura:
+    runs-on: ubuntu-latest
+    env:
+      KUBECONFORM_VERSION: v0.6.7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.x
+          terraform_wrapper: false
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive infra
+      - name: Terraform validate (bootstrap e ambiente, sem backend)
+        run: |
+          for pilha in bootstrap ambiente; do
+            terraform -chdir=infra/$pilha init -backend=false -input=false
+            terraform -chdir=infra/$pilha validate
+          done
+      - name: Instalar kubeconform
+        run: |
+          curl -sSfL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | sudo tar -xz -C /usr/local/bin kubeconform
+      - name: Kustomize e kubeconform
+        run: |
+          cp infra/k8s/ambiente.env.example infra/k8s/ambiente.env
+          cp infra/k8s/segredos.env.example infra/k8s/segredos.env
+          cp infra/k8s/segredos-keycloak.env.example infra/k8s/segredos-keycloak.env
+          cp infra/k8s/segredos-web.env.example infra/k8s/segredos-web.env
+          cp infra/k8s/segredos-mailpit.env.example infra/k8s/segredos-mailpit.env
+          for diretorio in infra/k8s infra/k8s/migracao; do
+            saida="$RUNNER_TEMP/$(basename "$diretorio").yaml"
+            kubectl kustomize --load-restrictor LoadRestrictionsNone "$diretorio" > "$saida"
+            kubeconform -strict -summary \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+              "$saida"
+          done

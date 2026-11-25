@@ -1,0 +1,5 @@
+ambiente.env
+segredos.env
+segredos-keycloak.env
+segredos-web.env
+segredos-mailpit.env
