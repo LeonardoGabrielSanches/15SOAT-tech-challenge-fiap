@@ -32,9 +32,6 @@ resource "helm_release" "traefik" {
   timeout = 600
 
   values = [yamlencode({
-    service = {
-      type = "LoadBalancer"
-    }
     ingressClass = {
       enabled        = true
       isDefaultClass = true
