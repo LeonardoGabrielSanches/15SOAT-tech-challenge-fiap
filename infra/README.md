@@ -48,7 +48,7 @@ API (HPA de 2 a 5 réplicas), web (HPA de 1 a 3), Keycloak (banco `keycloak` no 
 - `kubectl` e `gh` (autenticado no fork ou repositório).
 - Opcional: `k6`, para rodar a carga localmente.
 
-Os nomes do repositório (`LeonardoGabrielSanches/15SOAT-tech-challenge-fiap`) e do bucket (`15soat-tech-challenge-fiap-leonardo-sanches`) são valores padrão em `bootstrap/variaveis.tf`. Em um fork, passe `-var repositorio_github=<dono>/<repo>` e `-var nome_bucket_state=<nome-unico>`, e ajuste o `bucket` em `bootstrap/backend.tf.apos-apply` e em `ambiente/backend.tf`.
+O prefixo do `sub` do OIDC e o nome do bucket (`15soat-tech-challenge-fiap-leonardo-sanches`) são valores padrão em `bootstrap/variaveis.tf`. O GitHub usa o subject imutável deste repositório (`repo:<dono>@<id>/<repo>@<id>`); obtenha o seu com `gh api repos/<dono>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix`. Em um fork, passe `-var prefixo_sub_oidc=<prefixo>` e `-var nome_bucket_state=<nome-unico>`, e ajuste o `bucket` em `bootstrap/backend.tf` e em `ambiente/backend.tf`.
 
 ## Passo a passo do bootstrap
 

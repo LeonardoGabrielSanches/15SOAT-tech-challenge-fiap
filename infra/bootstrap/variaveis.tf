@@ -8,9 +8,9 @@ variable "nome_bucket_state" {
   default = "15soat-tech-challenge-fiap-leonardo-sanches"
 }
 
-variable "repositorio_github" {
+variable "prefixo_sub_oidc" {
   type    = string
-  default = "LeonardoGabrielSanches/15SOAT-tech-challenge-fiap"
+  default = "repo:LeonardoGabrielSanches@51983317/15SOAT-tech-challenge-fiap@1423636056"
 }
 
 variable "branches_permitidas" {
