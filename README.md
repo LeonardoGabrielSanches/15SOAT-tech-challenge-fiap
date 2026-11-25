@@ -156,22 +156,25 @@ O domínio é fortemente relacional (Cliente → Veículo → OS → itens → S
 docker compose up --build
 ```
 
-Sobe PostgreSQL (porta 5432), Keycloak (porta 8080, com o realm `oficina` importado automaticamente), Mailpit (SMTP na porta 1025 e interface web na porta **8025**), a API (porta **8081**) e a interface web (porta **3000**). A API só inicia depois que os dois ficam saudáveis (o Keycloak leva cerca de um minuto na primeira vez). Ao iniciar, a API aplica as migrations e carrega dados de demonstração de forma idempotente.
+Sobe PostgreSQL (porta 5432), Keycloak (porta 8080, com o realm `oficina` importado automaticamente), Mailpit (SMTP na porta 1025 e interface web na porta **8025**), a API (porta **8081**) e a interface web (porta **3000**). O serviço `migrator` aplica as migrations (bundle do EF Core) e carrega os dados de demonstração de forma idempotente, e então encerra. A API só inicia depois que o `migrator` termina com sucesso e que o PostgreSQL e o Keycloak ficam saudáveis (o Keycloak leva cerca de um minuto na primeira vez).
 
 Verificação rápida:
 
 ```bash
-curl -i http://localhost:8081/saude
+curl -i http://localhost:8081/saude       # readiness: consulta o banco
+curl -i http://localhost:8081/saude/viva  # liveness: nao toca no banco
 ```
 
 Para derrubar o ambiente (e apagar o volume do banco): `docker compose down -v`.
 
 ### Executando a API fora do Docker
 
-Suba só as dependências e rode a API (porta 5233, com a carga de demonstração ligada pelo `appsettings.Development.json`):
+Suba só as dependências, aplique as migrations, carregue os dados de demonstração e rode a API (porta 5233). A API não aplica migrations nem carrega a demonstração ao subir (ADR 0012):
 
 ```bash
 docker compose up -d postgres keycloak mailpit
+dotnet ef database update --project src/Oficina.Infrastructure --startup-project src/Oficina.Api
+dotnet run --project src/Oficina.Api carregar-demonstracao
 dotnet run --project src/Oficina.Api
 ```
 

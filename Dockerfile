@@ -1,13 +1,18 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY Directory.Build.props Oficina.sln ./
+COPY .config/ .config/
 COPY src/Oficina.Domain/Oficina.Domain.csproj src/Oficina.Domain/
 COPY src/Oficina.Application/Oficina.Application.csproj src/Oficina.Application/
 COPY src/Oficina.Infrastructure/Oficina.Infrastructure.csproj src/Oficina.Infrastructure/
 COPY src/Oficina.Api/Oficina.Api.csproj src/Oficina.Api/
-RUN dotnet restore src/Oficina.Api/Oficina.Api.csproj
+RUN dotnet tool restore && dotnet restore src/Oficina.Api/Oficina.Api.csproj
 COPY src/ src/
 RUN dotnet publish src/Oficina.Api/Oficina.Api.csproj -c Release --no-restore -o /app
+RUN dotnet ef migrations bundle \
+    --project src/Oficina.Infrastructure/Oficina.Infrastructure.csproj \
+    --startup-project src/Oficina.Api/Oficina.Api.csproj \
+    --configuration Release --force -o /app/efbundle
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
